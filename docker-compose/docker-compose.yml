@@ -54,6 +54,7 @@ services:
       - ./scripts/docker-entrypoint.sh:/docker-entrypoint.sh:ro
       - ./certificate/glkvm.cer:/home/certificate/glkvm_cer:ro
       - ./certificate/glkvm.key:/home/certificate/glkvm_key:ro
+      - ./database:/home/database:rw
     entrypoint: ["/bin/sh", "/docker-entrypoint.sh"]
     command: ["rttys"]
     ports:

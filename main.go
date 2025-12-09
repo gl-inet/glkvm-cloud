@@ -29,6 +29,7 @@ import (
     "encoding/json"
     _ "net/http/pprof"
     "os"
+    "rttys/db"
     "runtime"
     "runtime/debug"
 
@@ -284,6 +285,9 @@ func cmdAction(c context.Context, cmd *cli.Command) error {
         log.Info().Msg(string(importJSON))
         log.Info().Msg("==============================")
     }
+
+    // Initialize the SQLite database connection
+    db.Init()
 
     srv := &RttyServer{cfg: cfg}
 

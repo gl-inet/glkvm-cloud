@@ -130,30 +130,125 @@ func (srv *RttyServer) ListenAPI() error {
 
     authorized.GET("/devs", func(c *gin.Context) {
         devs := make([]*DeviceInfo, 0)
-        g := srv.GetGroup(c.Query("group"), false)
+        keyword := c.Query("keyword")
 
-        if g == nil {
+        // 1. Query all device metadata from DB (offline + online)
+        metas, err := GetAllDeviceMeta(keyword)
+        if err != nil || len(metas) == 0 {
             c.JSON(http.StatusOK, devs)
             return
         }
 
-        g.devices.Range(func(key, value any) bool {
-            dev := value.(*Device)
+        // 2. Build online device map from memory
+        onlineMap := make(map[string]*Device)
 
-            devs = append(devs, &DeviceInfo{
-                Group:     dev.group,
-                ID:        dev.id,
-                Desc:      dev.desc,
-                Connected: uint32(time.Now().Unix() - dev.timestamp),
-                Uptime:    dev.uptime,
-                Proto:     dev.proto,
-                IPaddr:    dev.conn.RemoteAddr().(*net.TCPAddr).IP.String(),
+        g := srv.GetGroup("", false)
+        if g != nil {
+            g.devices.Range(func(key, value any) bool {
+                dev := value.(*Device)
+                onlineMap[dev.id] = dev
+                return true
             })
+        }
 
-            return true
-        })
+        now := time.Now().Unix()
 
+        // 3. Iterate metas (DB is the source of truth)
+        for _, meta := range metas {
+            info := &DeviceInfo{
+                ID:        meta.DeviceID,
+                Mac:       meta.Mac,
+                Connected: 0,
+                Uptime:    0,
+                Desc:      meta.Description,
+                Proto:     0,
+                IPaddr:    meta.IP, // fallback: last known IP
+            }
+
+            // 4. If device is online, override with in-memory data
+            if dev, ok := onlineMap[meta.DeviceID]; ok {
+                info.Connected = uint32(now - dev.timestamp)
+                info.Uptime = dev.uptime
+                info.Proto = dev.proto
+
+                if addr, ok := dev.conn.RemoteAddr().(*net.TCPAddr); ok {
+                    info.IPaddr = addr.IP.String()
+                } else if host, _, err := net.SplitHostPort(dev.conn.RemoteAddr().String()); err == nil {
+                    info.IPaddr = host
+                }
+            }
+
+            devs = append(devs, info)
+        }
         c.JSON(http.StatusOK, devs)
+    })
+
+    // UpdateDeviceMetaRequest defines the JSON payload to update device metadata.
+    // Only DeviceID is mandatory; other fields are optional and will be updated
+    // only when provided.
+    type UpdateDeviceMetaRequest struct {
+        DeviceID    string `json:"deviceId" binding:"required"` // DeviceID is the unique device identifier (immutable).
+        Description string `json:"description,omitempty"`       // Description can be updated if provided.
+    }
+
+    // Update device metadata (new interface)
+    authorized.POST("/devs/update", func(c *gin.Context) {
+        var req UpdateDeviceMetaRequest
+
+        // 1. Parse JSON body
+        if err := c.ShouldBindJSON(&req); err != nil {
+            c.JSON(http.StatusBadRequest, gin.H{
+                "code": 400,
+                "msg":  "invalid request body",
+                "err":  err.Error(),
+            })
+            return
+        }
+
+        // 2. Load existing metadata by device_id
+        meta, err := GetDeviceMetaByDeviceID(req.DeviceID)
+        if err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{
+                "code": 500,
+                "msg":  "failed to query device meta",
+                "err":  err.Error(),
+            })
+            return
+        }
+
+        if meta == nil {
+            c.JSON(http.StatusNotFound, gin.H{
+                "code": 404,
+                "msg":  "device meta not found",
+            })
+            return
+        }
+
+        // 3. Merge data: deviceID/mac/ip, now only description
+        newDesc := meta.Description
+        if req.Description != "" {
+            newDesc = req.Description
+        }
+
+        // 4. Reuse SaveOrUpdateDeviceMeta for UPSERT
+        if err := SaveOrUpdateDeviceMeta(
+            meta.DeviceID, // keep original device_id
+            meta.Mac,      // keep original MAC, not editable
+            newDesc,       // new description from request
+            meta.IP,
+        ); err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{
+                "code": 500,
+                "msg":  "failed to update device meta",
+                "err":  err.Error(),
+            })
+            return
+        }
+
+        c.JSON(http.StatusOK, gin.H{
+            "code": 0,
+            "msg":  "ok",
+        })
     })
 
     authorized.GET("/dev/:devid", func(c *gin.Context) {

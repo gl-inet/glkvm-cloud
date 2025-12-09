@@ -333,16 +333,13 @@ func httpProxyRedirect(srv *RttyServer, c *gin.Context, group string) {
     host := c.Request.Host
     hostname, _, err := net.SplitHostPort(host)
     if err != nil {
-        // 没有端口时直接使用 host
         hostname = host
     }
     log.Info().Msgf("hostname: %s", hostname)
 
-    // 检查是否是 IP 地址
     ip := net.ParseIP(hostname)
     isIP := ip != nil
     if isIP {
-        // IP 访问，直接跳转
         location = fmt.Sprintf("https://%s%s?sid=%s", hostname, cfg.AddrHttpProxy, sid)
         log.Info().Msgf("Using IP redirect: %s", location)
     } else {
