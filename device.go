@@ -47,8 +47,8 @@ import (
 )
 
 type DeviceInfo struct {
-    Group     string `json:"group"`
     ID        string `json:"id"`
+    Mac       string `json:"mac"`
     Connected uint32 `json:"connected"`
     Uptime    uint32 `json:"uptime"`
     Desc      string `json:"description"`
@@ -228,8 +228,29 @@ func handleDeviceConnection(srv *RttyServer, conn net.Conn) {
         return
     }
 
-    log.Info().Msgf("device '%s' registered, group '%s' proto %d, heartbeat %v",
-        dev.id, dev.group, dev.proto, dev.heartbeat)
+    deviceRemoteIP := ""
+    if addr, ok := dev.conn.RemoteAddr().(*net.TCPAddr); ok {
+        deviceRemoteIP = addr.IP.String()
+    } else if host, _, err := net.SplitHostPort(dev.conn.RemoteAddr().String()); err == nil {
+        deviceRemoteIP = host
+    }
+    log.Info().Msgf("device '%s' registered, group '%s' proto %d, heartbeat %v, remoteIP '%s'",
+        dev.id, dev.group, dev.proto, dev.heartbeat, deviceRemoteIP)
+
+    // 2. Load existing metadata by device_id
+    description := ""
+    meta, err := GetDeviceMetaByDeviceID(dev.id)
+    if err == nil {
+        description = meta.Description
+    }
+    if err := SaveOrUpdateDeviceMeta(
+        dev.id,
+        dev.desc, // device register mac info with desc filed
+        description,
+        deviceRemoteIP,
+    ); err != nil {
+        return
+    }
 
     for {
         conn.SetReadDeadline(time.Now().Add(dev.heartbeat * 3 / 2))
