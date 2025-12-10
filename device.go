@@ -236,10 +236,17 @@ func handleDeviceConnection(srv *RttyServer, conn net.Conn) {
     }
     log.Info().Msgf("device '%s' registered, group '%s' proto %d, heartbeat %v, remoteIP '%s'",
         dev.id, dev.group, dev.proto, dev.heartbeat, deviceRemoteIP)
+
+    // 2. Load existing metadata by device_id
+    description := ""
+    meta, err := GetDeviceMetaByDeviceID(dev.id)
+    if err != nil && meta != nil {
+        description = meta.Description
+    }
     if err := SaveOrUpdateDeviceMeta(
         dev.id,
         dev.desc, // device register mac info with desc filed
-        "",
+        description,
         deviceRemoteIP,
     ); err != nil {
         return
