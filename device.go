@@ -240,7 +240,7 @@ func handleDeviceConnection(srv *RttyServer, conn net.Conn) {
     // 2. Load existing metadata by device_id
     description := ""
     meta, err := GetDeviceMetaByDeviceID(dev.id)
-    if err != nil && meta != nil {
+    if err == nil {
         description = meta.Description
     }
     if err := SaveOrUpdateDeviceMeta(
