@@ -7,8 +7,18 @@
 ```bash
 git clone https://github.com/gl-inet/glkvm-cloud.git
 cd glkvm-cloud/docker-compose/
-cp .env.example .env
 ```
+
+* **x86_64（amd64）平台**：
+  ```bash
+  cp .env.example .env
+  ```
+* **arm64（AArch64）平台**：
+  
+  ```bash
+  cp .env.arm64.example .env
+  ```
+
 
 ### 2. **配置环境变量**
 
