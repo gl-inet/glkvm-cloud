@@ -17,6 +17,9 @@ Self-Deployed Lightweight Cloud is a lightweight KVM remote cloud platform tailo
 -  **Lightweight Design** - Optimized for small businesses and individual users
 -  **Enterprise Authentication** -  Supports both **LDAP** and **OIDC** login methods for enterprise users. 
 
+-  **Deployment** - Supports both **internal network** and **public internet** deployments
+-  **Platform Compatibility** - Supports both **x86_64** and **arm64** platforms
+
 ## Self-Hosting Guide
 
 The following mainstream operating systems have been tested and verified
@@ -61,9 +64,10 @@ If your server provider uses a **cloud security group** (e.g., AWS, Aliyun, etc.
 
 We provide **two** ways to install GLKVM Cloud: 
 
-#### A) One-line installer (recommended)
+#### A) One-line installer (recommended, x86_64/amd64)
 
 > **Note:** The one-line installer is **Docker-based**. It automates Docker/Compose setup, pulls images, renders configs from templates, and starts services for you.
+> **Platform:** currently supports **x86_64 (amd64)** only.
 
 Run **as root**:
 
@@ -74,6 +78,8 @@ Run **as root**:
 #### B) Docker manual install
 
 > Full reference: see [`docker-compose/README.md`](https://github.com/gl-inet/glkvm-cloud/blob/main/docker-compose/README.md)
+>
+> **Platform:** supports both **x86_64 (amd64)** and **arm64 (AArch64)**. 
 
 ### 🌐 Platform Access
 

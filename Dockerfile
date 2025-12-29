@@ -1,4 +1,7 @@
 FROM alpine:latest
 WORKDIR /home
-COPY ./rttys /usr/bin/rttys
+
+ARG TARGETARCH
+COPY ./dist/rttys-linux-${TARGETARCH} /usr/bin/rttys
+
 ENTRYPOINT ["/usr/bin/rttys"]
