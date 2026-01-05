@@ -2,8 +2,8 @@
  * @Author: LPY
  * @Date: 2025-05-30 09:37:06
  * @LastEditors: LPY
- * @LastEditTime: 2025-06-13 15:55:51
- * @FilePath: /kvm-cloud-frontend/src/stores/modules/app.ts
+ * @LastEditTime: 2026-01-05 14:35:02
+ * @FilePath: \glkvm-cloud\ui\src\stores\modules\app.ts
  * @Description: app相关状态存储
  */
 import { LocalStorageKeys, useLocalStorage } from '@/hooks/useLocalStorage'
@@ -24,6 +24,8 @@ export const useAppStore = defineStore('appGlobal', () => {
     const state = reactive({
         /** 当前的主题模式 */
         themeMode: getThemeFromStorage(),
+        /** 版本号 */
+        version: (useLocalStorage(LocalStorageKeys.VERSION).getValue() as string)?.toUpperCase() || 'V1.0.0',
     })
     
     /** 获取主题模式 */
@@ -114,6 +116,11 @@ export const useAppStore = defineStore('appGlobal', () => {
         sidebar.manualSetting = false
     }
 
+    /** 设置版本号 */
+    const setVersion = (version: string) =>{
+        state.version = version.toUpperCase()
+        useLocalStorage(LocalStorageKeys.VERSION).setValue(version)
+    }
 
-    return { antdTheme, setThemeMode, state, sidebar, isCollapse, manualToggleSidebar, autoCloseSidebar, autoOpenSidebar, resetManualSetting }
+    return { antdTheme, setThemeMode, state, sidebar, isCollapse, manualToggleSidebar, autoCloseSidebar, autoOpenSidebar, resetManualSetting, setVersion }
 })

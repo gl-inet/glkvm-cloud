@@ -2,8 +2,8 @@
  * @Author: LPY
  * @Date: 2025-05-30 15:21:14
  * @LastEditors: LPY
- * @LastEditTime: 2025-08-26 17:57:09
- * @FilePath: \glkvm-cloud\web-ui\src\views\layout\layHeader\layHeader.vue
+ * @LastEditTime: 2026-01-05 14:32:56
+ * @FilePath: \glkvm-cloud\ui\src\views\layout\layHeader\layHeader.vue
  * @Description: 顶部集成页
 -->
 <template>
@@ -12,6 +12,8 @@
             <img src="@/assets/svg/logo.svg" height="20">
         </div>
         <div class="lay-header-right">
+            <!-- version -->
+            <BaseText style="margin-right: 24px;">{{ appStore.state.version || '--' }}</BaseText>
             <!-- github -->
             <ATooltip>
                 <template #title>{{ githubLink }}</template>
@@ -38,9 +40,11 @@
 </template>
 
 <script setup lang="ts">
+import { useAppStore } from '@/stores/modules/app'
 import { useUserStore } from '@/stores/modules/user'
 
 const userStore = useUserStore()
+const appStore = useAppStore()
 
 // github链接
 const githubLink = 'https://github.com/gl-inet/glkvm-cloud'

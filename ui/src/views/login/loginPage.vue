@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2025-05-30 10:48:43
  * @LastEditors: LPY
- * @LastEditTime: 2025-11-12 17:01:59
+ * @LastEditTime: 2026-01-05 14:25:45
  * @FilePath: \glkvm-cloud\ui\src\views\login\loginPage.vue
  * @Description: 登录页面
 -->
@@ -103,6 +103,7 @@ import { useRouter } from 'vue-router'
 import { LoginParams, AuthConfig } from '@/models/user'
 import { message, Input, Form } from 'ant-design-vue'
 import { reqAuthConfig } from '@/api/user'
+import { useAppStore } from '@/stores/modules/app'
 
 const AInput = Input
 const AForm = Form
@@ -153,7 +154,7 @@ onMounted(async () => {
         // 提取配置数据 (Extract config data)
         const configData = response?.info || response?.data?.info || response?.data || response
         authConfig.value = configData
-        
+        useAppStore().setVersion(configData.kvmCloudVersion)
     } catch (error) {
         console.error('Failed to load auth config:', error)
         // 回退 - 无LDAP可用 (Fallback - no LDAP available)

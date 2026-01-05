@@ -2,8 +2,8 @@
  * @Author: LPY
  * @Date: 2025-05-30 10:18:18
  * @LastEditors: LPY
- * @LastEditTime: 2025-06-25 10:03:27
- * @FilePath: /kvm-cloud-frontend/src/hooks/useLocalStorage.ts
+ * @LastEditTime: 2026-01-05 14:22:12
+ * @FilePath: \glkvm-cloud\ui\src\hooks\useLocalStorage.ts
  * @Description: 存储hook
  */
 import { ref } from 'vue'
@@ -18,6 +18,8 @@ export enum LocalStorageKeys {
     TWO_FACTOR_INFO_KEY = 'two-factor-info',
     /** 侧边栏手动控制展开收缩状态 */
     SIDEBAR_MANUAL_CONTROL_KEY = 'sidebar-manual-control',
+    /** 版本号 */
+    VERSION = 'version',
 }
 
 /** 

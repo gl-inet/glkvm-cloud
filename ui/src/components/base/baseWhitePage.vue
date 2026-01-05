@@ -2,8 +2,8 @@
  * @Author: LPY
  * @Date: 2025-06-09 09:29:48
  * @LastEditors: LPY
- * @LastEditTime: 2025-07-21 10:04:25
- * @FilePath: /kvm-cloud-frontend/src/components/base/baseWhitePage.vue
+ * @LastEditTime: 2026-01-05 14:30:56
+ * @FilePath: \glkvm-cloud\ui\src\components\base\baseWhitePage.vue
  * @Description: 基础白名单页。
 -->
 <template>
@@ -13,6 +13,7 @@
                 <img src="@/assets/svg/logo.svg" height="20">
             </div>
             <div class="base-white-page-header-right">
+                <BaseText style="margin-right: 24px;">{{ appStore.state.version || '--' }}</BaseText>
                 <BaseDropdownSelect :value="currentLang" :options="languageOptions" @update:value="changeLang">
                     <div class="language-box flex">
                         <BaseSvg name="gl-icon-language-regular" style="margin-right: 8px;font-size: 16px;"></BaseSvg>
@@ -25,13 +26,13 @@
 
         <div class="base-white-page-footer">
             <!-- 步骤条 -->
-            <div v-if="route.query.bindToken" class="base-white-page-step">
+            <!-- <div v-if="route.query.bindToken" class="base-white-page-step">
                 <BaseStep 
                     v-model:value="useUserStore().bindingStep"
                     :items="[{title: $t('login.accountSetup')}, {title: $t('login.deviceSetup')}]"
                     titlePosition="bottom"
                 />
-            </div>
+            </div> -->
 
             <div class="base-white-page-content">
                 <slot></slot>
@@ -54,19 +55,17 @@
 <script setup lang="ts">
 import useLanguage from '@/hooks/useLanguage'
 import { languageOptions, Languages } from 'gl-web-main'
-import BaseStep from './baseStep.vue'
-import { useRoute } from 'vue-router'
-import { useUserStore } from '@/stores/modules/user'
 import { BaseDropdownSelect } from 'gl-web-main/components'
 import { isForeignEnv } from '@/utils'
-
-const route = useRoute()
+import { useAppStore } from '@/stores/modules/app'
 
 const { currentLang, currentLangLabel } = useLanguage()
 
 const changeLang = (key: Languages) => {
     useLanguage().setLanguage(key)
 }
+
+const appStore = useAppStore()
 </script>
 
 <style scoped lang="scss">
@@ -85,6 +84,8 @@ const changeLang = (key: Languages) => {
     border-bottom: 1px solid var(--gl-color-line-divider1);
 
     .base-white-page-header-right {
+      display: flex;
+      align-items: center;
       .language-box {
         color: var(--gl-color-text-level2);
         user-select: none;
