@@ -144,6 +144,17 @@ func doHttpProxy(srv *RttyServer, c net.Conn) {
     if err != nil {
         return
     }
+
+    domain, port, proto := getRequestHostInfo(req)
+    log.Debug().Msgf("http proxy incoming host=%s port=%s proto=%s uri=%s",
+        domain, port, proto, req.URL.String())
+    devID, ok := extractDeviceIDFromHost(domain)
+    if ok {
+        log.Debug().Msgf("parsed deviceId from host: %s", devID)
+    } else {
+        log.Debug().Msgf("host is IP or invalid, skip deviceId parsing")
+    }
+
     // 获取 URL 查询参数
     queryParams := req.URL.Query()
     name := queryParams.Get("sid")
@@ -177,6 +188,29 @@ func doHttpProxy(srv *RttyServer, c net.Conn) {
         log.Debug().Msgf(`device "%s" group "%s" offline`, ses.devid, ses.group)
         sendHTTPErrorResponse(c, "offline")
         return
+    }
+
+    // 3) match hostDevID vs session devid, and optionally lookup by hostDevID
+    if devID != "" {
+        match := devID == ses.devid
+        log.Debug().Msgf(
+            "http proxy devid check: hostDevID=%s sessionDevid=%s match=%v hostDevFound=%v sid=%s group=%s",
+            devID, ses.devid, match, domain, sid, ses.group,
+        )
+
+        // If you want, you can also log when mismatch happens
+        if !match {
+            log.Info().Msgf(
+                "http proxy devid mismatch: hostDevID=%s sessionDevid=%s sid=%s group=%s host=%s uri=%s",
+                devID, ses.devid, sid, ses.group, domain, req.URL.String(),
+            )
+            sendHTTPErrorResponse(c, "invalid")
+        }
+    } else {
+        log.Debug().Msgf(
+            "http proxy devid check skipped: no hostDevID (host=%s) sid=%s group=%s sessionDevid=%s",
+            domain, sid, ses.group, ses.devid,
+        )
     }
 
     hostHeaderRewrite := ses.destaddr
@@ -702,67 +736,4 @@ func Write302WithCookie(conn net.Conn, location, cookieName, cookieValue string)
         location, cookie,
     )
     _, _ = conn.Write([]byte(response))
-}
-
-// buildRedirectHost removes the first label of the hostname and prepends devid.
-// Rules:
-// - "www.example.com"         -> "devid.example.com"
-// - "www.l1.example.com"      -> "devid.l1.example.com"
-// - "www.l1.l2.example.com"   -> "devid.l1.l2.example.com"
-// - Two-level domain "example.com" -> "devid.example.com"
-// - Single label / abnormal cases   -> "devid." + hostname (fallback)
-//
-// The input hostname must be a pure hostname without port.
-func buildRedirectHost(hostname, devid string) string {
-    // Allow FQDN with trailing dot like "example.com."
-    hostname = strings.TrimSuffix(hostname, ".")
-
-    // Split into labels
-    labels := strings.Split(hostname, ".")
-    // Remove empty labels (in case of consecutive dots)
-    compact := make([]string, 0, len(labels))
-    for _, l := range labels {
-        if l != "" {
-            compact = append(compact, l)
-        }
-    }
-    labels = compact
-
-    switch len(labels) {
-    case 0:
-        return devid // extreme case: just return devid
-    case 1:
-        // Single label (e.g., "localhost") — keep original as suffix
-        return devid + "." + labels[0]
-    default:
-        // >=2: drop the leftmost label
-        suffix := strings.Join(labels[1:], ".")
-        return devid + "." + suffix
-    }
-}
-
-func joinHostPortIfNeeded(host, scheme, port string) string {
-    if port == "" {
-        return host
-    }
-    // avoid adding default ports
-    if (scheme == "https" && port == "443") || (scheme == "http" && port == "80") {
-        return host
-    }
-    return net.JoinHostPort(host, port)
-}
-
-func buildRedirectLocation(scheme, hostPort, path, sid string) string {
-    if path == "" {
-        path = "/"
-    }
-    u := &url.URL{
-        Scheme: scheme,
-        Host:   hostPort,
-        Path:   path,
-    }
-    q := u.Query()
-    q.Set("sid", sid)
-    u.RawQuery = q.Encode()
-    return u.String()
 }

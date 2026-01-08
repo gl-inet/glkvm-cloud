@@ -41,7 +41,7 @@ import (
 )
 
 const RttysVersion = "5.2.0"
-const KVMCloudVersion = "v1.7.0"
+const KVMCloudVersion = "v1.8.0"
 
 var (
     GitCommit = ""

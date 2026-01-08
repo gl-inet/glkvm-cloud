@@ -91,6 +91,10 @@ type Config struct {
     // Host[:port] used to generate device remote access address:
     //   <deviceId>.<DEVICE_ENDPOINT_HOST>
     DeviceEndpointHost string
+
+    // Platform access domain restriction.
+    // When set, only requests with a matching domain are allowed to access the platform.
+    WebUIHost string
 }
 
 // docker mode fixed path for reading certificate
@@ -291,6 +295,23 @@ func parseYamlCfg(cfg *Config, conf string) error {
         // 3. Final trim
         cleaned = strings.TrimSpace(cleaned)
         cfg.DeviceEndpointHost = cleaned
+    }
+
+    if v := strings.TrimSpace(os.Getenv("WEB_UI_HOST")); v != "" {
+        cleaned := v
+        // 1. Remove scheme if present (http:// or https://)
+        if idx := strings.Index(cleaned, "://"); idx != -1 {
+            cleaned = cleaned[idx+3:]
+        }
+
+        // 2. Remove path/query/fragment if present
+        if idx := strings.IndexAny(cleaned, "/?#"); idx != -1 {
+            cleaned = cleaned[:idx]
+        }
+
+        // 3. Final trim
+        cleaned = strings.TrimSpace(cleaned)
+        cfg.WebUIHost = cleaned
     }
 
     return nil

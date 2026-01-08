@@ -56,11 +56,21 @@ func (srv *RttyServer) ListenAPI() error {
     gin.SetMode(gin.ReleaseMode)
 
     r := gin.New()
-
     r.Use(func(c *gin.Context) {
+        hi := getHostInfoFromRequest(c.Request)
+
+        host := hi.Host
+        allowedHost := cfg.WebUIHost
+        // If WebUIHost is configured, enforce host validation
+        if allowedHost != "" && !isIPHost(host) {
+            if !domainAllowed(host, allowedHost) {
+                html := generateErrorHTML("invalid")
+                c.Data(http.StatusBadRequest, "text/html; charset=utf-8", []byte(html))
+                c.Abort()
+                return
+            }
+        }
         c.Next()
-        log.Debug().Msgf("%s - \"%s %s %s %d\"", c.ClientIP(),
-            c.Request.Method, c.Request.URL.Path, c.Request.Proto, c.Writer.Status())
     })
 
     if cfg.AllowOrigins {
