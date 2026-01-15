@@ -157,7 +157,7 @@ func doHttpProxy(srv *RttyServer, c net.Conn) {
 
     // 获取 URL 查询参数
     queryParams := req.URL.Query()
-    name := queryParams.Get("sid")
+    name := queryParams.Get("rttysid")
     if name != "" {
         location := "/"
         location += fmt.Sprintf("?_=%d", time.Now().Unix())
@@ -376,13 +376,13 @@ func httpProxyRedirect(srv *RttyServer, c *gin.Context, group string) {
     ip := net.ParseIP(hostname)
     isIP := ip != nil
     if isIP {
-        location = fmt.Sprintf("https://%s%s?sid=%s", hostname, cfg.AddrHttpProxy, sid)
+        location = fmt.Sprintf("https://%s%s?rttysid=%s", hostname, cfg.AddrHttpProxy, sid)
         log.Info().Msgf("Using IP redirect: %s", location)
     } else {
         redirHost := buildRedirectHost(hostname, devid)
         // Keep original behavior when NOT in reverse proxy mode
         if !cfg.ReverseProxyEnabled {
-            location = fmt.Sprintf("https://%s%s?sid=%s", redirHost, cfg.AddrHttpProxy, sid)
+            location = fmt.Sprintf("https://%s%s?rttysid=%s", redirHost, cfg.AddrHttpProxy, sid)
             log.Info().Msgf("Using domain redirect: %s", location)
         } else {
             // ---- verify forwarded headers from reverse proxy ----
