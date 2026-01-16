@@ -15,11 +15,12 @@ import (
 )
 
 type Deps struct {
-    UserSvc      *user.Service
-    PermSvc      *permission.Service
-    DevSvc       *device.Service
-    GroupRepo    *sqlite.GroupRepo
-    SessionStore *memory.SessionStore
+    UserSvc       *user.Service
+    PermSvc       *permission.Service
+    DevSvc        *device.Service
+    GroupRepo     *sqlite.GroupRepo
+    SessionStore  *memory.SessionStore
+    RelationsRepo *sqlite.RelationsRepo
 }
 
 func NewRouter(d Deps) *gin.Engine {
@@ -32,6 +33,7 @@ func NewRouter(d Deps) *gin.Engine {
     devH := handler.NewDeviceHandler(d.DevSvc)
     dgH := handler.NewDeviceGroupHandler(d.GroupRepo)
     ugH := handler.NewUserGroupHandler(d.GroupRepo)
+    relH := handler.NewRelationsHandler(d.RelationsRepo)
 
     userAdminH := handler.NewUserAdminHandler(d.UserSvc)
     ugAdminH := handler.NewUserGroupAdminHandler(
@@ -78,6 +80,11 @@ func NewRouter(d Deps) *gin.Engine {
     api.POST("/device-groups", middleware.Require(permission.DeviceGroupWrite), dgAdminH.Create)
     api.PUT("/device-groups/:id", middleware.Require(permission.DeviceGroupWrite), dgAdminH.Update)
     api.DELETE("/device-groups/:id", middleware.Require(permission.DeviceGroupWrite), dgAdminH.Delete)
+
+    // Relations (cover / set)
+    api.PUT("/users/:id/user-groups", middleware.Require(permission.UserWrite), relH.SetUserGroups)
+    api.PUT("/user-groups/:id/device-groups", middleware.Require(permission.UserGroupWrite), relH.SetUserGroupDeviceGroups)
+    api.PUT("/device-groups/:id/devices", middleware.Require(permission.DeviceGroupWrite), relH.SetDeviceGroupDevices)
 
     return r
 }

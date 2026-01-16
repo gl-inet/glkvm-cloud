@@ -40,6 +40,7 @@ func Bootstrap(cfg config.Config) *App {
     userRepo := sqlite.NewUserRepo(db.DB)
     groupRepo := sqlite.NewGroupRepo(db.DB)
     deviceRepo := sqlite.NewDeviceRepo(db.DB)
+    relationsRepo := sqlite.NewRelationsRepo(db.DB)
 
     userSvc := user.NewService(userRepo)
     devSvc := device.NewService(deviceRepo, groupRepo)
@@ -50,11 +51,12 @@ func Bootstrap(cfg config.Config) *App {
     sessionStore := memory.NewSessionStore(cfg.Auth.SessionTTL)
 
     router := httpx.NewRouter(httpx.Deps{
-        UserSvc:      userSvc,
-        PermSvc:      permSvc,
-        DevSvc:       devSvc,
-        GroupRepo:    groupRepo,
-        SessionStore: sessionStore,
+        UserSvc:       userSvc,
+        PermSvc:       permSvc,
+        DevSvc:        devSvc,
+        GroupRepo:     groupRepo,
+        SessionStore:  sessionStore,
+        RelationsRepo: relationsRepo,
     })
 
     srv := NewServer(cfg.HTTP.Addr, router)
