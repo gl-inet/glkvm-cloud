@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package main
+package xconfig
 
 import (
     "fmt"

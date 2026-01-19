@@ -23,11 +23,7 @@ type Deps struct {
     RelationsRepo *sqlite.RelationsRepo
 }
 
-func NewRouter(d Deps) *gin.Engine {
-    r := gin.New()
-    r.Use(gin.Recovery())
-    r.Use(middleware.Trace())
-
+func RegisterAPIRoutes(r *gin.Engine, d Deps) {
     authH := handler.NewAuthHandler(d.UserSvc, d.SessionStore)
     meH := handler.NewMeHandler()
     devH := handler.NewDeviceHandler(d.DevSvc)
@@ -85,6 +81,4 @@ func NewRouter(d Deps) *gin.Engine {
     api.PUT("/users/:id/user-groups", middleware.Require(permission.UserWrite), relH.SetUserGroups)
     api.PUT("/user-groups/:id/device-groups", middleware.Require(permission.UserGroupWrite), relH.SetUserGroupDeviceGroups)
     api.PUT("/device-groups/:id/devices", middleware.Require(permission.DeviceGroupWrite), relH.SetDeviceGroupDevices)
-
-    return r
 }

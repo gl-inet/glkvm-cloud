@@ -1,67 +1,79 @@
 package sqlite
 
 import (
-	"context"
-	"database/sql"
-	"fmt"
-	"strings"
+    "context"
 
-	"rttys/internal/domain/device"
+    "gorm.io/gorm"
+
+    "rttys/internal/domain/device"
 )
 
-type DeviceRepo struct{ db *sql.DB }
+type DeviceRepo struct{ db *gorm.DB }
 
-func NewDeviceRepo(db *sql.DB) *DeviceRepo { return &DeviceRepo{db: db} }
+func NewDeviceRepo(db *gorm.DB) *DeviceRepo { return &DeviceRepo{db: db} }
+
+// 用于 DB 行映射
+type deviceRow struct {
+    ID            int64  `gorm:"column:id"`
+    DeviceUID     string `gorm:"column:device_uid"`
+    Name          string `gorm:"column:name"`
+    Description   string `gorm:"column:description"`
+    DeviceGroupID *int64 `gorm:"column:device_group_id"` // NULL => nil
+    Status        string `gorm:"column:status"`
+    LastSeenAt    *int64 `gorm:"column:last_seen_at"` // NULL => nil
+}
+
+func (deviceRow) TableName() string { return "devices" }
 
 func (r *DeviceRepo) ListAll(ctx context.Context) ([]device.Device, error) {
-	rows, err := r.db.QueryContext(ctx, `
-SELECT id,device_uid,name,description,device_group_id,status,last_seen_at
-FROM devices ORDER BY id`)
-	if err != nil { return nil, err }
-	defer rows.Close()
+    var rows []deviceRow
+    err := r.db.WithContext(ctx).
+        Order("id").
+        Find(&rows).Error
+    if err != nil {
+        return nil, err
+    }
 
-	var out []device.Device
-	for rows.Next() {
-		var d device.Device
-		var dg sql.NullInt64
-		var st string
-		var last sql.NullInt64
-		if err := rows.Scan(&d.ID,&d.DeviceUID,&d.Name,&d.Description,&dg,&st,&last); err != nil { return nil, err }
-		if dg.Valid { v := dg.Int64; d.DeviceGroupID = &v }
-		d.Status = device.Status(st)
-		if last.Valid { v := last.Int64; d.LastSeenAt = &v }
-		out = append(out, d)
-	}
-	return out, rows.Err()
+    out := make([]device.Device, 0, len(rows))
+    for _, row := range rows {
+        out = append(out, device.Device{
+            ID:            row.ID,
+            DeviceUID:     row.DeviceUID,
+            Name:          row.Name,
+            Description:   row.Description,
+            DeviceGroupID: row.DeviceGroupID,
+            Status:        device.Status(row.Status),
+            LastSeenAt:    row.LastSeenAt,
+        })
+    }
+    return out, nil
 }
 
 func (r *DeviceRepo) ListByDeviceGroupIDs(ctx context.Context, groupIDs []int64) ([]device.Device, error) {
-	if len(groupIDs)==0 { return []device.Device{}, nil }
-	ph := make([]string,0,len(groupIDs))
-	args := make([]any,0,len(groupIDs))
-	for _, id := range groupIDs { ph=append(ph,"?"); args=append(args,id) }
+    if len(groupIDs) == 0 {
+        return []device.Device{}, nil
+    }
 
-	q := fmt.Sprintf(`
-SELECT id,device_uid,name,description,device_group_id,status,last_seen_at
-FROM devices
-WHERE device_group_id IN (%s)
-ORDER BY id`, strings.Join(ph, ","))
+    var rows []deviceRow
+    err := r.db.WithContext(ctx).
+        Where("device_group_id IN ?", groupIDs).
+        Order("id").
+        Find(&rows).Error
+    if err != nil {
+        return nil, err
+    }
 
-	rows, err := r.db.QueryContext(ctx, q, args...)
-	if err != nil { return nil, err }
-	defer rows.Close()
-
-	var out []device.Device
-	for rows.Next() {
-		var d device.Device
-		var dg sql.NullInt64
-		var st string
-		var last sql.NullInt64
-		if err := rows.Scan(&d.ID,&d.DeviceUID,&d.Name,&d.Description,&dg,&st,&last); err != nil { return nil, err }
-		if dg.Valid { v := dg.Int64; d.DeviceGroupID = &v }
-		d.Status = device.Status(st)
-		if last.Valid { v := last.Int64; d.LastSeenAt = &v }
-		out = append(out, d)
-	}
-	return out, rows.Err()
+    out := make([]device.Device, 0, len(rows))
+    for _, row := range rows {
+        out = append(out, device.Device{
+            ID:            row.ID,
+            DeviceUID:     row.DeviceUID,
+            Name:          row.Name,
+            Description:   row.Description,
+            DeviceGroupID: row.DeviceGroupID,
+            Status:        device.Status(row.Status),
+            LastSeenAt:    row.LastSeenAt,
+        })
+    }
+    return out, nil
 }

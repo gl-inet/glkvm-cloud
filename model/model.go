@@ -1,4 +1,4 @@
-package db
+package model
 
 // DeviceMeta represents a record in the gl_device table.
 type DeviceMeta struct {
@@ -12,5 +12,5 @@ type DeviceMeta struct {
 
 // TableName sets the name of the table in the database that this struct binds to.
 func (DeviceMeta) TableName() string {
-    return "devices"
+    return "gldevices"
 }

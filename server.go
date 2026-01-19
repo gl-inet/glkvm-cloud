@@ -27,6 +27,7 @@ package main
 import (
     "net"
     "net/http"
+    "rttys/xconfig"
     "sync"
     "sync/atomic"
 
@@ -36,7 +37,7 @@ import (
 type RttyServer struct {
     mu            sync.RWMutex
     groups        sync.Map
-    cfg           Config
+    cfg           xconfig.Config
     httpProxyPort int
 }
 

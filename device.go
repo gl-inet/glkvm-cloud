@@ -34,6 +34,7 @@ import (
     "io"
     "net"
     "net/http"
+    "rttys/internal/legacy"
     "strings"
     "sync"
     "time"
@@ -239,11 +240,11 @@ func handleDeviceConnection(srv *RttyServer, conn net.Conn) {
 
     // 2. Load existing metadata by device_id
     description := ""
-    meta, err := GetDeviceMetaByDeviceID(dev.id)
+    meta, err := legacy.GetDeviceMetaByDeviceID(dev.id)
     if err == nil && meta != nil {
         description = meta.Description
     }
-    if err := SaveOrUpdateDeviceMeta(
+    if err := legacy.SaveOrUpdateDeviceMeta(
         dev.id,
         dev.desc, // device register mac info with desc filed
         description,

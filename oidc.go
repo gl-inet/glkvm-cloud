@@ -6,7 +6,6 @@ import (
     "encoding/json"
     "fmt"
     oidc "github.com/coreos/go-oidc/v3/oidc"
-    "github.com/fanjindong/go-cache"
     "github.com/gin-gonic/gin"
     "github.com/gorilla/sessions"
     "github.com/rs/zerolog/log"
@@ -14,7 +13,8 @@ import (
     "math/rand"
     "net/http"
     "net/url"
-    "rttys/utils"
+    "rttys/internal/pkg/randtoken"
+    "rttys/xconfig"
     "strings"
     "time"
 )
@@ -27,7 +27,7 @@ var (
 )
 
 // Register OIDC routes
-func RegisterOIDCRoutes(r *gin.Engine, cfg *Config) {
+func RegisterOIDCRoutes(r *gin.Engine, cfg *xconfig.Config) {
     if !cfg.OIDCEnabled {
         return
     }
@@ -73,7 +73,7 @@ func RegisterOIDCRoutes(r *gin.Engine, cfg *Config) {
 }
 
 // Start OIDC login
-func oidcLoginHandler(cfg *Config) gin.HandlerFunc {
+func oidcLoginHandler(cfg *xconfig.Config) gin.HandlerFunc {
     return func(c *gin.Context) {
 
         // Generate state and nonce
@@ -109,7 +109,7 @@ func oidcLoginHandler(cfg *Config) gin.HandlerFunc {
 }
 
 // Handle OIDC callback
-func oidcCallbackHandler(cfg *Config) gin.HandlerFunc {
+func oidcCallbackHandler(cfg *xconfig.Config) gin.HandlerFunc {
     return func(c *gin.Context) {
         // Get session
         session, err := oauthStore.Get(c.Request, "oidc-session")
@@ -231,13 +231,17 @@ func oidcCallbackHandler(cfg *Config) gin.HandlerFunc {
             return
         }
 
-        // Create application session
-        sid := utils.GenUniqueID()
-        httpSessions.Set(sid, gin.H{
-            "email": userEmail,
-            "name":  userName,
-            "oidc":  true,
-        }, cache.WithEx(httpSessionExpire))
+        // ==== Create application session (new session_store, same as LDAP) ====
+        sid, err := randtoken.New() // 推荐统一用 randtoken.New()
+        if err != nil {
+            log.Error().Err(err).Msg("Failed to create session token")
+            c.Redirect(http.StatusFound, "/?error=internal_error")
+            return
+        }
+
+        // Temporary behavior: treat all OIDC logins as admin
+        const adminUserID int64 = 1
+        sessionStore.Create(sid, adminUserID)
 
         c.SetCookie("sid", sid, 0, "", "", cfg.SslCert != "", true)
 
@@ -251,7 +255,7 @@ func oidcCallbackHandler(cfg *Config) gin.HandlerFunc {
 }
 
 // Exchange authorization code for tokens
-func exchangeCodeForTokens(cfg *Config, code string) (map[string]interface{}, error) {
+func exchangeCodeForTokens(cfg *xconfig.Config, code string) (map[string]interface{}, error) {
     data := url.Values{}
     data.Set("code", code)
     data.Set("client_id", cfg.OIDCGenericClientID)
@@ -297,7 +301,7 @@ func generateRandomString(length int) string {
     return base64.URLEncoding.EncodeToString(b)[:length]
 }
 
-func isOIDCUserAllowed(cfg *Config, claims map[string]interface{}) bool {
+func isOIDCUserAllowed(cfg *xconfig.Config, claims map[string]interface{}) bool {
     email, _ := claims["email"].(string)
     sub, _ := claims["sub"].(string)
     preferredUsername, _ := claims["preferred_username"].(string)

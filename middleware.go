@@ -142,7 +142,7 @@ func buildRedirectLocation(scheme, hostPort, path, sid string) string {
         Path:   path,
     }
     q := u.Query()
-    q.Set("sid", sid)
+    q.Set("rttysid", sid)
     u.RawQuery = q.Encode()
     return u.String()
 }

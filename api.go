@@ -25,27 +25,88 @@
 package main
 
 import (
+    "context"
     "crypto/tls"
     "embed"
     "io/fs"
     "net"
     "net/http"
     "path"
+    "rttys/internal/config"
+    "rttys/internal/domain/device"
+    "rttys/internal/domain/permission"
+    "rttys/internal/domain/user"
+    httpx "rttys/internal/http"
+    "rttys/internal/http/middleware"
+    "rttys/internal/legacy"
+    "rttys/internal/pkg/ldap"
+    "rttys/internal/pkg/randtoken"
+    "rttys/internal/store/memory"
+    "rttys/internal/store/sqlite"
+    "rttys/xconfig"
     "sort"
     "strings"
     "time"
 
-    "rttys/utils"
-
-    "github.com/fanjindong/go-cache"
     "github.com/gin-contrib/cors"
     "github.com/gin-gonic/gin"
     "github.com/rs/zerolog/log"
 )
 
-var httpSessions = cache.NewMemCache(cache.WithClearInterval(time.Minute))
+type AppContainer struct {
+    DB             *sqlite.AppDB
+    DeviceMetaRepo *sqlite.DeviceMetaRepo
+}
 
-const httpSessionExpire = 30 * time.Minute
+var sessionStore *memory.SessionStore
+
+func InitAppContainer(r *gin.Engine) (*AppContainer, error) {
+    ctx := context.Background()
+    cfg := config.MustLoad()
+    // --- DB ---
+    appDB, err := sqlite.Open(ctx, sqlite.Options{
+        DSN:          "/home/database/glkvm-cloud.db",
+        MaxOpenConns: 1,
+        MaxIdleConns: 1,
+    })
+    if err != nil {
+        log.Fatal().Err(err).Msg("open sqlite failed")
+    }
+    _ = sqlite.NewDeviceMetaRepo(appDB.Gorm())
+
+    if err := sqlite.InitSchema(ctx, appDB.SQL(), "/home/database/schema.sql"); err != nil {
+        log.Fatal().Err(err).Msg("init schema failed")
+    }
+
+    // --- Repos & Services ---
+    userRepo := sqlite.NewUserRepo(appDB.Gorm())
+    groupRepo := sqlite.NewGroupRepo(appDB.Gorm())
+    deviceRepo := sqlite.NewDeviceRepo(appDB.Gorm())
+    relationsRepo := sqlite.NewRelationsRepo(appDB.Gorm())
+
+    userSvc := user.NewService(userRepo)
+    devSvc := device.NewService(deviceRepo, groupRepo)
+
+    permRepo := memory.NewPermissionRepo() // permissions stay in-memory
+    permSvc := permission.NewService(permRepo)
+
+    sessionStore = memory.NewSessionStore(cfg.Auth.SessionTTL)
+
+    httpx.RegisterAPIRoutes(r, httpx.Deps{
+        UserSvc:       userSvc,
+        PermSvc:       permSvc,
+        DevSvc:        devSvc,
+        GroupRepo:     groupRepo,
+        SessionStore:  sessionStore,
+        RelationsRepo: relationsRepo,
+    })
+
+    c := &AppContainer{
+        DB:             appDB,
+        DeviceMetaRepo: sqlite.NewDeviceMetaRepo(appDB.Gorm()),
+    }
+    return c, nil
+}
 
 //go:embed all:ui/dist
 var staticFs embed.FS
@@ -56,6 +117,9 @@ func (srv *RttyServer) ListenAPI() error {
     gin.SetMode(gin.ReleaseMode)
 
     r := gin.New()
+    r.Use(gin.Recovery())
+    r.Use(middleware.Trace())
+
     r.Use(func(c *gin.Context) {
         hi := getHostInfoFromRequest(c.Request)
 
@@ -144,7 +208,7 @@ func (srv *RttyServer) ListenAPI() error {
         keyword := c.Query("keyword")
 
         // 1. Query all device metadata from DB (offline + online)
-        metas, err := GetAllDeviceMeta(keyword)
+        metas, err := legacy.GetAllDeviceMeta(keyword)
         if err != nil || len(metas) == 0 {
             c.JSON(http.StatusOK, devs)
             return
@@ -238,7 +302,7 @@ func (srv *RttyServer) ListenAPI() error {
         }
 
         // 2. Load existing metadata by device_id
-        meta, err := GetDeviceMetaByDeviceID(req.DeviceID)
+        meta, err := legacy.GetDeviceMetaByDeviceID(req.DeviceID)
         if err != nil {
             c.JSON(http.StatusInternalServerError, gin.H{
                 "code": 500,
@@ -263,7 +327,7 @@ func (srv *RttyServer) ListenAPI() error {
         }
 
         // 4. Reuse SaveOrUpdateDeviceMeta for UPSERT
-        if err := SaveOrUpdateDeviceMeta(
+        if err := legacy.SaveOrUpdateDeviceMeta(
             meta.DeviceID, // keep original device_id
             meta.Mac,      // keep original MAC, not editable
             newDesc,       // new description from request
@@ -303,7 +367,7 @@ func (srv *RttyServer) ListenAPI() error {
         }
 
         // 2. Check existence first (optional but recommended)
-        meta, err := GetDeviceMetaByDeviceID(req.DeviceID)
+        meta, err := legacy.GetDeviceMetaByDeviceID(req.DeviceID)
         if err != nil {
             c.JSON(http.StatusInternalServerError, gin.H{
                 "code": 500,
@@ -322,7 +386,7 @@ func (srv *RttyServer) ListenAPI() error {
         }
 
         // 3. Physical delete
-        if err := DeleteDeviceMetaByDeviceID(req.DeviceID); err != nil {
+        if err := legacy.DeleteDeviceMetaByDeviceID(req.DeviceID); err != nil {
             c.JSON(http.StatusInternalServerError, gin.H{
                 "code": 500,
                 "msg":  "failed to delete device meta",
@@ -388,11 +452,17 @@ func (srv *RttyServer) ListenAPI() error {
 
     authorized.GET("/signout", func(c *gin.Context) {
         sid, err := c.Cookie("sid")
-        if err != nil || !httpSessions.Exists(sid) {
+        if err != nil || strings.TrimSpace(sid) == "" {
+            c.Status(http.StatusOK)
             return
         }
+        sid = strings.TrimSpace(sid)
 
-        httpSessions.Del(sid)
+        // Only use the new session store
+        sessionStore.Delete(sid)
+
+        // Clear cookie
+        c.SetCookie("sid", "", -1, "/", "", false, true)
 
         c.Status(http.StatusOK)
     })
@@ -405,17 +475,16 @@ func (srv *RttyServer) ListenAPI() error {
         }
 
         creds := credentials{}
-
-        err := c.BindJSON(&creds)
-        if err != nil {
+        if err := c.ShouldBindJSON(&creds); err != nil {
             c.Status(http.StatusBadRequest)
             return
         }
 
-        // 自动确定认证方法或使用指定的方法 (Auto-determine auth method or use specified method)
+        cfg := xconfig.Must()
+
+        // Auto-detect auth method (keep original behavior)
         authMethod := creds.AuthMethod
         if authMethod == "" {
-            // 基于是否提供用户名进行自动检测 (Auto-detect based on whether username is provided)
             if creds.Username != "" && cfg.LdapEnabled {
                 authMethod = "ldap"
             } else {
@@ -423,21 +492,45 @@ func (srv *RttyServer) ListenAPI() error {
             }
         }
 
-        success, errorType := AuthenticateUserWithError(cfg, creds.Username, creds.Password, authMethod)
-        if success {
-            sid := utils.GenUniqueID()
-            httpSessions.Set(sid, true, cache.WithEx(httpSessionExpire))
-            c.SetCookie("sid", sid, 0, "", "", false, true)
-            c.Status(http.StatusOK)
+        // Temporary behavior: all successful logins are treated as admin
+        const adminUserID int64 = 1
+        var ok bool
+        var errorType string
+
+        if authMethod == "ldap" {
+            ok, errorType = ldap.AuthenticateUserWithError(cfg, creds.Username, creds.Password, authMethod)
+        } else {
+            // legacy path: keep old password auth behavior
+            ok, errorType = ldap.AuthenticateUserWithError(cfg, creds.Username, creds.Password, "legacy")
+            // 可以直接用：
+            // ok = (cfg.Password != "" && cfg.Password == creds.Password)
+            // errorType = "authentication"
+        }
+
+        if !ok {
+            if errorType == "authorization" {
+                c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authorized"})
+            } else {
+                c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication failed"})
+            }
             return
         }
 
-        // 根据错误类型返回适当的错误信息 (Return appropriate error message based on error type)
-        if errorType == "authorization" {
-            c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authorized"})
-        } else {
-            c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication failed"})
+        // Create sid using the same token generator as new API
+        sid, err := randtoken.New()
+        if err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+            return
         }
+
+        // Store session in the new sessionStore (same as /api/login)
+        // NOTE: ensure sessionStore is accessible here (capture it from outer scope or srv/container)
+        sessionStore.Create(sid, adminUserID)
+
+        // Set cookie
+        c.SetCookie("sid", sid, 0, "/", "", false, true)
+
+        c.Status(http.StatusOK)
     })
 
     r.GET("/auth-config", func(c *gin.Context) {
@@ -460,6 +553,16 @@ func (srv *RttyServer) ListenAPI() error {
 
     // ===== 添加OIDC路由 =====
     RegisterOIDCRoutes(r, cfg)
+    container, err := InitAppContainer(r)
+    if err != nil {
+        return err
+    }
+    defer container.DB.Close()
+    sqlite.SetContainer(&sqlite.Container{
+        Gorm:       container.DB.Gorm(),
+        DeviceMeta: sqlite.NewDeviceMetaRepo(container.DB.Gorm()),
+    })
+
     fs, err := fs.Sub(staticFs, "ui/dist")
     if err != nil {
         return err
@@ -467,8 +570,12 @@ func (srv *RttyServer) ListenAPI() error {
 
     root := http.FS(fs)
     fh := http.FileServer(root)
-
     r.NoRoute(func(c *gin.Context) {
+        if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+            c.JSON(http.StatusNotFound, gin.H{"code": 404, "msg": "not found"})
+            return
+        }
+
         upath := path.Clean(c.Request.URL.Path)
 
         if strings.HasSuffix(upath, ".js") || strings.HasSuffix(upath, ".css") {
@@ -565,7 +672,7 @@ func isIP(addr string) bool {
     return net.ParseIP(addr) != nil
 }
 
-func callUserHookUrl(cfg *Config, c *gin.Context) bool {
+func callUserHookUrl(cfg *xconfig.Config, c *gin.Context) bool {
     if cfg.UserHookUrl == "" {
         return true
     }
@@ -615,30 +722,28 @@ func callUserHookUrl(cfg *Config, c *gin.Context) bool {
     return true
 }
 
-func httpLogin(cfg *Config, password string) bool {
-    return cfg.Password == password
-}
-
 func isLocalRequest(c *gin.Context) bool {
     addr, _ := net.ResolveTCPAddr("tcp", c.Request.RemoteAddr)
     return addr.IP.IsLoopback()
 }
 
-func httpAuth(cfg *Config, c *gin.Context) bool {
+func httpAuth(cfg *xconfig.Config, c *gin.Context) bool {
     if !cfg.LocalAuth && isLocalRequest(c) {
         return true
     }
 
+    // Keep legacy behavior: if password is not set, no auth required
     if cfg.Password == "" {
         return true
     }
 
     sid, err := c.Cookie("sid")
-    if err != nil || !httpSessions.Exists(sid) {
+    if err != nil || strings.TrimSpace(sid) == "" {
         return false
     }
+    sid = strings.TrimSpace(sid)
 
-    httpSessions.Expire(sid, httpSessionExpire)
-
-    return true
+    // New session-based auth
+    _, ok := sessionStore.Get(sid)
+    return ok
 }

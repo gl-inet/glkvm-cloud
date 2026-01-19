@@ -3,70 +3,61 @@ package app
 import (
     "context"
     "database/sql"
-    "log"
-
-    "rttys/internal/config"
-    "rttys/internal/domain/device"
-    "rttys/internal/domain/permission"
-    "rttys/internal/domain/user"
-    httpx "rttys/internal/http"
     "rttys/internal/pkg/password"
-    "rttys/internal/store/memory"
-    "rttys/internal/store/sqlite"
 )
 
 type App struct {
     srv *Server
 }
 
-func Bootstrap(cfg config.Config) *App {
-    ctx := context.Background()
-
-    // --- DB ---
-    db, err := sqlite.Open(cfg.DB.DSN)
-    if err != nil {
-        log.Fatalf("open sqlite: %v", err)
-    }
-    if err := sqlite.InitSchema(ctx, db.DB, "internal/store/sqlite/schema.sql"); err != nil {
-        log.Fatalf("init schema: %v", err)
-    }
-
-    // Seed demo data if empty (optional)
-    if err := seedIfEmpty(ctx, db.DB); err != nil {
-        log.Fatalf("seed: %v", err)
-    }
-
-    // --- Repos & Services ---
-    userRepo := sqlite.NewUserRepo(db.DB)
-    groupRepo := sqlite.NewGroupRepo(db.DB)
-    deviceRepo := sqlite.NewDeviceRepo(db.DB)
-    relationsRepo := sqlite.NewRelationsRepo(db.DB)
-
-    userSvc := user.NewService(userRepo)
-    devSvc := device.NewService(deviceRepo, groupRepo)
-
-    permRepo := memory.NewPermissionRepo() // permissions stay in-memory
-    permSvc := permission.NewService(permRepo)
-
-    sessionStore := memory.NewSessionStore(cfg.Auth.SessionTTL)
-
-    router := httpx.NewRouter(httpx.Deps{
-        UserSvc:       userSvc,
-        PermSvc:       permSvc,
-        DevSvc:        devSvc,
-        GroupRepo:     groupRepo,
-        SessionStore:  sessionStore,
-        RelationsRepo: relationsRepo,
-    })
-
-    srv := NewServer(cfg.HTTP.Addr, router)
-    return &App{srv: srv}
-}
+//func Bootstrap(cfg config.Config) *App {
+//    ctx := context.Background()
+//
+//    // --- DB ---
+//    db, err := sqlite.Open(cfg.DB.DSN)
+//    if err != nil {
+//        log.Fatalf("open sqlite: %v", err)
+//    }
+//    if err := sqlite.InitSchema(ctx, db.DB, "internal/store/sqlite/schema.sql"); err != nil {
+//        log.Fatalf("init schema: %v", err)
+//    }
+//
+//    // Seed demo data if empty (optional)
+//    if err := seedIfEmpty(ctx, db.DB); err != nil {
+//        log.Fatalf("seed: %v", err)
+//    }
+//
+//    // --- Repos & Services ---
+//    userRepo := sqlite.NewUserRepo(db.DB)
+//    groupRepo := sqlite.NewGroupRepo(db.DB)
+//    deviceRepo := sqlite.NewDeviceRepo(db.DB)
+//    relationsRepo := sqlite.NewRelationsRepo(db.DB)
+//
+//    userSvc := user.NewService(userRepo)
+//    devSvc := device.NewService(deviceRepo, groupRepo)
+//
+//    permRepo := memory.NewPermissionRepo() // permissions stay in-memory
+//    permSvc := permission.NewService(permRepo)
+//
+//    sessionStore := memory.NewSessionStore(cfg.Auth.SessionTTL)
+//
+//    router := httpx.NewRouter(httpx.Deps{
+//        UserSvc:       userSvc,
+//        PermSvc:       permSvc,
+//        DevSvc:        devSvc,
+//        GroupRepo:     groupRepo,
+//        SessionStore:  sessionStore,
+//        RelationsRepo: relationsRepo,
+//    })
+//
+//    srv := NewServer(cfg.HTTP.Addr, router)
+//    return &App{srv: srv}
+//}
 
 func (a *App) Start(ctx context.Context) error    { return a.srv.Run(ctx) }
 func (a *App) Shutdown(ctx context.Context) error { return a.srv.Shutdown(ctx) }
 
-func seedIfEmpty(ctx context.Context, db *sql.DB) error {
+func SeedIfEmpty(ctx context.Context, db *sql.DB) error {
     var n int
     if err := db.QueryRowContext(ctx, `SELECT COUNT(1) FROM users`).Scan(&n); err != nil {
         return err

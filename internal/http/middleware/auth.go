@@ -34,7 +34,18 @@ func MustPrincipal(c *gin.Context) Principal {
 func Auth(sessionStore *memory.SessionStore, userSvc *user.Service, permSvc *permission.Service) gin.HandlerFunc {
     return func(c *gin.Context) {
         traceID := GetTraceID(c)
+
+        // 1) Prefer Bearer token
         token := parseBearer(c.GetHeader("Authorization"))
+
+        // 2) Fallback to cookie sid
+        if token == "" {
+            sid, err := c.Cookie("sid")
+            if err == nil {
+                token = strings.TrimSpace(sid)
+            }
+        }
+
         if token == "" {
             dto.Write(c, dto.Err(traceID, dto.CodeAuthRequired, "Please login", nil))
             c.Abort()

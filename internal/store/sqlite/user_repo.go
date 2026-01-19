@@ -2,102 +2,135 @@ package sqlite
 
 import (
     "context"
-    "database/sql"
     "errors"
-    "rttys/internal/domain/identity"
     "strings"
 
+    "gorm.io/gorm"
+
+    "rttys/internal/domain/identity"
     "rttys/internal/domain/user"
 )
 
-type UserRepo struct{ db *sql.DB }
+type UserRepo struct{ db *gorm.DB }
 
-func NewUserRepo(db *sql.DB) *UserRepo { return &UserRepo{db: db} }
+func NewUserRepo(db *gorm.DB) *UserRepo { return &UserRepo{db: db} }
+
+// 映射用的行结构
+type userRow struct {
+    ID           int64  `gorm:"column:id"`
+    Email        string `gorm:"column:email"`
+    DisplayName  string `gorm:"column:display_name"`
+    PasswordHash string `gorm:"column:password_hash"`
+    Role         string `gorm:"column:role"`
+    Status       string `gorm:"column:status"`
+}
+
+func (userRow) TableName() string { return "users" }
 
 func (r *UserRepo) FindByID(ctx context.Context, id int64) (*user.User, error) {
-    const q = `SELECT id, email, display_name, password_hash, role, status FROM users WHERE id=? LIMIT 1`
-    var u user.User
-    var role, status string
-    err := r.db.QueryRowContext(ctx, q, id).Scan(&u.ID, &u.Email, &u.DisplayName, &u.PasswordHash, &role, &status)
-    if errors.Is(err, sql.ErrNoRows) {
+    var row userRow
+    err := r.db.WithContext(ctx).
+        Where("id = ?", id).
+        Take(&row).Error
+
+    if errors.Is(err, gorm.ErrRecordNotFound) {
         return nil, errors.New("not found")
     }
     if err != nil {
         return nil, err
     }
-    u.Role = identity.Role(role)
-    u.Status = user.Status(status)
-    return &u, nil
+
+    u := &user.User{
+        ID:           row.ID,
+        Email:        row.Email,
+        DisplayName:  row.DisplayName,
+        PasswordHash: row.PasswordHash,
+        Role:         identity.Role(row.Role),
+        Status:       user.Status(row.Status),
+    }
+    return u, nil
 }
 
 func (r *UserRepo) FindByUsername(ctx context.Context, email string) (*user.User, error) {
-    const q = `SELECT id, email, display_name, password_hash, role, status FROM users WHERE email=? LIMIT 1`
-    var u user.User
-    var role, status string
-    err := r.db.QueryRowContext(ctx, q, email).Scan(&u.ID, &u.Email, &u.DisplayName, &u.PasswordHash, &role, &status)
-    if errors.Is(err, sql.ErrNoRows) {
+    var row userRow
+    err := r.db.WithContext(ctx).
+        Where("email = ?", email).
+        Take(&row).Error
+
+    if errors.Is(err, gorm.ErrRecordNotFound) {
         return nil, errors.New("not found")
     }
     if err != nil {
         return nil, err
     }
-    u.Role = identity.Role(role)
-    u.Status = user.Status(status)
-    return &u, nil
+
+    return &user.User{
+        ID:           row.ID,
+        Email:        row.Email,
+        DisplayName:  row.DisplayName,
+        PasswordHash: row.PasswordHash,
+        Role:         identity.Role(row.Role),
+        Status:       user.Status(row.Status),
+    }, nil
 }
 
 func (r *UserRepo) List(ctx context.Context) ([]user.User, error) {
-    rows, err := r.db.QueryContext(ctx, `SELECT id,email,display_name,password_hash,role,status FROM users ORDER BY id`)
-    if err != nil {
+    var rows []userRow
+    if err := r.db.WithContext(ctx).Order("id").Find(&rows).Error; err != nil {
         return nil, err
     }
-    defer rows.Close()
 
-    var out []user.User
-    for rows.Next() {
-        var u user.User
-        var role, status string
-        if err := rows.Scan(&u.ID, &u.Email, &u.DisplayName, &u.PasswordHash, &role, &status); err != nil {
-            return nil, err
-        }
-        u.Role = identity.Role(role)
-        u.Status = user.Status(status)
-        out = append(out, u)
+    out := make([]user.User, 0, len(rows))
+    for _, row := range rows {
+        out = append(out, user.User{
+            ID:           row.ID,
+            Email:        row.Email,
+            DisplayName:  row.DisplayName,
+            PasswordHash: row.PasswordHash,
+            Role:         identity.Role(row.Role),
+            Status:       user.Status(row.Status),
+        })
     }
-    return out, rows.Err()
+    return out, nil
 }
 
 func (r *UserRepo) Create(ctx context.Context, u *user.User) (int64, error) {
-    res, err := r.db.ExecContext(ctx, `
-INSERT INTO users(email, display_name, password_hash, role, status)
-VALUES (?,?,?,?,?)`,
-        u.Email, u.DisplayName, u.PasswordHash, string(u.Role), string(u.Status),
-    )
-    if err != nil {
+    row := userRow{
+        Email:        u.Email,
+        DisplayName:  u.DisplayName,
+        PasswordHash: u.PasswordHash,
+        Role:         string(u.Role),
+        Status:       string(u.Status),
+    }
+
+    if err := r.db.WithContext(ctx).Create(&row).Error; err != nil {
         return 0, err
     }
-    return res.LastInsertId()
+    return row.ID, nil
 }
 
 func (r *UserRepo) Update(ctx context.Context, u *user.User) error {
-    _, err := r.db.ExecContext(ctx, `
-UPDATE users
-SET email=?, display_name=?, password_hash=?, role=?, status=?
-WHERE id=?`,
-        u.Email, u.DisplayName, u.PasswordHash, string(u.Role), string(u.Status), u.ID,
-    )
-    return err
+    // 用 Updates 可以避免全量 Save 带来的误更新
+    return r.db.WithContext(ctx).
+        Model(&userRow{}).
+        Where("id = ?", u.ID).
+        Updates(map[string]any{
+            "email":         u.Email,
+            "display_name":  u.DisplayName,
+            "password_hash": u.PasswordHash,
+            "role":          string(u.Role),
+            "status":        string(u.Status),
+        }).Error
 }
 
 func (r *UserRepo) Delete(ctx context.Context, id int64) error {
-    _, err := r.db.ExecContext(ctx, `DELETE FROM users WHERE id=?`, id)
-    return err
+    return r.db.WithContext(ctx).
+        Exec("DELETE FROM users WHERE id = ?", id).Error
 }
 
 func IsUniqueViolation(err error) bool {
     if err == nil {
         return false
     }
-    // modernc/sqlite error is often a plain string containing "UNIQUE constraint failed"
     return strings.Contains(strings.ToLower(err.Error()), "unique constraint failed")
 }
