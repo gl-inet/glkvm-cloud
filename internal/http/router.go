@@ -9,8 +9,6 @@ import (
     "rttys/internal/store/memory"
     "rttys/internal/store/sqlite"
 
-    "context"
-
     "github.com/gin-gonic/gin"
 )
 
@@ -31,17 +29,7 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
     ugH := handler.NewUserGroupHandler(d.GroupRepo)
     relH := handler.NewRelationsHandler(d.RelationsRepo)
 
-    userAdminH := handler.NewUserAdminHandler(d.UserSvc)
-    ugAdminH := handler.NewUserGroupAdminHandler(
-        func(ctx context.Context, name, desc string) (int64, error) { return d.GroupRepo.CreateUserGroup(ctx, name, desc) },
-        func(ctx context.Context, id int64, name, desc string) error { return d.GroupRepo.UpdateUserGroup(ctx, id, name, desc) },
-        func(ctx context.Context, id int64) error { return d.GroupRepo.DeleteUserGroup(ctx, id) },
-    )
-    dgAdminH := handler.NewDeviceGroupAdminHandler(
-        func(ctx context.Context, name, desc string) (int64, error) { return d.GroupRepo.CreateDeviceGroup(ctx, name, desc) },
-        func(ctx context.Context, id int64, name, desc string) error { return d.GroupRepo.UpdateDeviceGroup(ctx, id, name, desc) },
-        func(ctx context.Context, id int64) error { return d.GroupRepo.DeleteDeviceGroup(ctx, id) },
-    )
+    userH := handler.NewUserHandler(d.UserSvc)
 
     // public
     r.POST("/api/login", authH.Login)
@@ -59,23 +47,23 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
     // device scope list
     api.GET("/devices", middleware.Require(permission.DeviceRead), devH.ListDevices)
 
+    // --- users ---
+    api.GET("/users", middleware.Require(permission.UserRead), userH.ListUsers)
+    api.POST("/users", middleware.Require(permission.UserWrite), userH.CreateUser)
+    api.PUT("/users/:id", middleware.Require(permission.UserWrite), userH.UpdateUser)
+    api.DELETE("/users/:id", middleware.Require(permission.UserWrite), userH.DeleteUser)
+
+    // user groups
+    api.GET("/user-groups", middleware.Require(permission.UserGroupRead), ugH.ListUserGroups)
+    api.POST("/user-groups", middleware.Require(permission.UserGroupWrite), ugH.Create)
+    api.PUT("/user-groups/:id", middleware.Require(permission.UserGroupWrite), ugH.Update)
+    api.DELETE("/user-groups/:id", middleware.Require(permission.UserGroupWrite), ugH.Delete)
+
     // groups list
     api.GET("/device-groups", middleware.Require(permission.DeviceGroupRead), dgH.ListDeviceGroups)
-    api.GET("/user-groups", middleware.Require(permission.UserGroupRead), ugH.ListUserGroups)
-
-    // --- Admin CRUD ---
-    api.GET("/users", middleware.Require(permission.UserRead), userAdminH.ListUsers)
-    api.POST("/users", middleware.Require(permission.UserWrite), userAdminH.CreateUser)
-    api.PUT("/users/:id", middleware.Require(permission.UserWrite), userAdminH.UpdateUser)
-    api.DELETE("/users/:id", middleware.Require(permission.UserWrite), userAdminH.DeleteUser)
-
-    api.POST("/user-groups", middleware.Require(permission.UserGroupWrite), ugAdminH.Create)
-    api.PUT("/user-groups/:id", middleware.Require(permission.UserGroupWrite), ugAdminH.Update)
-    api.DELETE("/user-groups/:id", middleware.Require(permission.UserGroupWrite), ugAdminH.Delete)
-
-    api.POST("/device-groups", middleware.Require(permission.DeviceGroupWrite), dgAdminH.Create)
-    api.PUT("/device-groups/:id", middleware.Require(permission.DeviceGroupWrite), dgAdminH.Update)
-    api.DELETE("/device-groups/:id", middleware.Require(permission.DeviceGroupWrite), dgAdminH.Delete)
+    api.POST("/device-groups", middleware.Require(permission.DeviceGroupWrite), dgH.Create)
+    api.PUT("/device-groups/:id", middleware.Require(permission.DeviceGroupWrite), dgH.Update)
+    api.DELETE("/device-groups/:id", middleware.Require(permission.DeviceGroupWrite), dgH.Delete)
 
     // Relations (cover / set)
     api.PUT("/users/:id/user-groups", middleware.Require(permission.UserWrite), relH.SetUserGroups)
