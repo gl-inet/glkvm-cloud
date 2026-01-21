@@ -3,6 +3,7 @@
 BINARY_NAME ?= rttys
 UI_DIR      ?= ui
 CONF_FILE   ?= ./rttys.conf
+GO_MAIN     ?= ./cmd/glkvm-cloud
 
 # Go build flags
 BUILD_FLAGS ?= -ldflags "-s -w"
@@ -32,7 +33,7 @@ else
 endif
 
 # ---------------- Commands ----------------
-GO_BUILD_CMD = go build $(BUILD_FLAGS) -o $(BINARY_NAME)
+GO_BUILD_CMD = go build $(BUILD_FLAGS) -o $(BINARY_NAME) $(GO_MAIN)
 
 .PHONY: all ui build run build-all build-run full-run \
         build-linux-amd64 build-linux-arm64 build-linux-all \
@@ -50,7 +51,7 @@ build:
 
 # Run Go program only (native binary)
 run:
-	./$(BINARY_NAME) -c $(CONF_FILE)
+	RTTYS_CONF=$(CONF_FILE) ./$(BINARY_NAME)
 
 # Build frontend and Go binary
 build-all: ui build
@@ -66,12 +67,12 @@ full-run: ui build run
 build-linux-amd64:
 	@mkdir -p $(DIST_DIR)
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-		go build $(BUILD_FLAGS) -o $(DIST_DIR)/$(BINARY_NAME)-linux-amd64
+		go build $(BUILD_FLAGS) -o $(DIST_DIR)/$(BINARY_NAME)-linux-amd64 $(GO_MAIN)
 
 build-linux-arm64:
 	@mkdir -p $(DIST_DIR)
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
-		go build $(BUILD_FLAGS) -o $(DIST_DIR)/$(BINARY_NAME)-linux-arm64
+		go build $(BUILD_FLAGS) -o $(DIST_DIR)/$(BINARY_NAME)-linux-arm64 $(GO_MAIN)
 
 build-linux-all: build-linux-amd64 build-linux-arm64
 
