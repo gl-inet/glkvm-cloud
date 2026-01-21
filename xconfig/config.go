@@ -29,6 +29,7 @@ import (
     "os"
     "strconv"
     "strings"
+    "time"
 
     "github.com/kylelemons/go-gypsy/yaml"
 )
@@ -46,6 +47,7 @@ type Config struct {
     Password             string
     AllowOrigins         bool
     PprofAddr            string
+    AuthSessionTTL       time.Duration
     SslCert              string
     SslKey               string
     LogPath              string
@@ -108,6 +110,9 @@ const (
 func (cfg *Config) Load(confPath string) error {
     cfg.SslCert = SslCert
     cfg.SslKey = SslKey
+    if cfg.AuthSessionTTL == 0 {
+        cfg.AuthSessionTTL = 24 * time.Hour
+    }
 
     if strings.TrimSpace(confPath) != "" {
         if _, err := os.Stat(confPath); err == nil {
@@ -164,6 +169,10 @@ func parseYamlCfg(cfg *Config, conf string) error {
     getConfigOpt(yamlCfg, "local-auth", &cfg.LocalAuth)
     getConfigOpt(yamlCfg, "password", &cfg.Password)
     getConfigOpt(yamlCfg, "allow-origins", &cfg.AllowOrigins)
+
+    if err := getDurationOpt(yamlCfg, "auth-session-ttl", &cfg.AuthSessionTTL); err != nil {
+        return err
+    }
 
     getConfigOpt(yamlCfg, "webrtc-ip", &cfg.WebrtcIP)
     getConfigOpt(yamlCfg, "webrtc-port", &cfg.WebrtcPort)
@@ -239,6 +248,13 @@ func applyEnvCfg(cfg *Config) error {
             cfg.Verbose = b
         }
     }
+    if v := strings.TrimSpace(os.Getenv("RTTYS_SESSION_TTL")); v != "" {
+        d, err := time.ParseDuration(v)
+        if err != nil {
+            return fmt.Errorf("invalid RTTYS_SESSION_TTL value %q: %w", v, err)
+        }
+        cfg.AuthSessionTTL = d
+    }
 
     // LDAP password is always read from environment variable to avoid YAML special character parsing issues and for security.
     if envPassword := os.Getenv("LDAP_BIND_PASSWORD"); envPassword != "" {
@@ -298,6 +314,19 @@ func applyEnvCfg(cfg *Config) error {
         cfg.WebUIHost = cleaned
     }
 
+    return nil
+}
+
+func getDurationOpt(yamlCfg *yaml.File, name string, opt *time.Duration) error {
+    val, err := yamlCfg.Get(name)
+    if err != nil {
+        return nil
+    }
+    d, err := time.ParseDuration(strings.TrimSpace(val))
+    if err != nil {
+        return fmt.Errorf("invalid %s value %q: %w", name, val, err)
+    }
+    *opt = d
     return nil
 }
 
