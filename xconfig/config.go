@@ -31,7 +31,6 @@ import (
     "strings"
 
     "github.com/kylelemons/go-gypsy/yaml"
-    "github.com/urfave/cli/v3"
 )
 
 type Config struct {
@@ -49,6 +48,9 @@ type Config struct {
     PprofAddr            string
     SslCert              string
     SslKey               string
+    LogPath              string
+    LogLevel             string
+    Verbose              bool
     WebrtcIP             string
     WebrtcPort           string
     WebrtcUsername       string
@@ -103,61 +105,23 @@ const (
     SslKey  = "/home/certificate/glkvm_key"
 )
 
-func (cfg *Config) Parse(c *cli.Command) error {
-    conf := c.String("conf")
-    if conf != "" {
-        err := parseYamlCfg(cfg, conf)
-        if err != nil {
-            return err
-        }
-    }
-
-    getFlagOpt(c, "addr-dev", &cfg.AddrDev)
-    getFlagOpt(c, "addr-user", &cfg.AddrUser)
-    getFlagOpt(c, "addr-http-proxy", &cfg.AddrHttpProxy)
-    getFlagOpt(c, "http-proxy-redir-url", &cfg.HttpProxyRedirURL)
-    getFlagOpt(c, "http-proxy-redir-domain", &cfg.HttpProxyRedirDomain)
-    getFlagOpt(c, "dev-hook-url", &cfg.DevHookUrl)
-    getFlagOpt(c, "user-hook-url", &cfg.UserHookUrl)
-    getFlagOpt(c, "local-auth", &cfg.LocalAuth)
-    getFlagOpt(c, "token", &cfg.Token)
-    getFlagOpt(c, "password", &cfg.Password)
-    getFlagOpt(c, "allow-origins", &cfg.AllowOrigins)
-    getFlagOpt(c, "pprof", &cfg.PprofAddr)
-
+func (cfg *Config) Load(confPath string) error {
     cfg.SslCert = SslCert
     cfg.SslKey = SslKey
 
-    getFlagOpt(c, "webrtc-ip", &cfg.WebrtcIP)
-    getFlagOpt(c, "webrtc-port", &cfg.WebrtcPort)
-    getFlagOpt(c, "webrtc-username", &cfg.WebrtcUsername)
-    getFlagOpt(c, "webrtc-password", &cfg.WebrtcPassword)
+    if strings.TrimSpace(confPath) != "" {
+        if _, err := os.Stat(confPath); err == nil {
+            if err := parseYamlCfg(cfg, confPath); err != nil {
+                return err
+            }
+        } else if !os.IsNotExist(err) {
+            return fmt.Errorf("read config file: %s", err.Error())
+        }
+    }
 
-    // LDAP configuration flags
-    getFlagOpt(c, "ldap-enabled", &cfg.LdapEnabled)
-    getFlagOpt(c, "ldap-server", &cfg.LdapServer)
-    getFlagOpt(c, "ldap-port", &cfg.LdapPort)
-    getFlagOpt(c, "ldap-use-tls", &cfg.LdapUseTLS)
-    getFlagOpt(c, "ldap-bind-dn", &cfg.LdapBindDN)
-    getFlagOpt(c, "ldap-bind-password", &cfg.LdapBindPassword)
-    getFlagOpt(c, "ldap-base-dn", &cfg.LdapBaseDN)
-    getFlagOpt(c, "ldap-user-filter", &cfg.LdapUserFilter)
-    getFlagOpt(c, "ldap-allowed-groups", &cfg.LdapAllowedGroups)
-    getFlagOpt(c, "ldap-allowed-users", &cfg.LdapAllowedUsers)
-
-    // Generic OIDC Provider (standard OIDC provider flags)
-    getFlagOpt(c, "oidc-enabled", &cfg.OIDCEnabled)
-    getFlagOpt(c, "oidc-generic-issuer", &cfg.OIDCGenericIssuer)
-    getFlagOpt(c, "oidc-generic-client-id", &cfg.OIDCGenericClientID)
-    getFlagOpt(c, "oidc-generic-client-secret", &cfg.OIDCGenericClientSecret)
-    getFlagOpt(c, "oidc-generic-auth-url", &cfg.OIDCGenericAuthURL)
-    getFlagOpt(c, "oidc-generic-token-url", &cfg.OIDCGenericTokenURL)
-    getFlagOpt(c, "oidc-generic-redirect-url", &cfg.OIDCGenericRedirectURL)
-    getFlagOpt(c, "oidc-generic-scopes", &cfg.OIDCGenericScopes)
-    getFlagOpt(c, "oidc-generic-allowed-users", &cfg.OIDCGenericAllowedUsers)
-    getFlagOpt(c, "oidc-generic-allowed-subs", &cfg.OIDCGenericAllowedSubs)
-    getFlagOpt(c, "oidc-generic-allowed-usernames", &cfg.OIDCGenericAllowedUsernames)
-    getFlagOpt(c, "oidc-generic-allowed-groups", &cfg.OIDCGenericAllowedGroups)
+    if err := applyEnvCfg(cfg); err != nil {
+        return err
+    }
 
     return nil
 }
@@ -183,6 +147,10 @@ func parseYamlCfg(cfg *Config, conf string) error {
     if err != nil {
         return fmt.Errorf(`read config file: %s`, err.Error())
     }
+
+    getConfigOpt(yamlCfg, "log", &cfg.LogPath)
+    getConfigOpt(yamlCfg, "log-level", &cfg.LogLevel)
+    getConfigOpt(yamlCfg, "verbose", &cfg.Verbose)
 
     getConfigOpt(yamlCfg, "addr-dev", &cfg.AddrDev)
     getConfigOpt(yamlCfg, "addr-user", &cfg.AddrUser)
@@ -216,23 +184,11 @@ func parseYamlCfg(cfg *Config, conf string) error {
     getConfigOpt(yamlCfg, "ldap-allowed-groups", &cfg.LdapAllowedGroups)
     getConfigOpt(yamlCfg, "ldap-allowed-users", &cfg.LdapAllowedUsers)
 
-    // LDAP password is always read from environment variable to avoid YAML special character parsing issues and for security.
-    if envPassword := os.Getenv("LDAP_BIND_PASSWORD"); envPassword != "" {
-        cfg.LdapBindPassword = envPassword
-    }
-
     // ===== OIDC configuration (generic OIDC provider) =====
     // Switch and basic endpoints
     getConfigOpt(yamlCfg, "oidc-enabled", &cfg.OIDCEnabled)
     getConfigOpt(yamlCfg, "oidc-generic-issuer", &cfg.OIDCGenericIssuer)
     getConfigOpt(yamlCfg, "oidc-generic-client-id", &cfg.OIDCGenericClientID)
-
-    // Note: oidc-generic-client-secret is intentionally not read from YAML
-    // to avoid checking secrets into config files and leaking in logs.
-    // It is always read directly from the OIDC_CLIENT_SECRET environment variable below.
-    if envSecret := os.Getenv("OIDC_CLIENT_SECRET"); envSecret != "" {
-        cfg.OIDCGenericClientSecret = envSecret
-    }
 
     getConfigOpt(yamlCfg, "oidc-generic-auth-url", &cfg.OIDCGenericAuthURL)
     getConfigOpt(yamlCfg, "oidc-generic-token-url", &cfg.OIDCGenericTokenURL)
@@ -266,6 +222,34 @@ func parseYamlCfg(cfg *Config, conf string) error {
     // 4) Groups whitelist
     if s, err := yamlCfg.Get("oidc-generic-allowed-groups"); err == nil && strings.TrimSpace(s) != "" {
         cfg.OIDCGenericAllowedGroups = splitScopes(s)
+    }
+
+    return nil
+}
+
+func applyEnvCfg(cfg *Config) error {
+    if v := strings.TrimSpace(os.Getenv("RTTYS_LOG")); v != "" {
+        cfg.LogPath = v
+    }
+    if v := strings.TrimSpace(os.Getenv("RTTYS_LOG_LEVEL")); v != "" {
+        cfg.LogLevel = v
+    }
+    if v := strings.TrimSpace(os.Getenv("RTTYS_VERBOSE")); v != "" {
+        if b, err := strconv.ParseBool(v); err == nil {
+            cfg.Verbose = b
+        }
+    }
+
+    // LDAP password is always read from environment variable to avoid YAML special character parsing issues and for security.
+    if envPassword := os.Getenv("LDAP_BIND_PASSWORD"); envPassword != "" {
+        cfg.LdapBindPassword = envPassword
+    }
+
+    // Note: oidc-generic-client-secret is intentionally not read from YAML
+    // to avoid checking secrets into config files and leaking in logs.
+    // It is always read directly from the OIDC_CLIENT_SECRET environment variable below.
+    if envSecret := os.Getenv("OIDC_CLIENT_SECRET"); envSecret != "" {
+        cfg.OIDCGenericClientSecret = envSecret
     }
 
     // Reverse proxy mode is always read from environment variable
@@ -315,21 +299,6 @@ func parseYamlCfg(cfg *Config, conf string) error {
     }
 
     return nil
-}
-
-func getFlagOpt(c *cli.Command, name string, opt any) {
-    if !c.IsSet(name) {
-        return
-    }
-
-    switch opt := opt.(type) {
-    case *string:
-        *opt = c.String(name)
-    case *int:
-        *opt = c.Int(name)
-    case *bool:
-        *opt = c.Bool(name)
-    }
 }
 
 // splitScopes splits a whitespace/comma/newline-separated scope string
