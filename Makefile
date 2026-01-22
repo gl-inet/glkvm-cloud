@@ -15,7 +15,7 @@ IMAGE_TAG   ?= build
 GOARCH ?= $(shell go env GOARCH)
 
 # ---------------- Commands ----------------
-.PHONY: all ui \
+.PHONY: all ui debug-local \
         build-linux-amd64 build-linux-arm64 build-linux-all \
         docker-buildx docker-buildx-full
 
@@ -59,6 +59,9 @@ docker-buildx:
 		-t $(IMAGE_REF) \
 		--load .
 
-
 docker-buildx-full: ui
 	@$(MAKE) docker-buildx
+
+# Local debug bundle (amd64 image + save tar)
+debug-local: build-linux-amd64 docker-buildx
+	docker save $(IMAGE_NAME):$(IMAGE_TAG) -o glkvmcloudbuild.tar
