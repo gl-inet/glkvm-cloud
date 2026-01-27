@@ -2,6 +2,7 @@ package handler
 
 import (
 	"rttys/internal/domain/device"
+	"rttys/internal/domain/identity"
 	"rttys/internal/http/dto"
 	"rttys/internal/http/middleware"
 	"rttys/internal/store/sqlite"
@@ -33,15 +34,40 @@ func (h *DeviceHandler) ListDevices(c *gin.Context) {
 	traceID := middleware.GetTraceID(c)
 	p := middleware.MustPrincipal(c)
 
-	items, err := h.devSvc.ListVisible(c.Request.Context(), p.Role, p.UserID)
-	if err != nil {
-		dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", nil))
-		return
+	isAdmin := p.Role == identity.RoleAdmin
+	var items []device.Device
+	if isAdmin {
+		var err error
+		items, err = h.devSvc.ListVisible(c.Request.Context(), p.Role, p.UserID)
+		if err != nil {
+			dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", nil))
+			return
+		}
+	} else {
+		if h.groupRepo == nil {
+			dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", nil))
+			return
+		}
+		dgIDs, err := h.groupRepo.ListDeviceGroupIDsByUser(c.Request.Context(), p.UserID)
+		if err != nil || len(dgIDs) == 0 {
+			dto.Write(c, dto.Ok(traceID, dto.ListDevicesResp{
+				Items:    []dto.Device{},
+				Page:     1,
+				PageSize: 0,
+				Total:    0,
+			}))
+			return
+		}
+		items, err = h.devSvc.ListByDeviceGroupIDs(c.Request.Context(), dgIDs)
+		if err != nil {
+			dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", nil))
+			return
+		}
 	}
 
 	groupNameByID := map[int64]string{}
 	if h.groupRepo != nil {
-		groups, err := h.groupRepo.ListDeviceGroupsVisibleToUser(c.Request.Context(), p.UserID, string(p.Role) == "admin")
+		groups, err := h.groupRepo.ListDeviceGroupsVisibleToUser(c.Request.Context(), p.UserID, isAdmin)
 		if err != nil {
 			dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", nil))
 			return

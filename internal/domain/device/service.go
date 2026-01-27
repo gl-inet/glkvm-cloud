@@ -30,3 +30,7 @@ func (s *Service) ListVisible(ctx context.Context, role identity.Role, userID in
     }
     return s.repo.ListByDeviceGroupIDs(ctx, dgIDs)
 }
+
+func (s *Service) ListByDeviceGroupIDs(ctx context.Context, groupIDs []int64) ([]Device, error) {
+    return s.repo.ListByDeviceGroupIDs(ctx, groupIDs)
+}

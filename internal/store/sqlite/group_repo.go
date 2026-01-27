@@ -21,11 +21,15 @@ type userGroupRow struct {
     Description string `gorm:"column:description"`
 }
 
+func (userGroupRow) TableName() string { return "user_groups" }
+
 type deviceGroupRow struct {
     ID          int64  `gorm:"column:id"`
     Name        string `gorm:"column:name"`
     Description string `gorm:"column:description"`
 }
+
+func (deviceGroupRow) TableName() string { return "device_groups" }
 
 type UserGroupBrief struct {
     ID   int64  `gorm:"column:id"`
@@ -38,8 +42,8 @@ type DeviceGroupBrief struct {
 }
 
 type idCountRow struct {
-    ID   int64 `gorm:"column:id"`
-    Cnt  int64 `gorm:"column:cnt"`
+    ID  int64 `gorm:"column:id"`
+    Cnt int64 `gorm:"column:cnt"`
 }
 
 type deviceGroupUserGroupRow struct {
@@ -49,8 +53,8 @@ type deviceGroupUserGroupRow struct {
 }
 
 type userGroupDeviceGroupRow struct {
-    UserGroupID    int64  `gorm:"column:user_group_id"`
-    DeviceGroupID  int64  `gorm:"column:device_group_id"`
+    UserGroupID     int64  `gorm:"column:user_group_id"`
+    DeviceGroupID   int64  `gorm:"column:device_group_id"`
     DeviceGroupName string `gorm:"column:device_group_name"`
 }
 
@@ -167,8 +171,6 @@ func (r *GroupRepo) CreateUserGroup(ctx context.Context, name, description strin
     }
     return row.ID, nil
 }
-
-// 如果你需要“返回新ID”，推荐用下面这个版本（见下方“返回 LastInsertId”方案）
 
 func (r *GroupRepo) UpdateUserGroup(ctx context.Context, id int64, name, description string) error {
     return r.db.WithContext(ctx).Exec(
