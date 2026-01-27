@@ -15,9 +15,11 @@ func NewDeviceRepo(db *gorm.DB) *DeviceRepo { return &DeviceRepo{db: db} }
 // 用于 DB 行映射
 type deviceRow struct {
     ID            int64  `gorm:"column:id"`
-    DeviceUID     string `gorm:"column:device_uid"`
+    Ddns          string `gorm:"column:ddns"`
+    Mac           string `gorm:"column:mac"`
     Name          string `gorm:"column:name"`
     Description   string `gorm:"column:description"`
+    IP            string `gorm:"column:ip"`
     DeviceGroupID *int64 `gorm:"column:device_group_id"` // NULL => nil
     Status        string `gorm:"column:status"`
     LastSeenAt    *int64 `gorm:"column:last_seen_at"` // NULL => nil
@@ -38,9 +40,11 @@ func (r *DeviceRepo) ListAll(ctx context.Context) ([]device.Device, error) {
     for _, row := range rows {
         out = append(out, device.Device{
             ID:            row.ID,
-            DeviceUID:     row.DeviceUID,
+            Ddns:          row.Ddns,
+            Mac:           row.Mac,
             Name:          row.Name,
             Description:   row.Description,
+            IP:            row.IP,
             DeviceGroupID: row.DeviceGroupID,
             Status:        device.Status(row.Status),
             LastSeenAt:    row.LastSeenAt,
@@ -67,9 +71,11 @@ func (r *DeviceRepo) ListByDeviceGroupIDs(ctx context.Context, groupIDs []int64)
     for _, row := range rows {
         out = append(out, device.Device{
             ID:            row.ID,
-            DeviceUID:     row.DeviceUID,
+            Ddns:          row.Ddns,
+            Mac:           row.Mac,
             Name:          row.Name,
             Description:   row.Description,
+            IP:            row.IP,
             DeviceGroupID: row.DeviceGroupID,
             Status:        device.Status(row.Status),
             LastSeenAt:    row.LastSeenAt,

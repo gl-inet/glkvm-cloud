@@ -80,10 +80,10 @@ func (h *RelationsHandler) SetDeviceGroupDevices(c *gin.Context) {
         return
     }
 
-    if err := h.repo.SetDeviceGroupDevices(c.Request.Context(), dgID, req.DeviceUIDs); err != nil {
+    if err := h.repo.SetDeviceGroupDevices(c.Request.Context(), dgID, req.DeviceIDs); err != nil {
         dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", map[string]any{"detail": err.Error()}))
         return
     }
 
-    dto.Write(c, dto.Ok(traceID, dto.SetDeviceGroupDevicesResp{DeviceGroupID: dgID, DeviceUIDs: req.DeviceUIDs}))
+    dto.Write(c, dto.Ok(traceID, dto.SetDeviceGroupDevicesResp{DeviceGroupID: dgID, DeviceIDs: req.DeviceIDs}))
 }

@@ -71,9 +71,9 @@ func SeedIfEmpty(ctx context.Context, db *sql.DB) error {
     userHash := password.HashDemoSHA256("user")
 
     if _, err := db.ExecContext(ctx, `
-INSERT INTO users(email, display_name, password_hash, role, status) VALUES
-('admin@example.com','Admin', ?, 'admin', 'active'),
-('user1@example.com','User One', ?, 'user', 'active')`,
+INSERT INTO users(username, description, password_hash, role, status) VALUES
+('admin','Admin', ?, 'admin', 'active'),
+('user1','User One', ?, 'user', 'active')`,
         adminHash, userHash,
     ); err != nil {
         return err
@@ -109,10 +109,10 @@ INSERT INTO user_group_device_group_links(user_group_id, device_group_id) VALUES
 
     // devices: one in dg1, one in dg2, one ungrouped
     if _, err := db.ExecContext(ctx, `
-INSERT INTO devices(device_uid, name, description, device_group_id, status) VALUES
-('dev-001','Device 1','in dg1', 1, 'online'),
-('dev-002','Device 2','in dg2', 2, 'offline'),
-('dev-003','Device 3','ungrouped', NULL, 'online')`); err != nil {
+INSERT INTO devices(ddns, mac, name, description, device_group_id, status, last_seen_at) VALUES
+('dev-001','00:11:22:33:44:55','Device 1','in dg1', 1, 'online', unixepoch()),
+('dev-002','00:11:22:33:44:66','Device 2','in dg2', 2, 'offline', unixepoch()),
+('dev-003','00:11:22:33:44:77','Device 3','ungrouped', NULL, 'online', unixepoch())`); err != nil {
         return err
     }
 

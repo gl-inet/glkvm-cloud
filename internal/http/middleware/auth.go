@@ -46,6 +46,11 @@ func Auth(sessionStore *memory.SessionStore, userSvc *user.Service, permSvc *per
             }
         }
 
+        // 3) Fallback to Token header (compat with API docs)
+        if token == "" {
+            token = strings.TrimSpace(c.GetHeader("Token"))
+        }
+
         if token == "" {
             dto.Write(c, dto.Err(traceID, dto.CodeAuthRequired, "Please login", nil))
             c.Abort()
@@ -72,10 +77,15 @@ func Auth(sessionStore *memory.SessionStore, userSvc *user.Service, permSvc *per
             perms = append(perms, string(k))
         }
 
+        displayName := u.Description
+        if strings.TrimSpace(displayName) == "" {
+            displayName = u.Username
+        }
+
         c.Set(PrincipalKey, Principal{
             UserID:         u.ID,
-            Username:       u.Email,
-            DisplayName:    u.DisplayName,
+            Username:       u.Username,
+            DisplayName:    displayName,
             Role:           u.Role,
             PermissionKeys: perms,
         })

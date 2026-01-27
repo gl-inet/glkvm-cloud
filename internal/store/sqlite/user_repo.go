@@ -18,8 +18,9 @@ func NewUserRepo(db *gorm.DB) *UserRepo { return &UserRepo{db: db} }
 // 映射用的行结构
 type userRow struct {
     ID           int64  `gorm:"column:id"`
+    Username     string `gorm:"column:username"`
     Email        string `gorm:"column:email"`
-    DisplayName  string `gorm:"column:display_name"`
+    Description  string `gorm:"column:description"`
     PasswordHash string `gorm:"column:password_hash"`
     Role         string `gorm:"column:role"`
     Status       string `gorm:"column:status"`
@@ -42,8 +43,9 @@ func (r *UserRepo) FindByID(ctx context.Context, id int64) (*user.User, error) {
 
     u := &user.User{
         ID:           row.ID,
+        Username:     row.Username,
         Email:        row.Email,
-        DisplayName:  row.DisplayName,
+        Description:  row.Description,
         PasswordHash: row.PasswordHash,
         Role:         identity.Role(row.Role),
         Status:       user.Status(row.Status),
@@ -51,10 +53,10 @@ func (r *UserRepo) FindByID(ctx context.Context, id int64) (*user.User, error) {
     return u, nil
 }
 
-func (r *UserRepo) FindByUsername(ctx context.Context, email string) (*user.User, error) {
+func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*user.User, error) {
     var row userRow
     err := r.db.WithContext(ctx).
-        Where("email = ?", email).
+        Where("username = ?", username).
         Take(&row).Error
 
     if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -66,8 +68,9 @@ func (r *UserRepo) FindByUsername(ctx context.Context, email string) (*user.User
 
     return &user.User{
         ID:           row.ID,
+        Username:     row.Username,
         Email:        row.Email,
-        DisplayName:  row.DisplayName,
+        Description:  row.Description,
         PasswordHash: row.PasswordHash,
         Role:         identity.Role(row.Role),
         Status:       user.Status(row.Status),
@@ -84,8 +87,9 @@ func (r *UserRepo) List(ctx context.Context) ([]user.User, error) {
     for _, row := range rows {
         out = append(out, user.User{
             ID:           row.ID,
+            Username:     row.Username,
             Email:        row.Email,
-            DisplayName:  row.DisplayName,
+            Description:  row.Description,
             PasswordHash: row.PasswordHash,
             Role:         identity.Role(row.Role),
             Status:       user.Status(row.Status),
@@ -96,8 +100,9 @@ func (r *UserRepo) List(ctx context.Context) ([]user.User, error) {
 
 func (r *UserRepo) Create(ctx context.Context, u *user.User) (int64, error) {
     row := userRow{
+        Username:     u.Username,
         Email:        u.Email,
-        DisplayName:  u.DisplayName,
+        Description:  u.Description,
         PasswordHash: u.PasswordHash,
         Role:         string(u.Role),
         Status:       string(u.Status),
@@ -115,8 +120,9 @@ func (r *UserRepo) Update(ctx context.Context, u *user.User) error {
         Model(&userRow{}).
         Where("id = ?", u.ID).
         Updates(map[string]any{
+            "username":      u.Username,
             "email":         u.Email,
-            "display_name":  u.DisplayName,
+            "description":   u.Description,
             "password_hash": u.PasswordHash,
             "role":          string(u.Role),
             "status":        string(u.Status),

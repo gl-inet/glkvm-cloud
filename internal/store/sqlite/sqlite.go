@@ -8,6 +8,7 @@ import (
 
     gormsqlite "github.com/glebarez/sqlite"
     "gorm.io/gorm"
+    "gorm.io/gorm/logger"
 )
 
 type AppDB struct {
@@ -29,6 +30,7 @@ type Options struct {
     DSN          string // e.g. "/home/database/glkvm-cloud.db"
     MaxOpenConns int
     MaxIdleConns int
+    LogSQL       bool
 }
 
 // Open opens sqlite via GORM (glebarez/sqlite) and exposes both *gorm.DB and *sql.DB.
@@ -43,7 +45,12 @@ func Open(ctx context.Context, opt Options) (*AppDB, error) {
         opt.MaxIdleConns = 1
     }
 
-    gdb, err := gorm.Open(gormsqlite.Open(opt.DSN), &gorm.Config{})
+    gormCfg := &gorm.Config{}
+    if opt.LogSQL {
+        gormCfg.Logger = logger.Default.LogMode(logger.Info)
+    }
+
+    gdb, err := gorm.Open(gormsqlite.Open(opt.DSN), gormCfg)
     if err != nil {
         return nil, err
     }

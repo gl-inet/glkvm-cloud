@@ -18,8 +18,8 @@ type Service struct{ repo Repository }
 
 func NewService(repo Repository) *Service { return &Service{repo: repo} }
 
-func (s *Service) Authenticate(ctx context.Context, email, pw string) (*User, error) {
-    u, err := s.repo.FindByUsername(ctx, email)
+func (s *Service) Authenticate(ctx context.Context, username, pw string) (*User, error) {
+    u, err := s.repo.FindByUsername(ctx, username)
     if err != nil || u == nil {
         return nil, ErrUserNotFound
     }
@@ -48,10 +48,10 @@ func (s *Service) List(ctx context.Context) ([]User, error) {
 }
 
 // CreateUser creates a user; passwordPlain will be hashed.
-func (s *Service) CreateUser(ctx context.Context, email, displayName, passwordPlain, role, status string) (int64, error) {
+func (s *Service) CreateUser(ctx context.Context, username, description, passwordPlain, role, status string) (int64, error) {
     u := &User{
-        Email:        email,
-        DisplayName:  displayName,
+        Username:     username,
+        Description:  description,
         PasswordHash: password.HashDemoSHA256(passwordPlain),
         Role:         identity.RoleFromString(role),
         Status:       Status(status),
@@ -60,17 +60,17 @@ func (s *Service) CreateUser(ctx context.Context, email, displayName, passwordPl
 }
 
 // UpdateUser updates fields; if passwordPlain is empty, keep existing.
-func (s *Service) UpdateUser(ctx context.Context, id int64, email, displayName, passwordPlain, role, status *string) error {
+func (s *Service) UpdateUser(ctx context.Context, id int64, username, description, passwordPlain, role, status *string) error {
     exist, err := s.repo.FindByID(ctx, id)
     if err != nil || exist == nil {
         return ErrUserNotFound
     }
 
-    if email != nil && *email != "" {
-        exist.Email = *email
+    if username != nil && *username != "" {
+        exist.Username = *username
     }
-    if displayName != nil {
-        exist.DisplayName = *displayName
+    if description != nil {
+        exist.Description = *description
     }
     if role != nil && *role != "" {
         exist.Role = identity.RoleFromString(*role)

@@ -7,16 +7,23 @@ import (
     "rttys/internal/domain/user"
     "rttys/internal/http/dto"
     "rttys/internal/http/middleware"
+    "rttys/internal/store/sqlite"
 
     "github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {
-    userSvc *user.Service
+    userSvc       *user.Service
+    groupRepo     *sqlite.GroupRepo
+    relationsRepo *sqlite.RelationsRepo
 }
 
-func NewUserHandler(userSvc *user.Service) *UserHandler {
-    return &UserHandler{userSvc: userSvc}
+func NewUserHandler(userSvc *user.Service, groupRepo *sqlite.GroupRepo, relationsRepo *sqlite.RelationsRepo) *UserHandler {
+    return &UserHandler{
+        userSvc:       userSvc,
+        groupRepo:     groupRepo,
+        relationsRepo: relationsRepo,
+    }
 }
 
 func (h *UserHandler) ListUsers(c *gin.Context) {
@@ -28,14 +35,35 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
         return
     }
 
+    userIDs := make([]int64, 0, len(items))
+    for _, u := range items {
+        userIDs = append(userIDs, u.ID)
+    }
+    var groupsByUserID map[int64][]sqlite.UserGroupBrief
+    if h.groupRepo != nil {
+        groupsByUserID, err = h.groupRepo.ListUserGroupsByUserIDs(c.Request.Context(), userIDs)
+        if err != nil {
+            dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", nil))
+            return
+        }
+    }
+
     out := make([]dto.User, 0, len(items))
     for _, u := range items {
+        groups := make([]dto.UserGroupRef, 0)
+        if list, ok := groupsByUserID[u.ID]; ok {
+            for _, g := range list {
+                groups = append(groups, dto.UserGroupRef{
+                    UserGroupID:   g.ID,
+                    UserGroupName: g.Name,
+                })
+            }
+        }
         out = append(out, dto.User{
             ID:          u.ID,
-            Email:       u.Email,
-            DisplayName: u.DisplayName,
             Role:        string(u.Role),
-            Status:      string(u.Status),
+            Username:    u.Username,
+            UserGroupList: groups,
         })
     }
     dto.Write(c, dto.Ok(traceID, dto.ListUsersResp{Items: out}))
@@ -45,9 +73,15 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
     traceID := middleware.GetTraceID(c)
 
     var req dto.CreateUserReq
-    if err := c.ShouldBindJSON(&req); err != nil || req.Email == "" || req.Password == "" {
+    if err := c.ShouldBindJSON(&req); err != nil || req.Username == "" || req.Password == "" {
         dto.Write(c, dto.Err(traceID, dto.CodeInvalidArgument, "Invalid argument", map[string]any{
-            "field": "email/password",
+            "field": "username/password",
+        }))
+        return
+    }
+    if req.Repassword != "" && req.Repassword != req.Password {
+        dto.Write(c, dto.Err(traceID, dto.CodeValidationFailed, "Passwords do not match", map[string]any{
+            "field": "repassword",
         }))
         return
     }
@@ -55,22 +89,28 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
     if req.Role == "" {
         req.Role = "user"
     }
-    if req.Status == "" {
-        req.Status = "active"
-    }
+    status := "active"
 
-    id, err := h.userSvc.CreateUser(c.Request.Context(), req.Email, req.DisplayName, req.Password, req.Role, req.Status)
+    id, err := h.userSvc.CreateUser(c.Request.Context(), req.Username, req.Description, req.Password, req.Role, status)
     if err != nil {
         // best-effort conflict detection
         if strings.Contains(strings.ToLower(err.Error()), "unique") {
-            dto.Write(c, dto.Err(traceID, dto.CodeConflict, "Email already exists", nil))
+            dto.Write(c, dto.Err(traceID, dto.CodeConflict, "Username already exists", nil))
             return
         }
         dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", nil))
         return
     }
 
-    dto.Write(c, dto.Ok(traceID, dto.CreateUserResp{ID: id}))
+    if h.relationsRepo != nil {
+        if err := h.relationsRepo.SetUserGroups(c.Request.Context(), id, req.UserGroupIDs); err != nil {
+            _ = h.userSvc.DeleteUser(c.Request.Context(), id)
+            dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", map[string]any{"detail": err.Error()}))
+            return
+        }
+    }
+
+    dto.Write(c, dto.Ok(traceID, dto.CreateUserResp{}))
 }
 
 func (h *UserHandler) UpdateUser(c *gin.Context) {
@@ -89,18 +129,31 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
         dto.Write(c, dto.Err(traceID, dto.CodeInvalidArgument, "Invalid argument", nil))
         return
     }
+    if req.Password != nil && req.Repassword != nil && *req.Password != *req.Repassword {
+        dto.Write(c, dto.Err(traceID, dto.CodeValidationFailed, "Passwords do not match", map[string]any{
+            "field": "repassword",
+        }))
+        return
+    }
 
-    if err := h.userSvc.UpdateUser(c.Request.Context(), id, req.Email, req.DisplayName, req.Password, req.Role, req.Status); err != nil {
+    if err := h.userSvc.UpdateUser(c.Request.Context(), id, req.Username, req.Description, req.Password, req.Role, nil); err != nil {
         if strings.Contains(strings.ToLower(err.Error()), "not found") {
             dto.Write(c, dto.Err(traceID, dto.CodeNotFound, "Not found", nil))
             return
         }
         if strings.Contains(strings.ToLower(err.Error()), "unique") {
-            dto.Write(c, dto.Err(traceID, dto.CodeConflict, "Email already exists", nil))
+            dto.Write(c, dto.Err(traceID, dto.CodeConflict, "Username already exists", nil))
             return
         }
         dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", nil))
         return
+    }
+
+    if h.relationsRepo != nil && req.UserGroupIDs != nil {
+        if err := h.relationsRepo.SetUserGroups(c.Request.Context(), id, *req.UserGroupIDs); err != nil {
+            dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", map[string]any{"detail": err.Error()}))
+            return
+        }
     }
 
     dto.Write(c, dto.Ok(traceID, struct{}{}))

@@ -1,11 +1,15 @@
 package dto
 
+type UserGroupRef struct {
+	UserGroupID   int64  `json:"userGroupId"`
+	UserGroupName string `json:"userGroupName"`
+}
+
 type User struct {
-	ID          int64  `json:"id"`
-	Email       string `json:"email"`
-	DisplayName string `json:"displayName"`
-	Role        string `json:"role"`
-	Status      string `json:"status"`
+	ID            int64          `json:"id"`
+	Username      string         `json:"username"`
+	Role          string         `json:"role"`
+	UserGroupList []UserGroupRef `json:"userGroupList"`
 }
 
 type ListUsersResp struct {
@@ -13,23 +17,23 @@ type ListUsersResp struct {
 }
 
 type CreateUserReq struct {
-	Email       string `json:"email"`
-	DisplayName string `json:"displayName"`
-	Password    string `json:"password"`
-	Role        string `json:"role"`   // admin/user (default: user)
-	Status      string `json:"status"` // active/disabled (default: active)
+	Role         string  `json:"role"`
+	Username     string  `json:"username"`
+	Description  string  `json:"description"`
+	Password     string  `json:"password"`
+	Repassword   string  `json:"repassword"`
+	UserGroupIDs []int64 `json:"userGroupIds"`
 }
 
-type CreateUserResp struct {
-	ID int64 `json:"id"`
-}
+type CreateUserResp struct{}
 
 type UpdateUserReq struct {
-	Email       *string `json:"email"`
-	DisplayName *string `json:"displayName"`
-	Password    *string `json:"password"`
-	Role        *string `json:"role"`
-	Status      *string `json:"status"`
+	Role         *string  `json:"role"`
+	Username     *string  `json:"username"`
+	Description  *string  `json:"description"`
+	Password     *string  `json:"password"`
+	Repassword   *string  `json:"repassword"`
+	UserGroupIDs *[]int64 `json:"userGroupIds"`
 }
 
 type DeleteUserResp struct{}

@@ -15,9 +15,9 @@ type Meta struct {
 type Envelope[T any] struct {
 	Ok      bool   `json:"ok"`
 	Code    string `json:"code"`
-	Message string `json:"message,omitempty"`
-	Data    T      `json:"data,omitempty"`
-	Meta    Meta   `json:"meta,omitempty"`
+	Message string `json:"message"`
+	Data    T      `json:"data"`
+	Meta    Meta   `json:"meta"`
 }
 
 const (

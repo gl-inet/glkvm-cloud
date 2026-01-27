@@ -23,7 +23,7 @@ func (h *UserGroupHandler) ListUserGroups(c *gin.Context) {
     traceID := middleware.GetTraceID(c)
     p := middleware.MustPrincipal(c)
 
-    items, err := h.groupRepo.ListUserGroupsVisibleToUser(c.Request.Context(), p.UserID, string(p.Role) == "admin")
+    items, err := h.groupRepo.ListUserGroupDetails(c.Request.Context(), p.UserID, string(p.Role) == "admin")
     if err != nil {
         dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", nil))
         return
@@ -31,9 +31,40 @@ func (h *UserGroupHandler) ListUserGroups(c *gin.Context) {
 
     out := make([]dto.UserGroup, 0, len(items))
     for _, it := range items {
-        out = append(out, dto.UserGroup{ID: it.ID, Name: it.Name, Description: it.Description})
+        deviceGroups := make([]dto.UserGroupDeviceGroupRef, 0, len(it.DeviceGroups))
+        for _, dg := range it.DeviceGroups {
+            deviceGroups = append(deviceGroups, dto.UserGroupDeviceGroupRef{
+                DeviceGroupID:   dg.ID,
+                DeviceGroupName: dg.Name,
+            })
+        }
+        out = append(out, dto.UserGroup{
+            ID:              it.ID,
+            UserGroup:       it.Name,
+            Description:     it.Description,
+            UserCount:       it.UserCount,
+            DeviceGroupList: deviceGroups,
+        })
     }
     dto.Write(c, dto.Ok(traceID, dto.ListUserGroupsResp{Items: out}))
+}
+
+// GET /api/user-groups/options
+func (h *UserGroupHandler) ListOptions(c *gin.Context) {
+    traceID := middleware.GetTraceID(c)
+    p := middleware.MustPrincipal(c)
+
+    items, err := h.groupRepo.ListUserGroupsVisibleToUser(c.Request.Context(), p.UserID, string(p.Role) == "admin")
+    if err != nil {
+        dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", nil))
+        return
+    }
+
+    out := make([]dto.UserGroupOption, 0, len(items))
+    for _, it := range items {
+        out = append(out, dto.UserGroupOption{UserGroupID: it.ID, Name: it.Name})
+    }
+    dto.Write(c, dto.Ok(traceID, dto.ListUserGroupOptionsResp{Items: out}))
 }
 
 func (h *UserGroupHandler) Create(c *gin.Context) {
@@ -45,7 +76,7 @@ func (h *UserGroupHandler) Create(c *gin.Context) {
         return
     }
 
-    id, err := h.groupRepo.CreateDeviceGroup(c.Request.Context(), req.Name, req.Description)
+    _, err := h.groupRepo.CreateUserGroup(c.Request.Context(), req.Name, req.Description)
     if err != nil {
         if strings.Contains(strings.ToLower(err.Error()), "unique") {
             dto.Write(c, dto.Err(traceID, dto.CodeConflict, "Name already exists", nil))
@@ -55,7 +86,7 @@ func (h *UserGroupHandler) Create(c *gin.Context) {
         return
     }
 
-    dto.Write(c, dto.Ok(traceID, dto.CreateUserGroupResp{ID: id}))
+    dto.Write(c, dto.Ok(traceID, dto.CreateUserGroupResp{}))
 }
 
 func (h *UserGroupHandler) Update(c *gin.Context) {
@@ -73,7 +104,7 @@ func (h *UserGroupHandler) Update(c *gin.Context) {
         return
     }
 
-    if err := h.groupRepo.UpdateDeviceGroup(c.Request.Context(), id, req.Name, req.Description); err != nil {
+    if err := h.groupRepo.UpdateUserGroup(c.Request.Context(), id, req.Name, req.Description); err != nil {
         if strings.Contains(strings.ToLower(err.Error()), "unique") {
             dto.Write(c, dto.Err(traceID, dto.CodeConflict, "Name already exists", nil))
             return
@@ -94,7 +125,7 @@ func (h *UserGroupHandler) Delete(c *gin.Context) {
         return
     }
 
-    if err := h.groupRepo.DeleteDeviceGroup(c.Request.Context(), id); err != nil {
+    if err := h.groupRepo.DeleteUserGroup(c.Request.Context(), id); err != nil {
         dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", nil))
         return
     }

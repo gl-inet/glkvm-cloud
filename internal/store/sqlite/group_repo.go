@@ -27,6 +27,55 @@ type deviceGroupRow struct {
     Description string `gorm:"column:description"`
 }
 
+type UserGroupBrief struct {
+    ID   int64  `gorm:"column:id"`
+    Name string `gorm:"column:name"`
+}
+
+type DeviceGroupBrief struct {
+    ID   int64  `gorm:"column:id"`
+    Name string `gorm:"column:name"`
+}
+
+type idCountRow struct {
+    ID   int64 `gorm:"column:id"`
+    Cnt  int64 `gorm:"column:cnt"`
+}
+
+type deviceGroupUserGroupRow struct {
+    DeviceGroupID int64  `gorm:"column:device_group_id"`
+    UserGroupID   int64  `gorm:"column:user_group_id"`
+    UserGroupName string `gorm:"column:user_group_name"`
+}
+
+type userGroupDeviceGroupRow struct {
+    UserGroupID    int64  `gorm:"column:user_group_id"`
+    DeviceGroupID  int64  `gorm:"column:device_group_id"`
+    DeviceGroupName string `gorm:"column:device_group_name"`
+}
+
+type userGroupMemberRow struct {
+    UserID        int64  `gorm:"column:user_id"`
+    UserGroupID   int64  `gorm:"column:user_group_id"`
+    UserGroupName string `gorm:"column:user_group_name"`
+}
+
+type DeviceGroupDetail struct {
+    ID          int64
+    Name        string
+    Description string
+    DeviceCount int64
+    UserGroups  []UserGroupBrief
+}
+
+type UserGroupDetail struct {
+    ID           int64
+    Name         string
+    Description  string
+    UserCount    int64
+    DeviceGroups []DeviceGroupBrief
+}
+
 // -----------------------------
 // Visible query
 // -----------------------------
@@ -109,14 +158,14 @@ ORDER BY dg.id`, userID).
 // -----------------------------
 
 func (r *GroupRepo) CreateUserGroup(ctx context.Context, name, description string) (int64, error) {
-    res := r.db.WithContext(ctx).Exec(
-        `INSERT INTO user_groups(name, description) VALUES (?,?)`,
-        name, description,
-    )
-    if res.Error != nil {
-        return 0, res.Error
+    row := userGroupRow{
+        Name:        name,
+        Description: description,
     }
-    return res.RowsAffected, nil // 注意：RowsAffected 不是 LastInsertId
+    if err := r.db.WithContext(ctx).Create(&row).Error; err != nil {
+        return 0, err
+    }
+    return row.ID, nil
 }
 
 // 如果你需要“返回新ID”，推荐用下面这个版本（见下方“返回 LastInsertId”方案）
@@ -136,14 +185,14 @@ func (r *GroupRepo) DeleteUserGroup(ctx context.Context, id int64) error {
 }
 
 func (r *GroupRepo) CreateDeviceGroup(ctx context.Context, name, description string) (int64, error) {
-    res := r.db.WithContext(ctx).Exec(
-        `INSERT INTO device_groups(name, description) VALUES (?,?)`,
-        name, description,
-    )
-    if res.Error != nil {
-        return 0, res.Error
+    row := deviceGroupRow{
+        Name:        name,
+        Description: description,
     }
-    return res.RowsAffected, nil
+    if err := r.db.WithContext(ctx).Create(&row).Error; err != nil {
+        return 0, err
+    }
+    return row.ID, nil
 }
 
 func (r *GroupRepo) UpdateDeviceGroup(ctx context.Context, id int64, name, description string) error {
@@ -186,4 +235,153 @@ func mapDeviceGroups(rows []deviceGroupRow) []devicegroup.DeviceGroup {
         })
     }
     return out
+}
+
+// ----------------------------------------------------
+// Extended listing helpers (counts + relations)
+// ----------------------------------------------------
+
+func (r *GroupRepo) ListDeviceGroupDetails(ctx context.Context, userID int64, isAdmin bool) ([]DeviceGroupDetail, error) {
+    base, err := r.ListDeviceGroupsVisibleToUser(ctx, userID, isAdmin)
+    if err != nil {
+        return nil, err
+    }
+    if len(base) == 0 {
+        return []DeviceGroupDetail{}, nil
+    }
+
+    ids := make([]int64, 0, len(base))
+    detailMap := make(map[int64]*DeviceGroupDetail, len(base))
+    for _, g := range base {
+        ids = append(ids, g.ID)
+        detailMap[g.ID] = &DeviceGroupDetail{
+            ID:          g.ID,
+            Name:        g.Name,
+            Description: g.Description,
+            DeviceCount: 0,
+            UserGroups:  []UserGroupBrief{},
+        }
+    }
+
+    var countRows []idCountRow
+    if err := r.db.WithContext(ctx).
+        Raw(`SELECT device_group_id AS id, COUNT(1) AS cnt
+             FROM devices WHERE device_group_id IN ? GROUP BY device_group_id`, ids).
+        Scan(&countRows).Error; err != nil {
+        return nil, err
+    }
+    for _, row := range countRows {
+        if d, ok := detailMap[row.ID]; ok {
+            d.DeviceCount = row.Cnt
+        }
+    }
+
+    var linkRows []deviceGroupUserGroupRow
+    if err := r.db.WithContext(ctx).
+        Raw(`SELECT l.device_group_id AS device_group_id,
+                    ug.id AS user_group_id,
+                    ug.name AS user_group_name
+             FROM user_group_device_group_links l
+             JOIN user_groups ug ON ug.id=l.user_group_id
+             WHERE l.device_group_id IN ?
+             ORDER BY l.device_group_id, ug.id`, ids).
+        Scan(&linkRows).Error; err != nil {
+        return nil, err
+    }
+    for _, row := range linkRows {
+        if d, ok := detailMap[row.DeviceGroupID]; ok {
+            d.UserGroups = append(d.UserGroups, UserGroupBrief{ID: row.UserGroupID, Name: row.UserGroupName})
+        }
+    }
+
+    out := make([]DeviceGroupDetail, 0, len(base))
+    for _, g := range base {
+        out = append(out, *detailMap[g.ID])
+    }
+    return out, nil
+}
+
+func (r *GroupRepo) ListUserGroupDetails(ctx context.Context, userID int64, isAdmin bool) ([]UserGroupDetail, error) {
+    base, err := r.ListUserGroupsVisibleToUser(ctx, userID, isAdmin)
+    if err != nil {
+        return nil, err
+    }
+    if len(base) == 0 {
+        return []UserGroupDetail{}, nil
+    }
+
+    ids := make([]int64, 0, len(base))
+    detailMap := make(map[int64]*UserGroupDetail, len(base))
+    for _, g := range base {
+        ids = append(ids, g.ID)
+        detailMap[g.ID] = &UserGroupDetail{
+            ID:           g.ID,
+            Name:         g.Name,
+            Description:  g.Description,
+            UserCount:    0,
+            DeviceGroups: []DeviceGroupBrief{},
+        }
+    }
+
+    var countRows []idCountRow
+    if err := r.db.WithContext(ctx).
+        Raw(`SELECT group_id AS id, COUNT(1) AS cnt
+             FROM user_group_members WHERE group_id IN ? GROUP BY group_id`, ids).
+        Scan(&countRows).Error; err != nil {
+        return nil, err
+    }
+    for _, row := range countRows {
+        if d, ok := detailMap[row.ID]; ok {
+            d.UserCount = row.Cnt
+        }
+    }
+
+    var linkRows []userGroupDeviceGroupRow
+    if err := r.db.WithContext(ctx).
+        Raw(`SELECT l.user_group_id AS user_group_id,
+                    dg.id AS device_group_id,
+                    dg.name AS device_group_name
+             FROM user_group_device_group_links l
+             JOIN device_groups dg ON dg.id=l.device_group_id
+             WHERE l.user_group_id IN ?
+             ORDER BY l.user_group_id, dg.id`, ids).
+        Scan(&linkRows).Error; err != nil {
+        return nil, err
+    }
+    for _, row := range linkRows {
+        if d, ok := detailMap[row.UserGroupID]; ok {
+            d.DeviceGroups = append(d.DeviceGroups, DeviceGroupBrief{ID: row.DeviceGroupID, Name: row.DeviceGroupName})
+        }
+    }
+
+    out := make([]UserGroupDetail, 0, len(base))
+    for _, g := range base {
+        out = append(out, *detailMap[g.ID])
+    }
+    return out, nil
+}
+
+func (r *GroupRepo) ListUserGroupsByUserIDs(ctx context.Context, userIDs []int64) (map[int64][]UserGroupBrief, error) {
+    out := make(map[int64][]UserGroupBrief)
+    if len(userIDs) == 0 {
+        return out, nil
+    }
+
+    var rows []userGroupMemberRow
+    if err := r.db.WithContext(ctx).
+        Raw(`SELECT ugm.user_id AS user_id,
+                    ug.id AS user_group_id,
+                    ug.name AS user_group_name
+             FROM user_group_members ugm
+             JOIN user_groups ug ON ug.id=ugm.group_id
+             WHERE ugm.user_id IN ?
+             ORDER BY ugm.user_id, ug.id`, userIDs).
+        Scan(&rows).Error; err != nil {
+        return nil, err
+    }
+
+    for _, row := range rows {
+        out[row.UserID] = append(out[row.UserID], UserGroupBrief{ID: row.UserGroupID, Name: row.UserGroupName})
+    }
+    return out, nil
 }

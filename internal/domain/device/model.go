@@ -10,9 +10,11 @@ const (
 
 type Device struct {
 	ID            int64
-	DeviceUID     string
+	Ddns          string
+	Mac           string
 	Name          string
 	Description   string
+	IP            string
 	DeviceGroupID *int64 // nil means ungrouped (admin-only visibility)
 	Status        Status
 	LastSeenAt    *int64

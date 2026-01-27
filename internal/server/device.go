@@ -365,6 +365,9 @@ func (dev *Device) Close(srv *RttyServer) {
     dev.close.Do(func() {
         log.Error().Msgf("device '%s' disconnected", dev.id)
         srv.DelDevice(dev)
+        if dev.id != "" {
+            _ = legacy.MarkDeviceOffline(dev.id)
+        }
         dev.cancel()
         dev.conn.Close()
     })

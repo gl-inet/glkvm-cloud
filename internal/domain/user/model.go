@@ -13,8 +13,9 @@ const (
 
 type User struct {
     ID           int64
+    Username     string
     Email        string
-    DisplayName  string
+    Description  string
     PasswordHash string
     Role         identity.Role
     Status       Status

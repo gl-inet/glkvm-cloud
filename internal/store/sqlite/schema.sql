@@ -1,14 +1,15 @@
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS users (
-  id              INTEGER PRIMARY KEY AUTOINCREMENT,
-  email           TEXT    NOT NULL UNIQUE,
-  display_name    TEXT    NOT NULL DEFAULT '',
-  password_hash   TEXT    NOT NULL,
-  role            TEXT    NOT NULL CHECK (role IN ('admin','user')),
-  status          TEXT    NOT NULL DEFAULT 'active' CHECK (status IN ('active','disabled')),
-  created_at      INTEGER NOT NULL DEFAULT (unixepoch()),
-  updated_at      INTEGER NOT NULL DEFAULT (unixepoch())
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  username      TEXT    NOT NULL UNIQUE, 
+  email         TEXT,                    
+  description   TEXT    NOT NULL DEFAULT '',
+  password_hash TEXT    NOT NULL,
+  role          TEXT    NOT NULL CHECK (role IN ('admin','user')),
+  status        TEXT    NOT NULL DEFAULT 'active' CHECK (status IN ('active','disabled')),
+  created_at    INTEGER NOT NULL DEFAULT (unixepoch()),
+  updated_at    INTEGER NOT NULL DEFAULT (unixepoch())
 );
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
@@ -52,9 +53,11 @@ CREATE INDEX IF NOT EXISTS idx_ug_dg_device_group_id
 
 CREATE TABLE IF NOT EXISTS devices (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
-  device_uid      TEXT    NOT NULL UNIQUE,
+  ddns            TEXT    NOT NULL UNIQUE,
+  mac             TEXT    NOT NULL UNIQUE,
   name            TEXT    NOT NULL DEFAULT '',
   description     TEXT    NOT NULL DEFAULT '',
+  ip              TEXT    NOT NULL DEFAULT '',
   device_group_id INTEGER NULL,
   status          TEXT    NOT NULL DEFAULT 'online' CHECK (status IN ('online','offline','disabled')),
   last_seen_at    INTEGER NULL,

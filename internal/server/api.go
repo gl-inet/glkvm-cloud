@@ -27,6 +27,7 @@ package server
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io/fs"
 	"net"
 	"net/http"
@@ -38,19 +39,20 @@ import (
 	"rttys/internal/http/middleware"
 	"rttys/internal/legacy"
 	"rttys/internal/pkg/ldap"
+	"rttys/internal/pkg/password"
 	"rttys/internal/pkg/randtoken"
 	"rttys/internal/proxy"
 	"rttys/internal/store/memory"
 	"rttys/internal/store/sqlite"
 	"rttys/ui"
 	"rttys/xconfig"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
+	"gorm.io/gorm"
 )
 
 type AppContainer struct {
@@ -68,14 +70,18 @@ func InitAppContainer(r *gin.Engine) (*AppContainer, error) {
 		DSN:          "/home/database/glkvm-cloud.db",
 		MaxOpenConns: 1,
 		MaxIdleConns: 1,
+		LogSQL:       true,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("open sqlite failed")
 	}
-	_ = sqlite.NewDeviceMetaRepo(appDB.Gorm())
+	deviceMetaRepo := sqlite.NewDeviceMetaRepo(appDB.Gorm())
 
 	if err := sqlite.InitSchema(ctx, appDB.SQL(), "/home/database/schema.sql"); err != nil {
 		log.Fatal().Err(err).Msg("init schema failed")
+	}
+	if err := ensureAdminUser(ctx, appDB.Gorm(), cfg.Password); err != nil {
+		log.Fatal().Err(err).Msg("ensure admin user failed")
 	}
 
 	// --- Repos & Services ---
@@ -103,9 +109,26 @@ func InitAppContainer(r *gin.Engine) (*AppContainer, error) {
 
 	c := &AppContainer{
 		DB:             appDB,
-		DeviceMetaRepo: sqlite.NewDeviceMetaRepo(appDB.Gorm()),
+		DeviceMetaRepo: deviceMetaRepo,
 	}
 	return c, nil
+}
+
+func ensureAdminUser(ctx context.Context, db *gorm.DB, plainPassword string) error {
+	if db == nil {
+		return fmt.Errorf("db is nil")
+	}
+
+	hash := password.HashDemoSHA256(plainPassword)
+	return db.WithContext(ctx).Exec(
+		`INSERT INTO users (username, description, password_hash, role, status)
+		 VALUES ('admin', 'Admin', ?, 'admin', 'active')
+		 ON CONFLICT(username) DO UPDATE SET
+		   password_hash=excluded.password_hash,
+		   role='admin',
+		   status='active'`,
+		hash,
+	).Error
 }
 
 func (srv *RttyServer) ListenAPI() error {
@@ -198,82 +221,6 @@ func (srv *RttyServer) ListenAPI() error {
 		})
 
 		c.JSON(http.StatusOK, groups)
-	})
-
-	authorized.GET("/devs", func(c *gin.Context) {
-		devs := make([]*DeviceInfo, 0)
-		keyword := c.Query("keyword")
-
-		// 1. Query all device metadata from DB (offline + online)
-		metas, err := legacy.GetAllDeviceMeta(keyword)
-		if err != nil || len(metas) == 0 {
-			c.JSON(http.StatusOK, devs)
-			return
-		}
-
-		// 2. Build online device map from memory
-		onlineMap := make(map[string]*Device)
-
-		g := srv.GetGroup("", false)
-		if g != nil {
-			g.devices.Range(func(key, value any) bool {
-				dev := value.(*Device)
-				onlineMap[dev.id] = dev
-				return true
-			})
-		}
-
-		now := time.Now().Unix()
-
-		// 3. Iterate metas (DB is the source of truth)
-		for _, meta := range metas {
-			info := &DeviceInfo{
-				ID:        meta.DeviceID,
-				Mac:       meta.Mac,
-				Connected: 0,
-				Uptime:    0,
-				Desc:      meta.Description,
-				Proto:     0,
-				IPaddr:    meta.IP, // fallback: last known IP
-			}
-
-			// 4. If device is online, override with in-memory data
-			if dev, ok := onlineMap[meta.DeviceID]; ok {
-				info.Connected = uint32(now - dev.timestamp)
-				info.Uptime = dev.uptime
-				info.Proto = dev.proto
-
-				if addr, ok := dev.conn.RemoteAddr().(*net.TCPAddr); ok {
-					info.IPaddr = addr.IP.String()
-				} else if host, _, err := net.SplitHostPort(dev.conn.RemoteAddr().String()); err == nil {
-					info.IPaddr = host
-				}
-			}
-
-			devs = append(devs, info)
-		}
-
-		// Sort devices:
-		// 1. Online devices first (Connected > 0)
-		// 2. Within the same online/offline group, sort by device ID alphabetically
-		sort.Slice(devs, func(i, j int) bool {
-			di := devs[i]
-			dj := devs[j]
-
-			// Determine online status
-			diOnline := di.Connected > 0
-			djOnline := dj.Connected > 0
-
-			if diOnline != djOnline {
-				return diOnline
-			}
-
-			// If both devices are in the same state (online or offline),
-			// sort by device ID in ascending alphabetical order
-			return di.ID < dj.ID
-		})
-
-		c.JSON(http.StatusOK, devs)
 	})
 
 	// UpdateDeviceMetaRequest defines the JSON payload to update device metadata.
@@ -560,7 +507,7 @@ func (srv *RttyServer) ListenAPI() error {
 		DeviceMeta: sqlite.NewDeviceMetaRepo(container.DB.Gorm()),
 	})
 
-    fs, err := fs.Sub(ui.StaticFS, "dist")
+	fs, err := fs.Sub(ui.StaticFS, "dist")
 	if err != nil {
 		return err
 	}

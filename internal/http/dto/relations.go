@@ -17,9 +17,9 @@ type SetUserGroupDeviceGroupsResp struct {
 }
 
 type SetDeviceGroupDevicesReq struct {
-	DeviceUIDs []string `json:"deviceUids"`
+	DeviceIDs []int64 `json:"deviceIds"`
 }
 type SetDeviceGroupDevicesResp struct {
-	DeviceGroupID int64    `json:"deviceGroupId"`
-	DeviceUIDs    []string `json:"deviceUids"`
+	DeviceGroupID int64   `json:"deviceGroupId"`
+	DeviceIDs     []int64 `json:"deviceIds"`
 }
