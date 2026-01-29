@@ -112,6 +112,8 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
 	// device scope list
 	api.GET("/devices", middleware.Require(permission.DeviceRead), devH.ListDevices)
 	api.POST("/devices/move-to-device-group", middleware.Require(permission.DeviceGroupWrite), devH.MoveToDeviceGroup)
+	api.PUT("/devices/:id", middleware.Require(permission.DeviceWrite), devH.UpdateDevice)
+	api.DELETE("/devices/:id", middleware.Require(permission.DeviceWrite), devH.DeleteDevice)
 
 	// --- users ---
 	api.GET("/users", middleware.Require(permission.UserRead), userH.ListUsers)

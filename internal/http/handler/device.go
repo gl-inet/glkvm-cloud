@@ -1,20 +1,26 @@
 package handler
 
 import (
+	"errors"
+	"io"
+	"strconv"
+	"strings"
+	"time"
+
 	"rttys/internal/domain/device"
 	"rttys/internal/domain/identity"
 	"rttys/internal/http/dto"
 	"rttys/internal/http/middleware"
 	"rttys/internal/store/sqlite"
-	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type DeviceHandler struct {
-	devSvc         *device.Service
-	groupRepo      *sqlite.GroupRepo
-	relationsRepo  *sqlite.RelationsRepo
+	devSvc        *device.Service
+	groupRepo     *sqlite.GroupRepo
+	relationsRepo *sqlite.RelationsRepo
 }
 
 func NewDeviceHandler(
@@ -23,9 +29,9 @@ func NewDeviceHandler(
 	relationsRepo *sqlite.RelationsRepo,
 ) *DeviceHandler {
 	return &DeviceHandler{
-		devSvc:         devSvc,
-		groupRepo:      groupRepo,
-		relationsRepo:  relationsRepo,
+		devSvc:        devSvc,
+		groupRepo:     groupRepo,
+		relationsRepo: relationsRepo,
 	}
 }
 
@@ -103,6 +109,7 @@ func (h *DeviceHandler) ListDevices(c *gin.Context) {
 			UpTime:          upTime,
 			IP:              d.IP,
 			Mac:             d.Mac,
+			Description:     d.Description,
 			DeviceGroupID:   d.DeviceGroupID,
 			DeviceGroupName: groupName,
 		})
@@ -114,6 +121,101 @@ func (h *DeviceHandler) ListDevices(c *gin.Context) {
 		PageSize: len(out),
 		Total:    len(out),
 	}))
+}
+
+type UpdateDeviceRequest struct {
+	Description *string `json:"description"`
+}
+
+// PUT /api/devices/:id
+func (h *DeviceHandler) UpdateDevice(c *gin.Context) {
+	traceID := middleware.GetTraceID(c)
+	idStr := strings.TrimSpace(c.Param("id"))
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil || id <= 0 {
+		dto.Write(c, dto.Err(traceID, dto.CodeInvalidArgument, "Invalid argument", map[string]any{
+			"field": "id",
+		}))
+		return
+	}
+
+	var req UpdateDeviceRequest
+	if err := c.ShouldBindJSON(&req); err != nil && !errors.Is(err, io.EOF) {
+		dto.Write(c, dto.Err(traceID, dto.CodeInvalidArgument, "Invalid argument", map[string]any{
+			"field": "description",
+			"error": err.Error(),
+		}))
+		return
+	}
+
+	db := sqlite.MustContainer().Gorm.WithContext(c.Request.Context())
+
+	var row struct {
+		Description string `gorm:"column:description"`
+	}
+	tx := db.Table("devices").Select("description").Where("id = ?", id).First(&row)
+	if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
+		dto.Write(c, dto.Err(traceID, dto.CodeNotFound, "Device not found", nil))
+		return
+	}
+	if tx.Error != nil {
+		dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", map[string]any{
+			"detail": tx.Error.Error(),
+		}))
+		return
+	}
+
+	newDesc := row.Description
+	if req.Description != nil {
+		newDesc = *req.Description
+	}
+
+	if req.Description != nil {
+		res := db.Exec(
+			`UPDATE devices SET description=? WHERE id=?`,
+			newDesc, id,
+		)
+		if res.Error != nil {
+			dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", map[string]any{
+				"detail": res.Error.Error(),
+			}))
+			return
+		}
+		if res.RowsAffected == 0 {
+			dto.Write(c, dto.Err(traceID, dto.CodeNotFound, "Device not found", nil))
+			return
+		}
+	}
+
+	dto.Write(c, dto.Ok(traceID, struct{}{}))
+}
+
+// DELETE /api/devices/:id
+func (h *DeviceHandler) DeleteDevice(c *gin.Context) {
+	traceID := middleware.GetTraceID(c)
+	idStr := strings.TrimSpace(c.Param("id"))
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil || id <= 0 {
+		dto.Write(c, dto.Err(traceID, dto.CodeInvalidArgument, "Invalid argument", map[string]any{
+			"field": "id",
+		}))
+		return
+	}
+
+	db := sqlite.MustContainer().Gorm.WithContext(c.Request.Context())
+	res := db.Exec(`DELETE FROM devices WHERE id=?`, id)
+	if res.Error != nil {
+		dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", map[string]any{
+			"detail": res.Error.Error(),
+		}))
+		return
+	}
+	if res.RowsAffected == 0 {
+		dto.Write(c, dto.Err(traceID, dto.CodeNotFound, "Device not found", nil))
+		return
+	}
+
+	dto.Write(c, dto.Ok(traceID, struct{}{}))
 }
 
 // POST /api/devices/move-to-device-group

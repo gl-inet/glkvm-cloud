@@ -37,7 +37,6 @@ import (
 	"rttys/internal/domain/user"
 	httpx "rttys/internal/http"
 	"rttys/internal/http/middleware"
-	"rttys/internal/legacy"
 	"rttys/internal/pkg/password"
 	"rttys/internal/proxy"
 	"rttys/internal/store/memory"
@@ -197,129 +196,6 @@ func (srv *RttyServer) ListenAPI() error {
 		} else {
 			handleUserConnection(srv, c)
 		}
-	})
-
-	// UpdateDeviceMetaRequest defines the JSON payload to update device metadata.
-	// Only DeviceID is mandatory; other fields are optional and will be updated
-	// only when provided.
-	type UpdateDeviceMetaRequest struct {
-		DeviceID    string `json:"deviceId" binding:"required"` // DeviceID is the unique device identifier (immutable).
-		Description string `json:"description,omitempty"`       // Description can be updated if provided.
-	}
-
-	// Update device metadata (new interface)
-	authorized.POST("/devs/update", func(c *gin.Context) {
-		var req UpdateDeviceMetaRequest
-
-		// 1. Parse JSON body
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code": 400,
-				"msg":  "invalid request body",
-				"err":  err.Error(),
-			})
-			return
-		}
-
-		// 2. Load existing metadata by device_id
-		meta, err := legacy.GetDeviceMetaByDeviceID(req.DeviceID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"code": 500,
-				"msg":  "failed to query device meta",
-				"err":  err.Error(),
-			})
-			return
-		}
-
-		if meta == nil {
-			c.JSON(http.StatusNotFound, gin.H{
-				"code": 404,
-				"msg":  "device meta not found",
-			})
-			return
-		}
-
-		// 3. Merge data: deviceID/mac/ip, now only description
-		newDesc := meta.Description
-		if req.Description != "" {
-			newDesc = req.Description
-		}
-
-		// 4. Reuse SaveOrUpdateDeviceMeta for UPSERT
-		if err := legacy.SaveOrUpdateDeviceMeta(
-			meta.DeviceID, // keep original device_id
-			meta.Mac,      // keep original MAC, not editable
-			newDesc,       // new description from request
-			meta.IP,
-		); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"code": 500,
-				"msg":  "failed to update device meta",
-				"err":  err.Error(),
-			})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"code": 0,
-			"msg":  "ok",
-		})
-	})
-
-	// DeleteDeviceMetaRequest is used to logically delete a device meta record.
-	// Only DeviceID is required.
-	type DeleteDeviceMetaRequest struct {
-		DeviceID string `json:"deviceId" binding:"required"` // DeviceID is the unique device identifier (immutable).
-	}
-	// Delete device metadata (physical delete)
-	authorized.POST("/devs/delete", func(c *gin.Context) {
-		var req DeleteDeviceMetaRequest
-
-		// 1. Parse JSON body
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code": 400,
-				"msg":  "invalid request body",
-				"err":  err.Error(),
-			})
-			return
-		}
-
-		// 2. Check existence first (optional but recommended)
-		meta, err := legacy.GetDeviceMetaByDeviceID(req.DeviceID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"code": 500,
-				"msg":  "failed to query device meta",
-				"err":  err.Error(),
-			})
-			return
-		}
-
-		if meta == nil {
-			c.JSON(http.StatusNotFound, gin.H{
-				"code": 404,
-				"msg":  "device meta not found",
-			})
-			return
-		}
-
-		// 3. Physical delete
-		if err := legacy.DeleteDeviceMetaByDeviceID(req.DeviceID); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"code": 500,
-				"msg":  "failed to delete device meta",
-				"err":  err.Error(),
-			})
-			return
-		}
-
-		// 4. Success response
-		c.JSON(http.StatusOK, gin.H{
-			"code": 0,
-			"msg":  "ok",
-		})
 	})
 
 	authorized.GET("/dev/:devid", func(c *gin.Context) {

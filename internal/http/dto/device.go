@@ -1,15 +1,16 @@
 package dto
 
 type Device struct {
-	ID              int64   `json:"id"`
-	Ddns            string  `json:"ddns"`
-	Status          string  `json:"status"`
-	ConnectedTime   int64   `json:"connectedTime"`
-	UpTime          int64   `json:"upTime"`
-	IP              string  `json:"ip"`
-	Mac             string  `json:"mac"`
-	DeviceGroupID   *int64  `json:"deviceGroupId"`
-	DeviceGroupName string  `json:"deviceGroupName"`
+	ID              int64  `json:"id"`
+	Ddns            string `json:"ddns"`
+	Status          string `json:"status"`
+	ConnectedTime   int64  `json:"connectedTime"`
+	UpTime          int64  `json:"upTime"`
+	IP              string `json:"ip"`
+	Mac             string `json:"mac"`
+	Description     string `json:"description"`
+	DeviceGroupID   *int64 `json:"deviceGroupId"`
+	DeviceGroupName string `json:"deviceGroupName"`
 }
 
 type ListDevicesResp struct {
