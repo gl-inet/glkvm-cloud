@@ -71,3 +71,4 @@ debug-local: build-linux-amd64 docker-buildx
 	ssh $(DEBUG_HOST) "rm -f $(DEBUG_PATH)"
 	scp glkvmcloudbuild.tar $(DEBUG_HOST):$(DEBUG_PATH)
 	ssh $(DEBUG_HOST) "docker load < $(DEBUG_PATH)"
+	ssh $(DEBUG_HOST) "cd /root/glkvm_cloud && docker-compose down && docker-compose up -d"

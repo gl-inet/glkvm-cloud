@@ -6,10 +6,10 @@ type DeviceGroupUserGroupRef struct {
 }
 
 type DeviceGroup struct {
-	ID            int64                    `json:"id"`
-	Name          string                   `json:"name"`
-	DeviceCount   int64                    `json:"deviceCount"`
-	Description   string                   `json:"description"`
+	ID            int64                     `json:"id"`
+	Name          string                    `json:"name"`
+	DeviceCount   int64                     `json:"deviceCount"`
+	Description   string                    `json:"description"`
 	UserGroupList []DeviceGroupUserGroupRef `json:"userGroupList"`
 }
 
@@ -33,7 +33,9 @@ type CreateDeviceGroupReq struct {
 	DeviceIDs    []int64 `json:"deviceIds"`
 }
 
-type CreateDeviceGroupResp struct{}
+type CreateDeviceGroupResp struct {
+	ID int64 `json:"id"`
+}
 
 type UpdateDeviceGroupReq struct {
 	Name         string  `json:"name"`
