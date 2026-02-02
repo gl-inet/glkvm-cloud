@@ -40,11 +40,27 @@ func (h *DeviceHandler) ListDevices(c *gin.Context) {
 	traceID := middleware.GetTraceID(c)
 	p := middleware.MustPrincipal(c)
 
+	var filterGroupID *int64
+	if raw := strings.TrimSpace(c.Query("groupId")); raw != "" {
+		id, err := strconv.ParseInt(raw, 10, 64)
+		if err != nil || id <= 0 {
+			dto.Write(c, dto.Err(traceID, dto.CodeInvalidArgument, "Invalid argument", map[string]any{
+				"field": "groupId",
+			}))
+			return
+		}
+		filterGroupID = &id
+	}
+
 	isAdmin := p.Role == identity.RoleAdmin
 	var items []device.Device
 	if isAdmin {
 		var err error
-		items, err = h.devSvc.ListVisible(c.Request.Context(), p.Role, p.UserID)
+		if filterGroupID != nil {
+			items, err = h.devSvc.ListByDeviceGroupIDs(c.Request.Context(), []int64{*filterGroupID})
+		} else {
+			items, err = h.devSvc.ListVisible(c.Request.Context(), p.Role, p.UserID)
+		}
 		if err != nil {
 			dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", nil))
 			return
@@ -63,6 +79,25 @@ func (h *DeviceHandler) ListDevices(c *gin.Context) {
 				Total:    0,
 			}))
 			return
+		}
+		if filterGroupID != nil {
+			allowed := false
+			for _, gid := range dgIDs {
+				if gid == *filterGroupID {
+					allowed = true
+					break
+				}
+			}
+			if !allowed {
+				dto.Write(c, dto.Ok(traceID, dto.ListDevicesResp{
+					Items:    []dto.Device{},
+					Page:     1,
+					PageSize: 0,
+					Total:    0,
+				}))
+				return
+			}
+			dgIDs = []int64{*filterGroupID}
 		}
 		items, err = h.devSvc.ListByDeviceGroupIDs(c.Request.Context(), dgIDs)
 		if err != nil {
