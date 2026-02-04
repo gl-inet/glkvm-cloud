@@ -8,9 +8,8 @@ const (
     MeRead    Key = "me.read"
     AuthWrite Key = "auth.write"
 
-    DeviceRead    Key = "device.read"
-    DeviceControl Key = "device.control"
-    DeviceWrite   Key = "device.write"
+    DeviceRead  Key = "device.read"
+    DeviceWrite Key = "device.write"
 
     DeviceGroupRead  Key = "device_group.read"
     DeviceGroupWrite Key = "device_group.write"

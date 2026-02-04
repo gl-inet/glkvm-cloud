@@ -14,12 +14,12 @@ type PermissionRepo struct {
 func NewPermissionRepo() *PermissionRepo {
     // Role defaults are aligned with the design docs:
     // - admin: all enabled permissions
-    // - user : read + control (and basic auth/me)
+    // - user : read (and basic auth/me)
     return &PermissionRepo{
         roleToKeys: map[identity.Role][]permission.Key{
             identity.RoleAdmin: {
                 permission.MeRead, permission.AuthWrite,
-                permission.DeviceRead, permission.DeviceControl, permission.DeviceWrite,
+                permission.DeviceRead, permission.DeviceWrite,
                 permission.DeviceGroupRead, permission.DeviceGroupWrite,
                 permission.UserGroupRead, permission.UserGroupWrite,
                 permission.UserRead, permission.UserWrite,
@@ -27,7 +27,7 @@ func NewPermissionRepo() *PermissionRepo {
             },
             identity.RoleUser: {
                 permission.MeRead, permission.AuthWrite,
-                permission.DeviceRead, permission.DeviceControl,
+                permission.DeviceRead,
                 permission.DeviceGroupRead, permission.UserGroupRead,
             },
         },

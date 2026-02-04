@@ -156,7 +156,6 @@ func doHttpProxy(srv *RttyServer, c net.Conn) {
 		log.Debug().Msgf("host is IP or invalid, skip deviceId parsing")
 	}
 
-	// 鑾峰彇 URL 鏌ヨ鍙傛暟
 	queryParams := req.URL.Query()
 	name := queryParams.Get("rttysid")
 	if name != "" {
