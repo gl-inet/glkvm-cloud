@@ -8,6 +8,7 @@ type UserGroupRef struct {
 type User struct {
 	ID            int64          `json:"id"`
 	Username      string         `json:"username"`
+	Description   string         `json:"description"`
 	Role          string         `json:"role"`
 	UserGroupList []UserGroupRef `json:"userGroupList"`
 }

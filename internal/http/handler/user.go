@@ -59,13 +59,14 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
                 })
             }
         }
-        out = append(out, dto.User{
-            ID:          u.ID,
-            Role:        string(u.Role),
-            Username:    u.Username,
-            UserGroupList: groups,
-        })
-    }
+		out = append(out, dto.User{
+			ID:           u.ID,
+			Role:         string(u.Role),
+			Username:     u.Username,
+			Description:  u.Description,
+			UserGroupList: groups,
+		})
+	}
     dto.Write(c, dto.Ok(traceID, dto.ListUsersResp{Items: out}))
 }
 

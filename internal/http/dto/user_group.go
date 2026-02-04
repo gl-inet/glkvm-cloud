@@ -31,7 +31,9 @@ type CreateUserGroupReq struct {
 	Description string `json:"description"`
 }
 
-type CreateUserGroupResp struct{}
+type CreateUserGroupResp struct {
+	ID int64 `json:"id"`
+}
 
 type UpdateUserGroupReq struct {
 	Name        string `json:"name"`

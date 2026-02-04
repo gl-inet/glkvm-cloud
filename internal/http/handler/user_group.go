@@ -76,7 +76,7 @@ func (h *UserGroupHandler) Create(c *gin.Context) {
         return
     }
 
-    _, err := h.groupRepo.CreateUserGroup(c.Request.Context(), req.Name, req.Description)
+    id, err := h.groupRepo.CreateUserGroup(c.Request.Context(), req.Name, req.Description)
     if err != nil {
         if strings.Contains(strings.ToLower(err.Error()), "unique") {
             dto.Write(c, dto.Err(traceID, dto.CodeConflict, "Name already exists", nil))
@@ -86,7 +86,7 @@ func (h *UserGroupHandler) Create(c *gin.Context) {
         return
     }
 
-    dto.Write(c, dto.Ok(traceID, dto.CreateUserGroupResp{}))
+    dto.Write(c, dto.Ok(traceID, dto.CreateUserGroupResp{ID: id}))
 }
 
 func (h *UserGroupHandler) Update(c *gin.Context) {

@@ -198,22 +198,6 @@ func (srv *RttyServer) ListenAPI() error {
 		}
 	})
 
-	authorized.GET("/dev/:devid", func(c *gin.Context) {
-		if dev := srv.GetDevice(c.Query("group"), c.Param("devid")); dev != nil {
-			info := &DeviceInfo{
-				ID:        dev.id,
-				Desc:      dev.desc,
-				Connected: uint32(time.Now().Unix() - dev.timestamp),
-				Uptime:    dev.uptime,
-				Proto:     dev.proto,
-				IPaddr:    dev.conn.RemoteAddr().(*net.TCPAddr).IP.String(),
-			}
-			c.JSON(http.StatusOK, info)
-		} else {
-			c.Status(http.StatusNotFound)
-		}
-	})
-
 	authorized.POST("/cmd/:devid", func(c *gin.Context) {
 		if !callUserHookUrl(cfg, c) {
 			c.Status(http.StatusForbidden)
@@ -239,11 +223,6 @@ func (srv *RttyServer) ListenAPI() error {
 
 	authorized.Any("/web/:devid/:proto/:addr/*path", func(c *gin.Context) {
 		httpProxyRedirect(srv, c, "")
-	})
-
-	authorized.Any("/web2/:group/:devid/:proto/:addr/*path", func(c *gin.Context) {
-		group := c.Param("group")
-		httpProxyRedirect(srv, c, group)
 	})
 
 	// ===== 添加OIDC路由 =====
