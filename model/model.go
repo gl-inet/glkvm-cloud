@@ -6,6 +6,7 @@ type DeviceMeta struct {
     Mac         string `gorm:"column:mac"`         // Mac is the unique and immutable MAC address of the device.
     IP          string `gorm:"column:ip"`          // IP is the current IP address of the device.
     Description string `gorm:"column:description"` // Description is a human-readable description of the device.
+    Client      string `gorm:"column:client"`      // Client reported by device (e.g. "rtty-go").
 }
 
 // TableName sets the name of the table in the database that this struct binds to.

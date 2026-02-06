@@ -5,6 +5,7 @@ import (
     "database/sql"
     "fmt"
     "os"
+    "strings"
 
     gormsqlite "github.com/glebarez/sqlite"
     "gorm.io/gorm"
@@ -74,6 +75,22 @@ func InitSchema(ctx context.Context, db *sql.DB, schemaPath string) error {
     if err != nil {
         return err
     }
-    _, err = db.ExecContext(ctx, string(b))
+    if _, err = db.ExecContext(ctx, string(b)); err != nil {
+        return err
+    }
+    return ensureDeviceClientColumn(ctx, db)
+}
+
+func ensureDeviceClientColumn(ctx context.Context, db *sql.DB) error {
+    if db == nil {
+        return nil
+    }
+    _, err := db.ExecContext(ctx, `ALTER TABLE devices ADD COLUMN client TEXT NOT NULL DEFAULT ''`)
+    if err == nil {
+        return nil
+    }
+    if strings.Contains(err.Error(), "duplicate column name") {
+        return nil
+    }
     return err
 }

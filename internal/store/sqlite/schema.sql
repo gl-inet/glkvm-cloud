@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS devices (
   name            TEXT    NOT NULL DEFAULT '',
   description     TEXT    NOT NULL DEFAULT '',
   ip              TEXT    NOT NULL DEFAULT '',
+  client          TEXT    NOT NULL DEFAULT '',
   device_group_id INTEGER NULL,
   status          TEXT    NOT NULL DEFAULT 'online' CHECK (status IN ('online','offline','disabled')),
   last_seen_at    INTEGER NULL,

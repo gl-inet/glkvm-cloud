@@ -489,13 +489,20 @@ func handleDeviceInfoMsg(dev *Device, data []byte) error {
 		return nil
 	}
 
-	var payload map[string]any
+	var payload struct {
+		Client string `json:"client"`
+	}
 	if err := jsoniter.Unmarshal(data, &payload); err != nil {
 		log.Warn().Msgf("device '%s' client info invalid json: %v", dev.id, err)
 		return nil
 	}
 
 	dev.setClientInfo(data)
+	if payload.Client != "" {
+		if err := legacy.UpdateDeviceClient(dev.id, payload.Client); err != nil {
+			log.Warn().Err(err).Msgf("device '%s' update client info failed", dev.id)
+		}
+	}
 	log.Info().Msgf("device '%s' client info: %s", dev.id, string(data))
 	log.Debug().Msgf("device '%s' client info updated", dev.id)
 	return nil

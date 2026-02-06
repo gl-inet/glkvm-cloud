@@ -3,9 +3,9 @@ package handler
 import (
 	"errors"
 	"io"
+	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"rttys/internal/domain/device"
 	"rttys/internal/domain/identity"
@@ -118,7 +118,15 @@ func (h *DeviceHandler) ListDevices(c *gin.Context) {
 		}
 	}
 
-	now := time.Now().Unix()
+	sort.SliceStable(items, func(i, j int) bool {
+		oi := items[i].Status == device.StatusOnline
+		oj := items[j].Status == device.StatusOnline
+		if oi != oj {
+			return oi
+		}
+		return false
+	})
+
 	out := make([]dto.Device, 0, len(items))
 	for _, d := range items {
 		var groupName string
@@ -131,20 +139,15 @@ func (h *DeviceHandler) ListDevices(c *gin.Context) {
 			connectedTime = *d.LastSeenAt
 		}
 
-		var upTime int64
-		if d.LastSeenAt != nil && d.Status == device.StatusOnline && now >= *d.LastSeenAt {
-			upTime = now - *d.LastSeenAt
-		}
-
 		out = append(out, dto.Device{
 			ID:              d.ID,
 			Ddns:            d.Ddns,
 			Status:          string(d.Status),
 			ConnectedTime:   connectedTime,
-			UpTime:          upTime,
 			IP:              d.IP,
 			Mac:             d.Mac,
 			Description:     d.Description,
+			Client:          d.Client,
 			DeviceGroupID:   d.DeviceGroupID,
 			DeviceGroupName: groupName,
 		})

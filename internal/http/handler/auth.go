@@ -42,7 +42,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	if authMethod == "ldap" {
 		ok, errorType := ldap.AuthenticateUserWithError(cfg, req.Username, req.Password, authMethod)
 		if !ok {
-			// Keep behavior consistent with /signin
 			if errorType == "authorization" {
 				dto.Write(c, dto.Err(traceID, dto.CodeForbidden, "User not authorized", nil))
 			} else {
@@ -55,8 +54,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	} else {
 		u, err := h.userSvc.Authenticate(c.Request.Context(), req.Username, req.Password)
 		if err != nil || u == nil {
-			// do not leak details
-			dto.Write(c, dto.Err(traceID, dto.CodeForbidden, "Permission denied", nil))
+			dto.Write(c, dto.Err(traceID, dto.CodeForbidden, "Authentication failed", nil))
 			return
 		}
 		userID = u.ID

@@ -38,6 +38,16 @@ func (r *DeviceMetaRepo) SaveOrUpdate(ctx context.Context, deviceID, mac, descri
     ).Error
 }
 
+func (r *DeviceMetaRepo) UpdateClient(ctx context.Context, deviceID, client string) error {
+    if r.db == nil {
+        return fmt.Errorf("gorm db is nil")
+    }
+    return r.db.WithContext(ctx).Exec(
+        `UPDATE devices SET client=? WHERE ddns=?`,
+        client, deviceID,
+    ).Error
+}
+
 func (r *DeviceMetaRepo) GetByDeviceID(ctx context.Context, deviceID string) (*model.DeviceMeta, error) {
     var meta model.DeviceMeta
     err := r.db.WithContext(ctx).Where("ddns = ?", deviceID).First(&meta).Error
