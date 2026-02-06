@@ -41,7 +41,7 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
     ugH := handler.NewUserGroupHandler(d.GroupRepo)
     relH := handler.NewRelationsHandler(d.RelationsRepo)
 
-    userH := handler.NewUserHandler(d.UserSvc, d.GroupRepo, d.RelationsRepo)
+    userH := handler.NewUserHandler(d.UserSvc, d.GroupRepo, d.RelationsRepo, d.SessionStore)
 
     // public
     r.GET("/auth-config", func(c *gin.Context) {

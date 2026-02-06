@@ -6,26 +6,29 @@ import (
     "strconv"
     "strings"
 
-    "rttys/internal/domain/user"
-    "rttys/internal/http/dto"
-    "rttys/internal/http/middleware"
-    "rttys/internal/store/sqlite"
+	"rttys/internal/domain/user"
+	"rttys/internal/http/dto"
+	"rttys/internal/http/middleware"
+	"rttys/internal/store/memory"
+	"rttys/internal/store/sqlite"
 
     "github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {
-    userSvc       *user.Service
-    groupRepo     *sqlite.GroupRepo
-    relationsRepo *sqlite.RelationsRepo
+	userSvc       *user.Service
+	groupRepo     *sqlite.GroupRepo
+	relationsRepo *sqlite.RelationsRepo
+	sessionStore  *memory.SessionStore
 }
 
-func NewUserHandler(userSvc *user.Service, groupRepo *sqlite.GroupRepo, relationsRepo *sqlite.RelationsRepo) *UserHandler {
-    return &UserHandler{
-        userSvc:       userSvc,
-        groupRepo:     groupRepo,
-        relationsRepo: relationsRepo,
-    }
+func NewUserHandler(userSvc *user.Service, groupRepo *sqlite.GroupRepo, relationsRepo *sqlite.RelationsRepo, sessionStore *memory.SessionStore) *UserHandler {
+	return &UserHandler{
+		userSvc:       userSvc,
+		groupRepo:     groupRepo,
+		relationsRepo: relationsRepo,
+		sessionStore:  sessionStore,
+	}
 }
 
 func (h *UserHandler) ListUsers(c *gin.Context) {
@@ -203,14 +206,18 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
         dto.Write(c, dto.Err(traceID, dto.CodeNotFound, "Not found", nil))
         return
     }
-    if u.IsSystem {
-        dto.Write(c, dto.Err(traceID, dto.CodeForbidden, "System user cannot be deleted", nil))
-        return
-    }
+	if u.IsSystem {
+		dto.Write(c, dto.Err(traceID, dto.CodeForbidden, "System user cannot be deleted", nil))
+		return
+	}
 
-    if err := h.userSvc.DeleteUser(c.Request.Context(), id); err != nil {
-        dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", nil))
-        return
-    }
+	if h.sessionStore != nil {
+		h.sessionStore.DeleteByUserID(id)
+	}
+
+	if err := h.userSvc.DeleteUser(c.Request.Context(), id); err != nil {
+		dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", nil))
+		return
+	}
     dto.Write(c, dto.Ok(traceID, dto.DeleteUserResp{}))
 }

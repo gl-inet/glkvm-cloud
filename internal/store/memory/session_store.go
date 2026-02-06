@@ -54,6 +54,16 @@ func (s *SessionStore) Delete(token string) {
 	s.mu.Unlock()
 }
 
+func (s *SessionStore) DeleteByUserID(userID int64) {
+	s.mu.Lock()
+	for k, v := range s.data {
+		if v.UserID == userID {
+			delete(s.data, k)
+		}
+	}
+	s.mu.Unlock()
+}
+
 func (s *SessionStore) gcLoop() {
 	t := time.NewTicker(2 * time.Minute)
 	defer t.Stop()
