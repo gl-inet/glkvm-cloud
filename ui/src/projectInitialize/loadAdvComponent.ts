@@ -2,8 +2,8 @@
  * @Author: LPY
  * @Date: 2025-05-30 10:54:44
  * @LastEditors: LPY
- * @LastEditTime: 2025-08-26 16:20:24
- * @FilePath: \glkvm-cloud\web-ui\src\projectInitialize\loadAdvComponent.ts
+ * @LastEditTime: 2026-02-03 10:22:56
+ * @FilePath: \glkvm-cloud\ui\src\projectInitialize\loadAdvComponent.ts
  * @Description: 加载Ant 组件
  */
 import { 
@@ -24,6 +24,7 @@ import {
     Upload,
     Select,
     Tabs,
+    Radio,
 } from 'ant-design-vue'
 
 export default function (app: any) {
@@ -44,4 +45,5 @@ export default function (app: any) {
     app.use(Upload)
     app.use(Select)
     app.use(Tabs)
+    app.use(Radio)
 }

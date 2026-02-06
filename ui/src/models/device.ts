@@ -1,22 +1,36 @@
+/** 设备状态枚举 */
+export enum DeviceStatusEnum {
+    /** 在线 */
+    Online = 'online',
+    /** 离线 */
+    Offline = 'offline',
+}
+
 /** 设备信息（列表） */
 export interface DeviceInfo {
-    id: string
-    connected: number
+    client: '' | 'rtty-go'
+    connectedTime: number
+    ddns: string
     description: string
-    group: string
-    ipaddr: string
-    proto: number
-    uptime: number
+    deviceGroupId: number
+    deviceGroupName: string
+    id: number
+    ip: string
+    mac: string
+    status: DeviceStatusEnum
+    upTime: number
 }
 
 /** 设备列表查询条件 */
 export interface DeviceQuery {
     searchText: string
+    deviceGroupId: number
+    onlyShowUnassigned: boolean
 }
 
 /** 执行命令参数 */
 export interface ExecuteCommandParams {
-    id: string
+    id: number
     group: string
     wait: number
     cmd: string

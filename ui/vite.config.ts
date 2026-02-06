@@ -26,9 +26,10 @@ export default defineConfig(({ mode }) => {
                     target: 'https://107.173.152.173',
                     secure: false,
                 },
-                '/signin': {
+                '/api': {
                     target: 'https://107.173.152.173',
                     secure: false,
+                    changeOrigin: true,
                 },
                 '/signout': {
                     target: 'https://107.173.152.173',
@@ -56,6 +57,7 @@ export default defineConfig(({ mode }) => {
                 '/auth-config': {
                     target: 'https://107.173.152.173',
                     secure: false,
+                    changeOrigin: true,
                 },
             },
         },

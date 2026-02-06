@@ -2,8 +2,8 @@
  * @Author: LPY
  * @Date: 2025-08-25 09:32:42
  * @LastEditors: LPY
- * @LastEditTime: 2025-08-25 11:56:19
- * @FilePath: \glkvm-cloud\web-ui\src\views\device\components\addDeviceDialog.vue
+ * @LastEditTime: 2026-02-04 09:24:39
+ * @FilePath: \glkvm-cloud\ui\src\views\device\components\addDeviceDialog.vue
  * @Description: 添加设备弹窗
 -->
 <template>
@@ -186,7 +186,7 @@ watch(() => props.open, (newVal) => {
 
 const init = async () => {
     const res = await getAddDeviceScriptInfoApi()
-    const { hostname, port, token, webrtcIP, webrtcPort, webrtcUsername, webrtcPassword } = res.info
+    const { hostname, port, token, webrtcIP, webrtcPort, webrtcUsername, webrtcPassword } = res.data
     state.scriptContent = generateScript(hostname, port, token, webrtcIP, webrtcPort, webrtcUsername, webrtcPassword)
 }
 </script>

@@ -1,19 +1,19 @@
 /*
  * @Author: LPY
  * @Date: 2025-06-03 12:21:21
- * @LastEditors: CU-Jon
- * @LastEditTime: 2025-09-26 14:02:57 EDT
- * @FilePath: \glkvm-cloud\web-ui\src\api\user.ts
+ * @LastEditors: LPY
+ * @LastEditTime: 2026-02-04 10:11:14
+ * @FilePath: \glkvm-cloud\ui\src\api\user.ts
  * @Description: 用户相关请求api
  */
 
 import request from './request'
-import type { LoginParams, AuthConfig } from '@/models/user'
+import type { LoginParams, AuthConfig, UserInfo } from '@/models/user'
 
 /** 登录 */
 export function reqLogin (data: LoginParams) {
-    return request<void>({
-        url: '/signin',
+    return request<{ token: string }>({
+        url: '/api/login',
         method: 'POST',
         data,
     })
@@ -22,14 +22,7 @@ export function reqLogin (data: LoginParams) {
 /** 退出登录 */
 export function reqLogout () {
     return request<void>({
-        url: '/signout',
-    })
-}
-
-/** 判断登录状态 */
-export function reqCheckLoginStatus () {
-    return request<void>({
-        url: '/alive',
+        url: '/api/logout',
     })
 }
 
@@ -37,5 +30,12 @@ export function reqCheckLoginStatus () {
 export function reqAuthConfig () {
     return request<AuthConfig>({
         url: '/auth-config',
+    })
+}
+
+/** 当前用户信息与权限 */
+export function reqUserInfo () {
+    return request<UserInfo>({
+        url: '/api/me',
     })
 }
