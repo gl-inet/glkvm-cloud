@@ -1,6 +1,8 @@
 package handler
 
 import (
+    "rttys/internal/domain/identity"
+    "sort"
     "strconv"
     "strings"
 
@@ -35,6 +37,24 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
         return
     }
 
+    sort.SliceStable(items, func(i, j int) bool {
+        rank := func(u user.User) int {
+            if u.IsSystem {
+                return 0
+            }
+            if u.Role == identity.RoleAdmin {
+                return 1
+            }
+            return 2
+        }
+        ri := rank(items[i])
+        rj := rank(items[j])
+        if ri != rj {
+            return ri < rj
+        }
+        return false
+    })
+
     userIDs := make([]int64, 0, len(items))
     for _, u := range items {
         userIDs = append(userIDs, u.ID)
@@ -59,15 +79,15 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
                 })
             }
         }
-		out = append(out, dto.User{
-			ID:           u.ID,
-			Role:         string(u.Role),
-			Username:     u.Username,
-			Description:  u.Description,
-			IsSystem:     u.IsSystem,
-			UserGroupList: groups,
-		})
-	}
+        out = append(out, dto.User{
+            ID:            u.ID,
+            Role:          string(u.Role),
+            Username:      u.Username,
+            Description:   u.Description,
+            IsSystem:      u.IsSystem,
+            UserGroupList: groups,
+        })
+    }
     dto.Write(c, dto.Ok(traceID, dto.ListUsersResp{Items: out}))
 }
 
