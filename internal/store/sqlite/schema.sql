@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT    NOT NULL,
   role          TEXT    NOT NULL CHECK (role IN ('admin','user')),
   status        TEXT    NOT NULL DEFAULT 'active' CHECK (status IN ('active','disabled')),
+  is_system     INTEGER NOT NULL DEFAULT 0,
   created_at    INTEGER NOT NULL DEFAULT (unixepoch()),
   updated_at    INTEGER NOT NULL DEFAULT (unixepoch())
 );

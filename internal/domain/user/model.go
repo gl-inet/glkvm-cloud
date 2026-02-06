@@ -19,4 +19,5 @@ type User struct {
     PasswordHash string
     Role         identity.Role
     Status       Status
+    IsSystem     bool
 }

@@ -78,7 +78,10 @@ func InitSchema(ctx context.Context, db *sql.DB, schemaPath string) error {
     if _, err = db.ExecContext(ctx, string(b)); err != nil {
         return err
     }
-    return ensureDeviceClientColumn(ctx, db)
+    if err := ensureDeviceClientColumn(ctx, db); err != nil {
+        return err
+    }
+    return ensureUserIsSystemColumn(ctx, db)
 }
 
 func ensureDeviceClientColumn(ctx context.Context, db *sql.DB) error {
@@ -86,6 +89,20 @@ func ensureDeviceClientColumn(ctx context.Context, db *sql.DB) error {
         return nil
     }
     _, err := db.ExecContext(ctx, `ALTER TABLE devices ADD COLUMN client TEXT NOT NULL DEFAULT ''`)
+    if err == nil {
+        return nil
+    }
+    if strings.Contains(err.Error(), "duplicate column name") {
+        return nil
+    }
+    return err
+}
+
+func ensureUserIsSystemColumn(ctx context.Context, db *sql.DB) error {
+    if db == nil {
+        return nil
+    }
+    _, err := db.ExecContext(ctx, `ALTER TABLE users ADD COLUMN is_system INTEGER NOT NULL DEFAULT 0`)
     if err == nil {
         return nil
     }

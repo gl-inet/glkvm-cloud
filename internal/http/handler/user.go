@@ -64,6 +64,7 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 			Role:         string(u.Role),
 			Username:     u.Username,
 			Description:  u.Description,
+			IsSystem:     u.IsSystem,
 			UserGroupList: groups,
 		})
 	}
@@ -162,12 +163,28 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 
 func (h *UserHandler) DeleteUser(c *gin.Context) {
     traceID := middleware.GetTraceID(c)
+    p := middleware.MustPrincipal(c)
 
     id, err := strconv.ParseInt(c.Param("id"), 10, 64)
     if err != nil || id <= 0 {
         dto.Write(c, dto.Err(traceID, dto.CodeInvalidArgument, "Invalid argument", map[string]any{
             "field": "id",
         }))
+        return
+    }
+
+    if id == p.UserID {
+        dto.Write(c, dto.Err(traceID, dto.CodeForbidden, "Cannot delete your own account", nil))
+        return
+    }
+
+    u, err := h.userSvc.FindByID(c.Request.Context(), id)
+    if err != nil {
+        dto.Write(c, dto.Err(traceID, dto.CodeNotFound, "Not found", nil))
+        return
+    }
+    if u.IsSystem {
+        dto.Write(c, dto.Err(traceID, dto.CodeForbidden, "System user cannot be deleted", nil))
         return
     }
 

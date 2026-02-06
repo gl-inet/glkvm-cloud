@@ -10,50 +10,6 @@ type App struct {
     srv *Server
 }
 
-//func Bootstrap(cfg config.Config) *App {
-//    ctx := context.Background()
-//
-//    // --- DB ---
-//    db, err := sqlite.Open(cfg.DB.DSN)
-//    if err != nil {
-//        log.Fatalf("open sqlite: %v", err)
-//    }
-//    if err := sqlite.InitSchema(ctx, db.DB, "internal/store/sqlite/schema.sql"); err != nil {
-//        log.Fatalf("init schema: %v", err)
-//    }
-//
-//    // Seed demo data if empty (optional)
-//    if err := seedIfEmpty(ctx, db.DB); err != nil {
-//        log.Fatalf("seed: %v", err)
-//    }
-//
-//    // --- Repos & Services ---
-//    userRepo := sqlite.NewUserRepo(db.DB)
-//    groupRepo := sqlite.NewGroupRepo(db.DB)
-//    deviceRepo := sqlite.NewDeviceRepo(db.DB)
-//    relationsRepo := sqlite.NewRelationsRepo(db.DB)
-//
-//    userSvc := user.NewService(userRepo)
-//    devSvc := device.NewService(deviceRepo, groupRepo)
-//
-//    permRepo := memory.NewPermissionRepo() // permissions stay in-memory
-//    permSvc := permission.NewService(permRepo)
-//
-//    sessionStore := memory.NewSessionStore(cfg.Auth.SessionTTL)
-//
-//    router := httpx.NewRouter(httpx.Deps{
-//        UserSvc:       userSvc,
-//        PermSvc:       permSvc,
-//        DevSvc:        devSvc,
-//        GroupRepo:     groupRepo,
-//        SessionStore:  sessionStore,
-//        RelationsRepo: relationsRepo,
-//    })
-//
-//    srv := NewServer(cfg.HTTP.Addr, router)
-//    return &App{srv: srv}
-//}
-
 func (a *App) Start(ctx context.Context) error    { return a.srv.Run(ctx) }
 func (a *App) Shutdown(ctx context.Context) error { return a.srv.Shutdown(ctx) }
 
@@ -67,13 +23,19 @@ func SeedIfEmpty(ctx context.Context, db *sql.DB) error {
     }
 
     // users
-    adminHash := password.HashDemoSHA256("admin")
-    userHash := password.HashDemoSHA256("user")
+    adminHash, err := password.HashPassword("admin")
+    if err != nil {
+        return err
+    }
+    userHash, err := password.HashPassword("user")
+    if err != nil {
+        return err
+    }
 
     if _, err := db.ExecContext(ctx, `
-INSERT INTO users(username, description, password_hash, role, status) VALUES
-('admin','Admin', ?, 'admin', 'active'),
-('user1','User One', ?, 'user', 'active')`,
+INSERT INTO users(username, description, password_hash, role, status, is_system) VALUES
+('admin','Admin', ?, 'admin', 'active', 1),
+('user1','User One', ?, 'user', 'active', 0)`,
         adminHash, userHash,
     ); err != nil {
         return err

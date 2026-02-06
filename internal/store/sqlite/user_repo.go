@@ -24,6 +24,7 @@ type userRow struct {
     PasswordHash string `gorm:"column:password_hash"`
     Role         string `gorm:"column:role"`
     Status       string `gorm:"column:status"`
+    IsSystem     bool   `gorm:"column:is_system"`
 }
 
 func (userRow) TableName() string { return "users" }
@@ -49,6 +50,7 @@ func (r *UserRepo) FindByID(ctx context.Context, id int64) (*user.User, error) {
         PasswordHash: row.PasswordHash,
         Role:         identity.Role(row.Role),
         Status:       user.Status(row.Status),
+        IsSystem:     row.IsSystem,
     }
     return u, nil
 }
@@ -74,6 +76,7 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*user.U
         PasswordHash: row.PasswordHash,
         Role:         identity.Role(row.Role),
         Status:       user.Status(row.Status),
+        IsSystem:     row.IsSystem,
     }, nil
 }
 
@@ -93,6 +96,7 @@ func (r *UserRepo) List(ctx context.Context) ([]user.User, error) {
             PasswordHash: row.PasswordHash,
             Role:         identity.Role(row.Role),
             Status:       user.Status(row.Status),
+            IsSystem:     row.IsSystem,
         })
     }
     return out, nil
@@ -106,6 +110,7 @@ func (r *UserRepo) Create(ctx context.Context, u *user.User) (int64, error) {
         PasswordHash: u.PasswordHash,
         Role:         string(u.Role),
         Status:       string(u.Status),
+        IsSystem:     u.IsSystem,
     }
 
     if err := r.db.WithContext(ctx).Create(&row).Error; err != nil {
@@ -126,6 +131,7 @@ func (r *UserRepo) Update(ctx context.Context, u *user.User) error {
             "password_hash": u.PasswordHash,
             "role":          string(u.Role),
             "status":        string(u.Status),
+            "is_system":     u.IsSystem,
         }).Error
 }
 

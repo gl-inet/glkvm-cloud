@@ -114,20 +114,24 @@ func InitAppContainer(r *gin.Engine) (*AppContainer, error) {
 }
 
 func ensureAdminUser(ctx context.Context, db *gorm.DB, plainPassword string) error {
-	if db == nil {
-		return fmt.Errorf("db is nil")
-	}
+    if db == nil {
+        return fmt.Errorf("db is nil")
+    }
 
-	hash := password.HashDemoSHA256(plainPassword)
-	return db.WithContext(ctx).Exec(
-		`INSERT INTO users (username, description, password_hash, role, status)
-		 VALUES ('admin', 'Admin', ?, 'admin', 'active')
-		 ON CONFLICT(username) DO UPDATE SET
-		   password_hash=excluded.password_hash,
-		   role='admin',
-		   status='active'`,
-		hash,
-	).Error
+    hash, err := password.HashPassword(plainPassword)
+    if err != nil {
+        return err
+    }
+    return db.WithContext(ctx).Exec(
+        `INSERT INTO users (username, description, password_hash, role, status, is_system)
+         VALUES ('admin', 'Admin', ?, 'admin', 'active', 1)
+         ON CONFLICT(username) DO UPDATE SET
+           password_hash=excluded.password_hash,
+           role='admin',
+           status='active',
+           is_system=1`,
+        hash,
+    ).Error
 }
 
 func (srv *RttyServer) ListenAPI() error {

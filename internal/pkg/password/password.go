@@ -1,16 +1,22 @@
 package password
 
-import (
-	"crypto/sha256"
-	"encoding/hex"
-)
+import "golang.org/x/crypto/bcrypt"
 
-// Demo only; production should use bcrypt/argon2.
-func HashDemoSHA256(pw string) string {
-	h := sha256.Sum256([]byte(pw))
-	return hex.EncodeToString(h[:])
+const bcryptCost = 12
+
+// HashPassword hashes a plaintext password using bcrypt.
+func HashPassword(pw string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(pw), bcryptCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hash), nil
 }
 
-func VerifyDemoSHA256(pw, hash string) bool {
-	return HashDemoSHA256(pw) == hash
+// VerifyPassword checks a plaintext password against a stored bcrypt hash.
+func VerifyPassword(pw, hash string) bool {
+	if hash == "" {
+		return false
+	}
+	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(pw)) == nil
 }
