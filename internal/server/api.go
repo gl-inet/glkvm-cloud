@@ -59,12 +59,14 @@ type AppContainer struct {
 
 var sessionStore *memory.SessionStore
 
+const defaultDBPath = "/home/database/glkvm-cloud.db"
+
 func InitAppContainer(r *gin.Engine) (*AppContainer, error) {
 	ctx := context.Background()
 	cfg := xconfig.Must()
 	// --- DB ---
 	appDB, err := sqlite.Open(ctx, sqlite.Options{
-		DSN:          "/home/database/glkvm-cloud.db",
+		DSN:          defaultDBPath,
 		MaxOpenConns: 1,
 		MaxIdleConns: 1,
 		LogSQL:       true,

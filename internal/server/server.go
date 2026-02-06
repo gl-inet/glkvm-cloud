@@ -25,9 +25,12 @@
 package server
 
 import (
+    "context"
     "net"
     "net/http"
+    "rttys/internal/store/sqlite"
     "rttys/xconfig"
+    "strings"
     "sync"
     "sync/atomic"
 
@@ -53,6 +56,10 @@ func New(cfg xconfig.Config) *RttyServer {
 func (srv *RttyServer) Run() error {
     log.Debug().Msgf("%+v", srv.cfg)
 
+    if err := markAllDevicesOffline(); err != nil {
+        log.Warn().Err(err).Msg("mark all devices offline failed")
+    }
+
     if srv.cfg.PprofAddr != "" {
         go srv.ListenPprof()
     }
@@ -63,6 +70,28 @@ func (srv *RttyServer) Run() error {
     go srv.ListenHttpProxy()
 
     return srv.ListenAPI()
+}
+
+func markAllDevicesOffline() error {
+    db, err := sqlite.Open(context.Background(), sqlite.Options{
+        DSN:          defaultDBPath,
+        MaxOpenConns: 1,
+        MaxIdleConns: 1,
+        LogSQL:       false,
+    })
+    if err != nil {
+        return err
+    }
+    defer db.Close()
+
+    res := db.Gorm().Exec(`UPDATE devices SET status='offline' WHERE status='online'`)
+    if res.Error != nil {
+        if strings.Contains(res.Error.Error(), "no such table") {
+            return nil
+        }
+        return res.Error
+    }
+    return nil
 }
 
 func (srv *RttyServer) ListenPprof() {

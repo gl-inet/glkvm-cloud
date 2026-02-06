@@ -124,7 +124,7 @@ func (h *DeviceHandler) ListDevices(c *gin.Context) {
 		if oi != oj {
 			return oi
 		}
-		return false
+		return items[i].Ddns < items[j].Ddns
 	})
 
 	out := make([]dto.Device, 0, len(items))
