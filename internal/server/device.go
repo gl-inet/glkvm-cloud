@@ -490,7 +490,10 @@ func handleDeviceInfoMsg(dev *Device, data []byte) error {
 	}
 
 	var payload struct {
-		Client string `json:"client"`
+		Client   string `json:"client"`
+		OS       string `json:"os"`
+		Hostname string `json:"hostname"`
+		LocalIP  string `json:"local_ip"`
 	}
 	if err := jsoniter.Unmarshal(data, &payload); err != nil {
 		log.Warn().Msgf("device '%s' client info invalid json: %v", dev.id, err)
@@ -503,6 +506,25 @@ func handleDeviceInfoMsg(dev *Device, data []byte) error {
 			log.Warn().Err(err).Msgf("device '%s' update client info failed", dev.id)
 		}
 	}
+
+	// Auto-fill description with os/hostname/local_ip if not already set by user
+	if payload.OS != "" || payload.Hostname != "" {
+		parts := make([]string, 0, 3)
+		if payload.OS != "" {
+			parts = append(parts, payload.OS)
+		}
+		if payload.Hostname != "" {
+			parts = append(parts, payload.Hostname)
+		}
+		if payload.LocalIP != "" {
+			parts = append(parts, payload.LocalIP)
+		}
+		desc := strings.Join(parts, " / ")
+		if err := legacy.UpdateDeviceDescriptionIfEmpty(dev.id, desc); err != nil {
+			log.Warn().Err(err).Msgf("device '%s' auto-fill description failed", dev.id)
+		}
+	}
+
 	log.Info().Msgf("device '%s' client info: %s", dev.id, string(data))
 	log.Debug().Msgf("device '%s' client info updated", dev.id)
 	return nil

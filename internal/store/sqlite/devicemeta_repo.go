@@ -48,6 +48,16 @@ func (r *DeviceMetaRepo) UpdateClient(ctx context.Context, deviceID, client stri
     ).Error
 }
 
+func (r *DeviceMetaRepo) UpdateDescriptionIfEmpty(ctx context.Context, deviceID, description string) error {
+    if r.db == nil {
+        return fmt.Errorf("gorm db is nil")
+    }
+    return r.db.WithContext(ctx).Exec(
+        `UPDATE devices SET description=? WHERE ddns=? AND (description IS NULL OR description='')`,
+        description, deviceID,
+    ).Error
+}
+
 func (r *DeviceMetaRepo) GetByDeviceID(ctx context.Context, deviceID string) (*model.DeviceMeta, error) {
     var meta model.DeviceMeta
     err := r.db.WithContext(ctx).Where("ddns = ?", deviceID).First(&meta).Error

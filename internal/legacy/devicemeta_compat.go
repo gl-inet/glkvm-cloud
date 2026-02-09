@@ -21,6 +21,11 @@ func GetDeviceMetaByDeviceID(deviceID string) (*model.DeviceMeta, error) {
     return repo.GetByDeviceID(context.Background(), deviceID)
 }
 
+func UpdateDeviceDescriptionIfEmpty(deviceID, description string) error {
+    repo := sqlite.MustContainer().DeviceMeta
+    return repo.UpdateDescriptionIfEmpty(context.Background(), deviceID, description)
+}
+
 func DeleteDeviceMetaByDeviceID(deviceID string) error {
     repo := sqlite.MustContainer().DeviceMeta
     return repo.DeleteByDeviceID(context.Background(), deviceID)
