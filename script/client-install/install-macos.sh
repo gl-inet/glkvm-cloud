@@ -141,10 +141,13 @@ fi
 PLATFORM=$(detect_arch)
 
 # Reuse existing device ID and MAC if config exists (preserve identity across reinstalls)
+# Only extract DEVICE_ID and DEVICE_MAC, do NOT source the whole file
+# (sourcing would overwrite RTTY_HOST/RTTY_PORT/RTTY_TOKEN from CLI args)
+EXISTING_ID=""
+EXISTING_MAC=""
 if [[ -f "$CONFIG_FILE" ]]; then
-    source "$CONFIG_FILE"
-    EXISTING_ID="${DEVICE_ID:-}"
-    EXISTING_MAC="${DEVICE_MAC:-}"
+    EXISTING_ID=$(grep '^DEVICE_ID=' "$CONFIG_FILE" | head -1 | cut -d'=' -f2- | tr -d '"')
+    EXISTING_MAC=$(grep '^DEVICE_MAC=' "$CONFIG_FILE" | head -1 | cut -d'=' -f2- | tr -d '"')
 fi
 
 DEVICE_ID="${EXISTING_ID:-$(gen_device_id)}"
@@ -164,6 +167,11 @@ if [[ -z "$DOWNLOAD_BASE_URL" ]]; then
     DOWNLOAD_BASE_URL="https://kvm-cloud.gl-inet.com/selfhost/clients"
 fi
 FILE_URL="${DOWNLOAD_BASE_URL}/${BINARY_NAME}-${PLATFORM}"
+
+# Stop existing service before replacing binary and config
+if [[ -f "$PLIST_PATH" ]]; then
+    launchctl bootout system "$PLIST_PATH" 2>/dev/null || true
+fi
 
 # Download binary
 log_info "Downloading ${BINARY_NAME}-${PLATFORM}..."
@@ -192,11 +200,6 @@ log_info "Configuration saved to ${CONFIG_FILE}"
 
 # Create LaunchDaemon for auto-start on boot
 log_info "Setting up LaunchDaemon for auto-start..."
-
-# Stop existing service if running
-if [[ -f "$PLIST_PATH" ]]; then
-    launchctl bootout system "$PLIST_PATH" 2>/dev/null || true
-fi
 
 cat > "$PLIST_PATH" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>

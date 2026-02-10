@@ -336,10 +336,13 @@ PLATFORM=$(detect_arch)
 INIT_SYSTEM=$(detect_init)
 
 # Reuse existing device ID and MAC if config exists (preserve identity across reinstalls)
+# Only extract DEVICE_ID and DEVICE_MAC, do NOT source the whole file
+# (sourcing would overwrite RTTY_HOST/RTTY_PORT/RTTY_TOKEN from CLI args)
+EXISTING_ID=""
+EXISTING_MAC=""
 if [ -f "$CONFIG_FILE" ]; then
-    . "$CONFIG_FILE"
-    EXISTING_ID="${DEVICE_ID:-}"
-    EXISTING_MAC="${DEVICE_MAC:-}"
+    EXISTING_ID=$(grep '^DEVICE_ID=' "$CONFIG_FILE" | head -1 | cut -d'=' -f2- | tr -d '"')
+    EXISTING_MAC=$(grep '^DEVICE_MAC=' "$CONFIG_FILE" | head -1 | cut -d'=' -f2- | tr -d '"')
 fi
 
 DEVICE_ID="${EXISTING_ID:-$(gen_device_id)}"
@@ -360,6 +363,14 @@ if [ -z "$DOWNLOAD_BASE_URL" ]; then
     DOWNLOAD_BASE_URL="https://kvm-cloud.gl-inet.com/selfhost/clients"
 fi
 FILE_URL="${DOWNLOAD_BASE_URL}/${BINARY_NAME}-${PLATFORM}"
+
+# Stop existing service before replacing binary and config
+case "$INIT_SYSTEM" in
+    systemd)  systemctl stop rtty-go 2>/dev/null || true ;;
+    procd)    /etc/init.d/rtty-go stop 2>/dev/null || true ;;
+    openrc)   rc-service rtty-go stop 2>/dev/null || true ;;
+    *)        pkill -f "${INSTALL_DIR}/${BINARY_NAME}" 2>/dev/null || true ;;
+esac
 
 # Download binary
 log_info "Downloading ${BINARY_NAME}-${PLATFORM}..."
