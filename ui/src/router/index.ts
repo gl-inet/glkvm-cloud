@@ -2,8 +2,8 @@
  * @Author: LPY
  * @Date: 2025-05-30 09:54:21
  * @LastEditors: LPY
- * @LastEditTime: 2025-08-26 14:53:11
- * @FilePath: \glkvm-cloud\web-ui\src\router\index.ts
+ * @LastEditTime: 2026-02-06 14:20:54
+ * @FilePath: \glkvm-cloud\ui\src\router\index.ts
  * @Description: 路由文件
  */
 import { createRouter, createWebHashHistory, RouterView } from 'vue-router'
@@ -11,6 +11,8 @@ import whiteList from './whiteList'
 import layoutPage from '@/views/layout/layoutPage.vue'
 import { useUserStore } from '@/stores/modules/user'
 import { BreadCrumbItem } from '@/hooks/useBreadcrumb'
+import { hasPermission } from '@/utils/permission'
+import { PermissionEnum } from '@/models/permission'
 
 declare module 'vue-router' {
     interface RouteMeta {
@@ -61,7 +63,29 @@ const router = createRouter({
                     meta: {
                         menu: true,
                         title: 'device.devices',
-                        icon: 'gl-icon-device',
+                        icon: 'gl-icon-device-single',
+                    },
+                },
+                /** 设备组列表 */
+                {
+                    path: '/deviceGroup',
+                    component: () => import('@/views/deviceGroup/deviceGroupPage.vue'),
+                    name: 'deviceGroup',
+                    meta: {
+                        menu: true,
+                        title: 'device.deviceGroup',
+                        icon: 'gl-icon-device-group',
+                    },
+                },
+                /** 用户管理页 */
+                {
+                    path: '/user',
+                    component: () => import('@/views/userManage/userPage.vue'),
+                    name: 'user',
+                    meta: {
+                        menu: true,
+                        title: 'user.userManager',
+                        icon: 'gl-icon-user-manage',
                     },
                 },
                 
@@ -113,7 +137,7 @@ const router = createRouter({
 
 /** 路由前置守卫 */
 router.beforeEach(async (to) => {
-    const isAuthenticated = useUserStore().loginStatus
+    const isAuthenticated = useUserStore().token
   
     if (whiteList.includes(to.path)) {
         // 白名单页面直接跳转，如果是跳转到login页，则判断是否已登录，已登录则跳到首页
@@ -130,6 +154,35 @@ router.beforeEach(async (to) => {
                 query: { redirect: to.fullPath },
             }
         }
+
+        // 已登录且token存在，获取用户信息
+        if (isAuthenticated && !useUserStore().userInfo) {
+            try {
+                await useUserStore().fetchUserInfo()
+            } catch (error) {
+                // 获取用户信息失败，清除token并跳转到登录页
+                useUserStore().autoLogout()
+                return {
+                    path: '/login',
+                    query: { redirect: to.fullPath },
+                }
+            }
+        }
+
+        if (!hasPermission(PermissionEnum.USER_WRITE)) {
+            router.getRoutes().forEach(route => {
+                if (route.path === '/user' ) {
+                    route.meta.title = 'user.myGroup'
+                }
+            })
+        } else {
+            router.getRoutes().forEach(route => {
+                if (route.path === '/user' ) {
+                    route.meta.title = 'user.userManager'
+                }
+            })
+        }
+
     }
 
     return true

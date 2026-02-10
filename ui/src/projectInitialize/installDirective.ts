@@ -2,8 +2,8 @@
  * @Author: LPY
  * @Date: 2025-06-19 09:58:12
  * @LastEditors: LPY
- * @LastEditTime: 2025-06-19 10:12:01
- * @FilePath: /kvm-cloud-frontend/src/projectInitialize/installDirective.ts
+ * @LastEditTime: 2026-02-04 10:51:18
+ * @FilePath: \glkvm-cloud\ui\src\projectInitialize\installDirective.ts
  * @Description: 加载自定义指令
  */
 import { App } from 'vue'

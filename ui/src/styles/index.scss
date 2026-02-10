@@ -109,3 +109,24 @@ a {
 input::-ms-clear,input::-ms-reveal{
   display: none;
 }
+
+.groups-a {
+    a {
+        margin-right: 16px;
+        text-decoration: underline;
+    }
+
+    .groups-a-dropdown {
+        display: inline-block;
+        width: 36px;
+        height: 18px;
+        margin-right: 0;
+        text-decoration: none;
+        border-radius: 2px;
+        text-align: center;
+
+        &:hover {
+            background-color: var(--gl-color-brand-background);
+        }
+    }
+}

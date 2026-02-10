@@ -1,27 +1,26 @@
 /*
  * @Author: LPY
  * @Date: 2025-05-29 18:43:46
- * @LastEditors: CU-Jon
- * @LastEditTime: 2025-09-26 14:02:57 EDT
- * @FilePath: \glkvm-cloud\web-ui\src\stores\modules\user.ts
+ * @LastEditors: LPY
+ * @LastEditTime: 2026-02-04 11:54:46
+ * @FilePath: \glkvm-cloud\ui\src\stores\modules\user.ts
  * @Description: 用户相关状态存储
  */
 
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { LocalStorageKeys, useLocalStorage } from '@/hooks/useLocalStorage'
-import { reqCheckLoginStatus, reqLogin, reqLogout} from '@/api/user'
+import { reqLogin, reqLogout, reqUserInfo} from '@/api/user'
 import router from '@/router'
-import { type LoginParams } from '@/models/user'
+import { UserInfo, type LoginParams } from '@/models/user'
 import { useAppStore } from './app'
 import { getCookieToken, removeCookieToken, setCookieToken } from '@/utils/auth'
 
 export const useUserStore = defineStore('user', () => {
+    // 用户信息
+    const userInfo = ref<UserInfo>(null)
     // token
     const token = ref(getCookieToken())
-
-    // 登录状态
-    const loginStatus = ref(true)
 
     /** 设置token */
     const setToken = (newToken: string) => {
@@ -35,26 +34,33 @@ export const useUserStore = defineStore('user', () => {
         removeCookieToken()
     }
 
+    /** 获取用户信息 */
+    const fetchUserInfo = async () => {
+        if (!token.value) {
+            userInfo.value = null
+            return
+        }
+        try {
+            const res = await reqUserInfo()
+            userInfo.value = res.data
+        } catch (error) {
+            clearToken()
+            throw error
+        }
+    }
+
     /** 登录 */
     const login = async (credentials: LoginParams) => {
         // 准备登录参数 (Prepare login parameters)
         const params: LoginParams = {
+            username: credentials.username,
             password: credentials.password,
-        }
-        
-        // 如果提供了用户名和认证方法则添加 (Add username and auth method if provided)
-        if (credentials.username) {
-            params.username = credentials.username
-        }
-        if (credentials.authMethod) {
-            params.authMethod = credentials.authMethod
+            authMethod: credentials.authMethod,
         }
         
         const data = await reqLogin(params)
-        console.log(data.info)
-        loginStatus.value = true
-        
-        // setToken(newToken)
+        setToken(data.data.token)
+        fetchUserInfo()
     }
 
     /** 合并登出方法，不可导出使用 */
@@ -66,7 +72,6 @@ export const useUserStore = defineStore('user', () => {
         useAppStore().resetManualSetting()
         useLocalStorage(LocalStorageKeys.SIDEBAR_MANUAL_CONTROL_KEY).removeValue()
 
-        loginStatus.value = false
         // 登出
         router.push({ path: '/login' })
     }
@@ -88,23 +93,12 @@ export const useUserStore = defineStore('user', () => {
         }
     }
 
-    /** 判断登录状态 */
-    const checkLoginStatus = async () => {
-        try {
-            await reqCheckLoginStatus()
-            loginStatus.value = true
-        } catch (error) {
-            autoLogout()
-        }
-    }
-
-    checkLoginStatus()
-
-    return { 
+    return {
+        userInfo,
         token,
-        loginStatus,
         setToken,
         clearToken,
+        fetchUserInfo,
         login,
         autoLogout,
         manualLogout,

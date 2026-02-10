@@ -2,13 +2,13 @@
  * @Author: LPY
  * @Date: 2025-06-25 09:55:49
  * @LastEditors: LPY
- * @LastEditTime: 2025-06-25 10:22:21
- * @FilePath: /kvm-cloud-frontend/src/utils/auth.ts
+ * @LastEditTime: 2026-01-29 11:00:55
+ * @FilePath: \glkvm-cloud\ui\src\utils\auth.ts
  * @Description: 权限模块方法
  */
 import Cookies from 'js-cookie'
 
-const TokenKey = 'auth_token'
+const TokenKey = 'sid'
 
 // 获取token
 export function getCookieToken () {

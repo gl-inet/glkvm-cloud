@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2025-06-09 09:29:48
  * @LastEditors: LPY
- * @LastEditTime: 2026-01-05 14:30:56
+ * @LastEditTime: 2026-02-06 10:12:23
  * @FilePath: \glkvm-cloud\ui\src\components\base\baseWhitePage.vue
  * @Description: 基础白名单页。
 -->
@@ -40,7 +40,7 @@
 
             <!-- 版权信息 -->
             <div class="copyright-info">
-                Copyright © 2025 GL.iNet. All Rights Reserved
+                Copyright © 2026 GL.iNet. All Rights Reserved
             </div>
 
             <!-- 国内备案号信息 -->
