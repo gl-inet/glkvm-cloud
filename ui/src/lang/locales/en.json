@@ -123,7 +123,8 @@
     "path": "Path",
     "ipNotCorrect": "IP address is incorrect",
     "portNotCorrect": "Port is incorrect",
-    "remoteWeb": "Remote Web"
+    "remoteWeb": "Remote Web",
+    "linuxTips": "Supports OpenWrt, Raspberry PI, Ubuntu, CentOS, etc."
   },
   "user": {
     "user": "User",

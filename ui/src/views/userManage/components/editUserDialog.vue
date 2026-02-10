@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2026-02-03 11:24:20
  * @LastEditors: LPY
- * @LastEditTime: 2026-02-06 10:11:26
+ * @LastEditTime: 2026-02-09 09:14:59
  * @FilePath: \glkvm-cloud\ui\src\views\userManage\components\editUserDialog.vue
  * @Description: 编辑用户弹窗
 -->
@@ -37,10 +37,10 @@
                                 {{ $t('user.onlyOneAdminTips') }}
                             </template>
                             <ARadio :value="UserRoleEnum.USER" :disabled="userManageStore.isOnlyOneAdmin && props.currentUser?.role === UserRoleEnum.ADMIN">
-                                {{ UserRoleLabelMap.get(UserRoleEnum.USER) }}
+                                {{ $t(UserRoleLabelMap.get(UserRoleEnum.USER)) }}
                             </ARadio>
                         </Tooltip>
-                        <ARadio :value="UserRoleEnum.ADMIN">{{ UserRoleLabelMap.get(UserRoleEnum.ADMIN) }}</ARadio>
+                        <ARadio :value="UserRoleEnum.ADMIN">{{ $t(UserRoleLabelMap.get(UserRoleEnum.ADMIN)) }}</ARadio>
                     </ARadioGroup>
                 </AFormItem>
                 <AFormItem name="username" :label="$t('user.userName')"   labelAlign="left">

@@ -123,7 +123,8 @@
     "path": "路径",
     "ipNotCorrect": "IP 地址错误",
     "portNotCorrect": "端口号错误",
-    "remoteWeb": "远程 Web"
+    "remoteWeb": "远程 Web",
+    "linuxTips": "支持 OpenWrt、树莓派、Ubuntu、CentOS 等"
   },
   "user": {
     "user": "用户",

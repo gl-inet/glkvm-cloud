@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2025-08-25 09:32:42
  * @LastEditors: LPY
- * @LastEditTime: 2026-02-04 09:24:39
+ * @LastEditTime: 2026-02-09 17:22:11
  * @FilePath: \glkvm-cloud\ui\src\views\device\components\addDeviceDialog.vue
  * @Description: 添加设备弹窗
 -->
@@ -23,6 +23,16 @@
             </div>
             <BaseText>{{ $t('device.addDeviceTip') }}</BaseText>
         </div>
+        <!-- 切换添加方式 -->
+        <BaseRadioButtonsCompact
+            v-model:value="state.operatingSystem"
+            :options="OperatingSystemTranslated.value"
+            @update:value="handleGenerateScript"
+            style="width: 100%; margin: 12px 0;"
+        />
+        <BaseInfo v-if="state.operatingSystem === OperatingSystemEnum.LINUX" warning style="font-size: 12px;">
+            {{ $t('device.linuxTips') }}
+        </BaseInfo>
         <pre class="script-box">
             <BaseText type="body-r">{{ state.scriptContent }}</BaseText>
         </pre>
@@ -30,12 +40,14 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from 'vue'
-import { BaseModal } from 'gl-web-main/components'
+import { computed, reactive, watch } from 'vue'
+import { BaseInfo, BaseModal, BaseRadioButtonsCompact } from 'gl-web-main/components'
 import { getAddDeviceScriptInfoApi } from '@/api/device'
 import { copyText } from 'gl-web-main'
 import { message } from 'ant-design-vue'
 import { t } from '@/hooks/useLanguage'
+import { OperatingSystemEnum, operatingSystemLabelMap } from '@/models/setting'
+import { useTranslatedOptions } from '@/hooks/useTranslatedOptions'
 
 const props = defineProps<{ open: boolean }>()
 
@@ -44,12 +56,23 @@ const emits = defineEmits<{
 }>()
 
 const state = reactive({
+    scriptData: {},
     scriptContent: '',
+    operatingSystem: OperatingSystemEnum.GL_KVM,
 })
 
+const OperatingSystemTranslated = computed(() => {
+    return useTranslatedOptions([
+        { label: operatingSystemLabelMap.get(OperatingSystemEnum.GL_KVM), value: OperatingSystemEnum.GL_KVM },
+        { label: operatingSystemLabelMap.get(OperatingSystemEnum.LINUX), value: OperatingSystemEnum.LINUX },
+        { label: operatingSystemLabelMap.get(OperatingSystemEnum.WINDOWS), value: OperatingSystemEnum.WINDOWS },
+        { label: operatingSystemLabelMap.get(OperatingSystemEnum.MAC_OS), value: OperatingSystemEnum.MAC_OS },
+    ])
+})
 
 const generateScript = (hostname: string, port:string, token: string, webrtcIP: string, webrtcPort: string, webrtcUsername: string, webrtcPassword: string) => {
-    return `#!/bin/sh
+    if (state.operatingSystem === OperatingSystemEnum.GL_KVM) {
+        return `#!/bin/sh
 
 HOSTNAME="${hostname}"
 PORT="${port}"
@@ -162,9 +185,23 @@ EOF
 chmod +x "$SCRIPT_FILE"
 
 # 4. Execute restart once
-"$SCRIPT_FILE" restart
+"$SCRIPT_FILE" restart`
+    } else if (state.operatingSystem === OperatingSystemEnum.MAC_OS) {
+        return `curl -fsSL https://kvm-cloud.gl-inet.com/selfhost/clients/install-macos.sh | sudo bash -s -- \\
+-h ${hostname} -p ${port} -t ${token}`
+    } else if (state.operatingSystem === OperatingSystemEnum.LINUX) {
+        return `curl -fsSL https://kvm-cloud.gl-inet.com/selfhost/clients/install-linux.sh | sudo sh -s -- \\
+-h ${hostname} -p ${port} -t ${token}`
+    } else if (state.operatingSystem === OperatingSystemEnum.WINDOWS) {
+        return `powershell -ExecutionPolicy Bypass -Command "iwr https://kvm-cloud.gl-inet.com/selfhost/clients/install-windows.ps1 -OutFile install.ps1;
+.\\install.ps1 -Host_Addr ${hostname} -Port ${port} -Token ${token}"`
+    }
+}
 
-`
+/** 组装脚本 */
+const handleGenerateScript = () => {
+    const { hostname, port, token, webrtcIP, webrtcPort, webrtcUsername, webrtcPassword } = state.scriptData as any
+    state.scriptContent = generateScript(hostname, port, token, webrtcIP, webrtcPort, webrtcUsername, webrtcPassword)
 }
 
 /** 复制脚本 */
@@ -186,8 +223,8 @@ watch(() => props.open, (newVal) => {
 
 const init = async () => {
     const res = await getAddDeviceScriptInfoApi()
-    const { hostname, port, token, webrtcIP, webrtcPort, webrtcUsername, webrtcPassword } = res.data
-    state.scriptContent = generateScript(hostname, port, token, webrtcIP, webrtcPort, webrtcUsername, webrtcPassword)
+    state.scriptData = res.data
+    handleGenerateScript()
 }
 </script>
 

@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2026-02-03 10:02:21
  * @LastEditors: LPY
- * @LastEditTime: 2026-02-06 14:04:03
+ * @LastEditTime: 2026-02-09 09:14:36
  * @FilePath: \glkvm-cloud\ui\src\views\userManage\components\addUserDialog.vue
  * @Description: 添加用户弹窗
 -->
@@ -32,8 +32,8 @@
                         </BaseSvg>
                     </template>
                     <ARadioGroup v-model:value="state.formData.role" name="role">
-                        <ARadio :value="UserRoleEnum.USER">{{ UserRoleLabelMap.get(UserRoleEnum.USER) }}</ARadio>
-                        <ARadio :value="UserRoleEnum.ADMIN">{{ UserRoleLabelMap.get(UserRoleEnum.ADMIN) }}</ARadio>
+                        <ARadio :value="UserRoleEnum.USER">{{ $t(UserRoleLabelMap.get(UserRoleEnum.USER)) }}</ARadio>
+                        <ARadio :value="UserRoleEnum.ADMIN">{{ $t(UserRoleLabelMap.get(UserRoleEnum.ADMIN)) }}</ARadio>
                     </ARadioGroup>
                 </AFormItem>
                 <AFormItem name="username" :label="$t('user.userName')"   labelAlign="left">
