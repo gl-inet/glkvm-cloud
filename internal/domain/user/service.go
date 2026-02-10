@@ -52,6 +52,10 @@ func (s *Service) FindByID(ctx context.Context, id int64) (*User, error) {
     return u, nil
 }
 
+func (s *Service) GetSystemAdmin(ctx context.Context) (*User, error) {
+	return s.repo.FindSystemAdmin(ctx)
+}
+
 func (s *Service) List(ctx context.Context) ([]User, error) {
     return s.repo.List(ctx)
 }

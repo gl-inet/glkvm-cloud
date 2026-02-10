@@ -49,8 +49,12 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			}
 			return
 		}
-		const adminUserID int64 = 1
-		userID = adminUserID
+		sysAdmin, err := h.userSvc.GetSystemAdmin(c.Request.Context())
+		if err != nil {
+			dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "System admin not found", nil))
+			return
+		}
+		userID = sysAdmin.ID
 	} else {
 		u, err := h.userSvc.Authenticate(c.Request.Context(), req.Username, req.Password)
 		if err != nil || u == nil {

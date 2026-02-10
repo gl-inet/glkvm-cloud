@@ -80,6 +80,31 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*user.U
     }, nil
 }
 
+func (r *UserRepo) FindSystemAdmin(ctx context.Context) (*user.User, error) {
+	var row userRow
+	err := r.db.WithContext(ctx).
+		Where("is_system = ? AND status = ?", true, "active").
+		Take(&row).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("system admin not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &user.User{
+		ID:           row.ID,
+		Username:     row.Username,
+		Email:        row.Email,
+		Description:  row.Description,
+		PasswordHash: row.PasswordHash,
+		Role:         identity.Role(row.Role),
+		Status:       user.Status(row.Status),
+		IsSystem:     row.IsSystem,
+	}, nil
+}
+
 func (r *UserRepo) List(ctx context.Context) ([]user.User, error) {
     var rows []userRow
     if err := r.db.WithContext(ctx).Order("id").Find(&rows).Error; err != nil {

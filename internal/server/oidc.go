@@ -13,6 +13,7 @@ import (
     "math/rand"
     "net/http"
     "net/url"
+    "rttys/internal/domain/user"
     "rttys/internal/pkg/randtoken"
     "rttys/xconfig"
     "strings"
@@ -27,7 +28,7 @@ var (
 )
 
 // Register OIDC routes
-func RegisterOIDCRoutes(r *gin.Engine, cfg *xconfig.Config) {
+func RegisterOIDCRoutes(r *gin.Engine, cfg *xconfig.Config, userSvc *user.Service) {
     if !cfg.OIDCEnabled {
         return
     }
@@ -69,7 +70,7 @@ func RegisterOIDCRoutes(r *gin.Engine, cfg *xconfig.Config) {
 
     // OIDC auth routes (public, no existing auth required)
     r.GET("/auth/oidc/login", oidcLoginHandler(cfg))
-    r.GET("/auth/oidc/callback", oidcCallbackHandler(cfg))
+    r.GET("/auth/oidc/callback", oidcCallbackHandler(cfg, userSvc))
 }
 
 // Start OIDC login
@@ -109,7 +110,7 @@ func oidcLoginHandler(cfg *xconfig.Config) gin.HandlerFunc {
 }
 
 // Handle OIDC callback
-func oidcCallbackHandler(cfg *xconfig.Config) gin.HandlerFunc {
+func oidcCallbackHandler(cfg *xconfig.Config, userSvc *user.Service) gin.HandlerFunc {
     return func(c *gin.Context) {
         // Get session
         session, err := oauthStore.Get(c.Request, "oidc-session")
@@ -239,11 +240,15 @@ func oidcCallbackHandler(cfg *xconfig.Config) gin.HandlerFunc {
             return
         }
 
-        // Temporary behavior: treat all OIDC logins as admin
-        const adminUserID int64 = 1
-        sessionStore.Create(sid, adminUserID)
+        sysAdmin, err := userSvc.GetSystemAdmin(c.Request.Context())
+        if err != nil {
+            log.Error().Err(err).Msg("Failed to find system admin user")
+            c.Redirect(http.StatusFound, "/?error=internal_error")
+            return
+        }
+        sessionStore.Create(sid, sysAdmin.ID)
 
-        c.SetCookie("sid", sid, 0, "", "", cfg.SslCert != "", true)
+        c.SetCookie("sid", sid, 0, "/", "", cfg.SslCert != "", false)
 
         // Clean up OAuth session
         session.Options.MaxAge = -1

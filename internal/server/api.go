@@ -55,6 +55,7 @@ import (
 type AppContainer struct {
 	DB             *sqlite.AppDB
 	DeviceMetaRepo *sqlite.DeviceMetaRepo
+	UserSvc        *user.Service
 }
 
 var sessionStore *memory.SessionStore
@@ -111,6 +112,7 @@ func InitAppContainer(r *gin.Engine) (*AppContainer, error) {
 	c := &AppContainer{
 		DB:             appDB,
 		DeviceMetaRepo: deviceMetaRepo,
+		UserSvc:        userSvc,
 	}
 	return c, nil
 }
@@ -231,8 +233,6 @@ func (srv *RttyServer) ListenAPI() error {
 		httpProxyRedirect(srv, c, "")
 	})
 
-	// ===== 添加OIDC路由 =====
-	RegisterOIDCRoutes(r, cfg)
 	container, err := InitAppContainer(r)
 	if err != nil {
 		return err
@@ -242,6 +242,9 @@ func (srv *RttyServer) ListenAPI() error {
 		Gorm:       container.DB.Gorm(),
 		DeviceMeta: sqlite.NewDeviceMetaRepo(container.DB.Gorm()),
 	})
+
+	// ===== 添加OIDC路由 =====
+	RegisterOIDCRoutes(r, cfg, container.UserSvc)
 
 	fs, err := fs.Sub(ui.StaticFS, "dist")
 	if err != nil {
