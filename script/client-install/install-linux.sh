@@ -125,7 +125,9 @@ get_mac() {
     # Method 4: Generate random locally-administered MAC
     if [ -z "$MAC" ] || [ "$MAC" = "00:00:00:00:00:00" ]; then
         log_warn "Could not detect MAC address, generating random one"
-        MAC=$(od -An -N5 -tx1 /dev/urandom | tr -d ' \n' | sed 's/\(..\)/\1:/g; s/:$//')
+        # Use /proc/sys/kernel/random/uuid (available on all Linux, no external tools needed)
+        _uuid=$(cat /proc/sys/kernel/random/uuid | tr -d '-')
+        MAC=$(echo "$_uuid" | sed 's/\(..\)/\1:/g' | cut -c1-14)
         MAC="02:${MAC}"
     fi
 
@@ -141,8 +143,8 @@ gen_device_id() {
         return
     fi
 
-    # Generate random ID: 8 chars alphanumeric
-    od -An -N4 -tx1 /dev/urandom | tr -d ' \n' | cut -c1-8
+    # Generate random ID: 8 hex chars (use kernel uuid, no external tools needed)
+    cat /proc/sys/kernel/random/uuid | tr -d '-' | cut -c1-8
 }
 
 # ========================== Download Binary ==================================

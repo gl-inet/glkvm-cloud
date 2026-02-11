@@ -102,7 +102,7 @@ get_mac() {
 # ========================== Generate Device ID ===============================
 
 gen_device_id() {
-    od -An -N4 -tx1 /dev/urandom | tr -d ' \n' | cut -c1-8
+    uuidgen | tr -d '-' | tr 'A-F' 'a-f' | cut -c1-8
 }
 
 # ========================== Uninstall ========================================
