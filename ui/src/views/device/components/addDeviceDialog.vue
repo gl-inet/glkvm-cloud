@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2025-08-25 09:32:42
  * @LastEditors: LPY
- * @LastEditTime: 2026-02-09 17:22:11
+ * @LastEditTime: 2026-02-11 09:31:33
  * @FilePath: \glkvm-cloud\ui\src\views\device\components\addDeviceDialog.vue
  * @Description: 添加设备弹窗
 -->
@@ -185,12 +185,14 @@ EOF
 chmod +x "$SCRIPT_FILE"
 
 # 4. Execute restart once
-"$SCRIPT_FILE" restart`
+"$SCRIPT_FILE" restart
+
+`
     } else if (state.operatingSystem === OperatingSystemEnum.MAC_OS) {
         return `curl -fsSL https://kvm-cloud.gl-inet.com/selfhost/clients/install-macos.sh | sudo bash -s -- \\
 -h ${hostname} -p ${port} -t ${token}`
     } else if (state.operatingSystem === OperatingSystemEnum.LINUX) {
-        return `curl -fsSL https://kvm-cloud.gl-inet.com/selfhost/clients/install-linux.sh | sudo sh -s -- \\
+        return `curl -fsSL https://kvm-cloud.gl-inet.com/selfhost/clients/install-linux.sh | sh -s -- \\
 -h ${hostname} -p ${port} -t ${token}`
     } else if (state.operatingSystem === OperatingSystemEnum.WINDOWS) {
         return `powershell -ExecutionPolicy Bypass -Command "iwr https://kvm-cloud.gl-inet.com/selfhost/clients/install-windows.ps1 -OutFile install.ps1;
