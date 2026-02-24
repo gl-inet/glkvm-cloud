@@ -63,7 +63,7 @@ docker-buildx-full: ui
 	@$(MAKE) docker-buildx
 
 
-DEBUG_HOST  ?= root@107.173.152.173
+DEBUG_HOST  ?= root@xxxxxxxxxx
 DEBUG_PATH  ?= /root/glkvmcloudbuild.tar
 # Local debug bundle (amd64 image + save tar), upload to debug host, then load
 debug-local: build-linux-amd64 docker-buildx
