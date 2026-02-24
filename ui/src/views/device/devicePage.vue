@@ -2,8 +2,8 @@
  * @Author: shufei.han
  * @Date: 2025-06-09 09:22:43
  * @LastEditors: LPY
- * @LastEditTime: 2025-08-26 10:09:20
- * @FilePath: \glkvm-cloud\web-ui\src\views\device\devicePage.vue
+ * @LastEditTime: 2026-02-04 11:01:41
+ * @FilePath: \glkvm-cloud\ui\src\views\device\devicePage.vue
  * @Description: 设备模块入口页面
 -->
 <template>
@@ -20,11 +20,7 @@
     <div class="device-list-container" v-else>
         <div class="out-device-list-header">
             <div class="left">
-                <BaseSvg name="gl-icon-device" :size="24" style="color: var(--gl-color-brand-primary);margin: 2px 8px 0 0;"></BaseSvg>
                 <BaseText type="large-title-m">{{ $t('device.devices') + '(' + deviceStore.deviceList.length + ')' }}</BaseText>
-            </div>
-            <div class="right">
-                <BaseButton type="primary" size="middle" @click="state.addDeviceOpen = true">+ {{ $t('device.addDevice') }}</BaseButton>
             </div>
         </div>
         <div class="device-list">
@@ -33,12 +29,6 @@
             </div> 
         </div>
     </div>
-
-    <!-- 添加设备弹窗 -->
-    <AddDeviceDialog
-        v-model:open="state.addDeviceOpen"
-    />
-
 </template> 
 
 <script setup lang="ts">
@@ -48,7 +38,6 @@ import { useDeviceStore } from '@/stores/modules/device'
 import DeviceListView from './components/deviceListView.vue'
 import { reactive, onBeforeUnmount, onMounted } from 'vue'
 import { BaseLoading } from 'gl-web-main/components'
-import AddDeviceDialog from './components/addDeviceDialog.vue'
 
 const deviceStore = useDeviceStore()
 
@@ -56,13 +45,15 @@ const state = reactive({
     remoteLoadingDeviceMacs: new Set<string>(),
     /** 是否已经第一次获取完毕 */
     hasFetchedDevice: false,
-    /** 添加设备弹窗 */
-    addDeviceOpen: false,
 })
 
 deviceStore.startPolling()
 
-onBeforeUnmount(deviceStore.stopPolling)
+onBeforeUnmount(() => {
+    deviceStore.stopPolling()
+    deviceStore.state.searchText = ''
+    deviceStore.state.deviceGroupId = undefined
+})
 
 onMounted(async () => { 
     await deviceStore.getDeviceList(false, true)

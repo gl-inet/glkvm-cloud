@@ -2,8 +2,8 @@
  * @Author: shufei.han
  * @Date: 2025-06-10 16:46:00
  * @LastEditors: LPY
- * @LastEditTime: 2025-08-26 17:18:56
- * @FilePath: \glkvm-cloud\web-ui\src\stores\modules\device.ts
+ * @LastEditTime: 2026-01-30 17:41:49
+ * @FilePath: \glkvm-cloud\ui\src\stores\modules\device.ts
  * @Description: 设备有关的状态管理
  */
 import { getDeviceListApi } from '@/api/device'
@@ -30,6 +30,10 @@ export const useDeviceStore = defineStore('device', () => {
         getDeviceLoading: false,
         /** 设备列表的文字搜索 */
         searchText: '',
+        /** 设备列表的设备组筛选条件 */
+        deviceGroupId: undefined,
+        /** 是否仅显示未分配项 */
+        onlyShowUnassigned: false,
         /** 这个字段存储是否有设备，因为UI上没有设备和没有筛选出来的设备是对应不同的展示画面的 */
         hasDevice: false,
     })
@@ -43,6 +47,8 @@ export const useDeviceStore = defineStore('device', () => {
     const computedDeviceQuery = computed<DeviceQuery>(() => {
         const query: DeviceQuery = {
             searchText: state.searchText?.replaceAll(':','').toLowerCase(),
+            deviceGroupId: state.deviceGroupId,
+            onlyShowUnassigned: state.onlyShowUnassigned,
         }
         return query
     })
@@ -61,18 +67,22 @@ export const useDeviceStore = defineStore('device', () => {
             console.log('getDeviceList', computedDeviceQuery.value)
             !isPolling && (state.getDeviceLoading = true)
             const res = await getDeviceListApi()
+            console.log(res)
+            
             if (isGetAll) {
-                state.hasDevice = res.info.length > 0
+                state.hasDevice = res.data.items.length > 0
             }
-            if (res.info.length) {
+            if (res.data.items.length) {
                 state.hasDevice = true
             }
-            pageLink.value.setTotal(res.info.length)
-            state.deviceList = res.info.filter(d => {
-                return d.id.toLowerCase().indexOf(computedDeviceQuery.value.searchText) > -1 
-                || d.description.toLowerCase().indexOf(computedDeviceQuery.value.searchText) > -1
+            pageLink.value.setTotal(res.data.items.length)
+            state.deviceList = res.data.items.filter(d => {
+                return (d?.id?.toString().toLowerCase()?.indexOf(computedDeviceQuery.value.searchText) > -1 
+                || d?.description?.toLowerCase()?.indexOf(computedDeviceQuery.value.searchText) > -1) && 
+                (computedDeviceQuery.value.deviceGroupId ? d.deviceGroupId === computedDeviceQuery.value.deviceGroupId : true) &&
+                (!computedDeviceQuery.value.onlyShowUnassigned || (computedDeviceQuery.value.onlyShowUnassigned && !d.deviceGroupId))
             }) || []
-            state.completeDeviceList = res.info || []
+            state.completeDeviceList = res.data.items || []
             !isPolling && (state.getDeviceLoading = false)
         } catch (error) {
             state.deviceList = []

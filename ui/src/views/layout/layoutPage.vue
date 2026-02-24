@@ -2,15 +2,15 @@
  * @Author: LPY
  * @Date: 2025-05-30 15:20:13
  * @LastEditors: LPY
- * @LastEditTime: 2025-08-22 10:52:07
- * @FilePath: \glkvm-cloud\web-ui\src\views\layout\layoutPage.vue
+ * @LastEditTime: 2026-01-29 10:40:50
+ * @FilePath: \glkvm-cloud\ui\src\views\layout\layoutPage.vue
  * @Description: 路由总集成页
 -->
 <template>
     <div class="layout">
         <LayHeader />
         <div class="lay-body">
-            <!-- <LaySide class="lay-side" /> -->
+            <LaySide class="lay-side" />
             <LayContent class="lay-content" />
         </div>
     </div>
@@ -19,7 +19,7 @@
 <script setup lang="ts">
 import LayContent from './layContent/layContent.vue'
 import LayHeader from './layHeader/layHeader.vue'
-// import LaySide from './laySide/laySide.vue'
+import LaySide from './laySide/laySide.vue'
 </script>
 
 <style scoped lang="scss">

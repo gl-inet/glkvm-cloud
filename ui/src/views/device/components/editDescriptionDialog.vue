@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2025-12-10 11:11:51
  * @LastEditors: LPY
- * @LastEditTime: 2025-12-10 11:41:16
+ * @LastEditTime: 2026-02-04 09:31:11
  * @FilePath: \glkvm-cloud\ui\src\views\device\components\editDescriptionDialog.vue
  * @Description: 修改描述弹窗
 -->
@@ -37,7 +37,7 @@ import { t } from '@/hooks/useLanguage'
 import { FormInstance } from 'ant-design-vue'
 import { reqEditDescription } from '@/api/device'
 
-const props = defineProps<{ open: boolean, deviceId: string, currentDescription: string }>()
+const props = defineProps<{ open: boolean, deviceId: number | undefined, currentDescription: string }>()
 
 const emits = defineEmits<{
     (e: 'update:open', value: boolean): void;
@@ -65,7 +65,7 @@ const formRules: FormRules = {
 /** 提交 */
 const handleApply: OnBeforeOk = (done) => {
     formRef.value.validate().then(() => {
-        reqEditDescription({ deviceId: props.deviceId, description: state.formData.description }).then(() => {
+        reqEditDescription(props.deviceId, { description: state.formData.description }).then(() => {
             emits('handleApply')
             done(true)
         }).catch(() => {
