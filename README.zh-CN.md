@@ -19,7 +19,7 @@
 *  **企业级认证** -  同时支持 **LDAP** 和 **OIDC** 登录方式，适用于企业用户。 
 
 -  **部署与平台兼容性** - 同时支持 **内网部署** 和 **公网部署**，并兼容 **x86_64** 与 **arm64** 平台
--  **HTTP/HTTPS Web代理功能支持** - 提供可选的 HTTP/HTTPS Web 代理能力，支持 OpenWrt、ImmortalWrt、树莓派、Linux VPS、macOS、Windows 等主机，实现内网穿透访问
+-  **HTTP/HTTPS Web代理功能支持** - 支持 OpenWrt、ImmortalWrt、树莓派、Linux VPS、macOS、Windows 等主机接入自部署 GLKVM Cloud 进行统一管理，并可作为 HTTP/HTTPS Web 代理节点实现内网穿透访问
 
 ## 自部署指南
 

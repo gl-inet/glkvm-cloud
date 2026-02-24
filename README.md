@@ -18,7 +18,7 @@ Self-Deployed Lightweight Cloud is a lightweight KVM remote cloud platform tailo
 -  **Enterprise Authentication** -  Supports both **LDAP** and **OIDC** login methods for enterprise users. 
 
 -  **Deployment & Platform Compatibility** - Supports both **internal network** and **public internet** deployments on **x86_64** and **arm64** platforms
--  **HTTP/HTTPS Web Proxy Support** - Optional HTTP/HTTPS web proxy support for OpenWrt, ImmortalWrt, Raspberry Pi, Linux VPS, macOS, and Windows hosts, enabling NAT traversal access
+-  **HTTP/HTTPS Web Proxy Support** - Supports onboarding OpenWrt, ImmortalWrt, Raspberry Pi, Linux VPS, macOS, and Windows hosts into self-hosted GLKVM Cloud for centralized management, and using them as HTTP/HTTPS web proxy nodes for NAT traversal access
 
 ## Self-Hosting Guide
 
