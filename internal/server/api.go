@@ -80,7 +80,7 @@ func InitAppContainer(r *gin.Engine) (*AppContainer, error) {
 	if err := sqlite.InitSchema(ctx, appDB.SQL(), "/home/database/schema.sql"); err != nil {
 		log.Fatal().Err(err).Msg("init schema failed")
 	}
-	if err := ensureAdminUser(ctx, appDB.Gorm(), cfg.Password); err != nil {
+	if err := ensureAdminUser(ctx, appDB.Gorm(), cfg.AdminName, cfg.Password); err != nil {
 		log.Fatal().Err(err).Msg("ensure admin user failed")
 	}
 
@@ -117,7 +117,7 @@ func InitAppContainer(r *gin.Engine) (*AppContainer, error) {
 	return c, nil
 }
 
-func ensureAdminUser(ctx context.Context, db *gorm.DB, plainPassword string) error {
+func ensureAdminUser(ctx context.Context, db *gorm.DB, adminName, plainPassword string) error {
     if db == nil {
         return fmt.Errorf("db is nil")
     }
@@ -126,15 +126,27 @@ func ensureAdminUser(ctx context.Context, db *gorm.DB, plainPassword string) err
     if err != nil {
         return err
     }
+
+    // First, rename the existing system admin user to the configured name (if changed).
+    // This handles the case where the admin username was previously "admin" (or another name)
+    // and the user now wants a different username via RTTYS_ADMIN_NAME.
+    if err := db.WithContext(ctx).Exec(
+        `UPDATE users SET username = ? WHERE is_system = 1 AND role = 'admin' AND username != ?`,
+        adminName, adminName,
+    ).Error; err != nil {
+        return fmt.Errorf("rename system admin user: %w", err)
+    }
+
+    // Upsert: create the admin user if not exists, or update password/role/status.
     return db.WithContext(ctx).Exec(
         `INSERT INTO users (username, description, password_hash, role, status, is_system)
-         VALUES ('admin', 'Admin', ?, 'admin', 'active', 1)
+         VALUES (?, 'Admin', ?, 'admin', 'active', 1)
          ON CONFLICT(username) DO UPDATE SET
            password_hash=excluded.password_hash,
            role='admin',
            status='active',
            is_system=1`,
-        hash,
+        adminName, hash,
     ).Error
 }
 

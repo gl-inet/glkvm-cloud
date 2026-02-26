@@ -27,6 +27,7 @@ package xconfig
 import (
     "fmt"
     "os"
+    "regexp"
     "strconv"
     "strings"
     "time"
@@ -45,6 +46,7 @@ type Config struct {
     UserHookUrl          string
     LocalAuth            bool
     Password             string
+    AdminName            string
     AllowOrigins         bool
     PprofAddr            string
     AuthSessionTTL       time.Duration
@@ -168,6 +170,7 @@ func parseYamlCfg(cfg *Config, conf string) error {
     getConfigOpt(yamlCfg, "user-hook-url", &cfg.UserHookUrl)
     getConfigOpt(yamlCfg, "local-auth", &cfg.LocalAuth)
     getConfigOpt(yamlCfg, "password", &cfg.Password)
+    getConfigOpt(yamlCfg, "admin-name", &cfg.AdminName)
     getConfigOpt(yamlCfg, "allow-origins", &cfg.AllowOrigins)
 
     if err := getDurationOpt(yamlCfg, "auth-session-ttl", &cfg.AuthSessionTTL); err != nil {
@@ -237,6 +240,16 @@ func parseYamlCfg(cfg *Config, conf string) error {
 }
 
 func applyEnvCfg(cfg *Config) error {
+    if v := strings.TrimSpace(os.Getenv("RTTYS_ADMIN_NAME")); v != "" {
+        cfg.AdminName = v
+    }
+    if cfg.AdminName == "" {
+        cfg.AdminName = "admin"
+    }
+    if !regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString(cfg.AdminName) {
+        return fmt.Errorf("invalid RTTYS_ADMIN_NAME %q: only letters and digits are allowed", cfg.AdminName)
+    }
+
     if v := strings.TrimSpace(os.Getenv("RTTYS_LOG")); v != "" {
         cfg.LogPath = v
     }

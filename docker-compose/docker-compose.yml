@@ -12,6 +12,7 @@ services:
       # ---- rttys ----
       RTTYS_TOKEN: ${RTTYS_TOKEN:-DeviceTokenYouCanChangeMe}
       RTTYS_PASS:  ${RTTYS_PASS:-StrongP@ssw0rd}
+      RTTYS_ADMIN_NAME: ${RTTYS_ADMIN_NAME:-}
 
       # Ports inside container (mirrored to host via `ports` below)
       RTTYS_DEVICE_PORT:      ${RTTYS_DEVICE_PORT:-5912}    # addr-dev
