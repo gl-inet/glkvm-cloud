@@ -161,6 +161,18 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
         return
     }
 
+    target, err := h.userSvc.FindByID(c.Request.Context(), id)
+    if err != nil {
+        dto.Write(c, dto.Err(traceID, dto.CodeNotFound, "Not found", nil))
+        return
+    }
+    if target.IsSystem {
+        req.Username = nil
+        req.Role = nil
+        req.Password = nil
+        req.Repassword = nil
+    }
+
     if err := h.userSvc.UpdateUser(c.Request.Context(), id, req.Username, req.Description, req.Password, req.Role, nil); err != nil {
         if strings.Contains(strings.ToLower(err.Error()), "not found") {
             dto.Write(c, dto.Err(traceID, dto.CodeNotFound, "Not found", nil))
