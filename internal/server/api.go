@@ -138,14 +138,16 @@ func ensureAdminUser(ctx context.Context, db *gorm.DB, adminName, plainPassword 
     }
 
     // Upsert: create the admin user if not exists, or update password/role/status.
+    // On conflict, also set description to 'System Administrator' if it is currently empty.
     return db.WithContext(ctx).Exec(
         `INSERT INTO users (username, description, password_hash, role, status, is_system)
-         VALUES (?, 'Admin', ?, 'admin', 'active', 1)
+         VALUES (?, 'System Administrator', ?, 'admin', 'active', 1)
          ON CONFLICT(username) DO UPDATE SET
            password_hash=excluded.password_hash,
            role='admin',
            status='active',
-           is_system=1`,
+           is_system=1,
+           description=CASE WHEN (description IS NULL OR description = '') THEN 'System Administrator' ELSE description END`,
         adminName, hash,
     ).Error
 }
