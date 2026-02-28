@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2026-01-30 10:19:24
  * @LastEditors: LPY
- * @LastEditTime: 2026-02-04 10:58:29
+ * @LastEditTime: 2026-02-28 09:28:39
  * @FilePath: \glkvm-cloud\ui\src\stores\modules\deviceGroup.ts
  * @Description: 设备组有关的状态管理
  */
@@ -63,8 +63,7 @@ export const useDeviceGroupStore = defineStore('deviceGroup', () => {
             const res = await reqDeviceGroupList()
             pageLink.value.setTotal(res.data.items.length)
             state.deviceGroupList = res.data.items.filter(d => {
-                return (d?.id?.toString()?.indexOf(computedDeviceGroupQuery.value.searchText) > -1 
-                || d?.description?.indexOf(computedDeviceGroupQuery.value.searchText) > -1
+                return (d?.description?.indexOf(computedDeviceGroupQuery.value.searchText) > -1
                 || d?.name?.indexOf(computedDeviceGroupQuery.value.searchText) > -1)
             }) || []
             state.completeDeviceGroupList = res.data.items || []

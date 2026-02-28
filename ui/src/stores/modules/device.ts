@@ -2,7 +2,7 @@
  * @Author: shufei.han
  * @Date: 2025-06-10 16:46:00
  * @LastEditors: LPY
- * @LastEditTime: 2026-01-30 17:41:49
+ * @LastEditTime: 2026-02-28 09:21:41
  * @FilePath: \glkvm-cloud\ui\src\stores\modules\device.ts
  * @Description: 设备有关的状态管理
  */
@@ -77,7 +77,9 @@ export const useDeviceStore = defineStore('device', () => {
             }
             pageLink.value.setTotal(res.data.items.length)
             state.deviceList = res.data.items.filter(d => {
-                return (d?.id?.toString().toLowerCase()?.indexOf(computedDeviceQuery.value.searchText) > -1 
+                return (d?.ddns?.toString().toLowerCase()?.indexOf(computedDeviceQuery.value.searchText) > -1 
+                || d?.mac?.toString().toLowerCase()?.indexOf(computedDeviceQuery.value.searchText) > -1 
+                || d?.ip?.toString().toLowerCase()?.indexOf(computedDeviceQuery.value.searchText) > -1 
                 || d?.description?.toLowerCase()?.indexOf(computedDeviceQuery.value.searchText) > -1) && 
                 (computedDeviceQuery.value.deviceGroupId ? d.deviceGroupId === computedDeviceQuery.value.deviceGroupId : true) &&
                 (!computedDeviceQuery.value.onlyShowUnassigned || (computedDeviceQuery.value.onlyShowUnassigned && !d.deviceGroupId))
