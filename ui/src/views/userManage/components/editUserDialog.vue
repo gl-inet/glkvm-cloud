@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2026-02-03 11:24:20
  * @LastEditors: LPY
- * @LastEditTime: 2026-02-09 09:14:59
+ * @LastEditTime: 2026-02-28 09:51:05
  * @FilePath: \glkvm-cloud\ui\src\views\userManage\components\editUserDialog.vue
  * @Description: 编辑用户弹窗
 -->
@@ -44,7 +44,12 @@
                     </ARadioGroup>
                 </AFormItem>
                 <AFormItem name="username" :label="$t('user.userName')"   labelAlign="left">
-                    <AInput v-model:value="state.formData.username" :maxlength="32" :placeholder="$t('device.requiredDeviceGroupName')" style="width: 100%;" />
+                    <AInput 
+                        v-model:value="state.formData.username"
+                        :maxlength="32"
+                        :placeholder="$t('device.requiredDeviceGroupName')"
+                        :disabled="props.currentUser?.isSystem"
+                        style="width: 100%;" />
                 </AFormItem>
                 <AFormItem name="description" :label="$t('device.description')" labelAlign="left">
                     <ATextarea 
@@ -58,6 +63,7 @@
                         v-model:value="state.formData.password"
                         :placeholder="$t('user.enterPassword')"
                         autocomplete="off"
+                        :disabled="props.currentUser?.isSystem"
                         style="width: 100%;" />
                 </AFormItem>
                 <AFormItem name="repassword" :label="$t('user.reEnterPassword')"   labelAlign="left">
@@ -65,6 +71,7 @@
                         v-model:value="state.formData.repassword"
                         :placeholder="$t('user.reEnterPasswordPlc')"
                         autocomplete="off"
+                        :disabled="props.currentUser?.isSystem"
                         style="width: 100%;" />
                 </AFormItem>
                 <div class="flex-end">

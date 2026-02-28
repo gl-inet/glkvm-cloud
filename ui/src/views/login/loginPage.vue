@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2025-05-30 10:48:43
  * @LastEditors: LPY
- * @LastEditTime: 2026-02-05 17:34:48
+ * @LastEditTime: 2026-02-28 09:32:36
  * @FilePath: \glkvm-cloud\ui\src\views\login\loginPage.vue
  * @Description: 登录页面
 -->
@@ -137,6 +137,11 @@ onMounted(async () => {
         // 提取配置数据 (Extract config data)
         authConfig.value = response.data
         useAppStore().setVersion(authConfig.value.kvmCloudVersion)
+
+        // 若支持LDAP且当前登录方式为legacy，则切换到ldap (If LDAP is supported and current auth method is legacy, switch to ldap)
+        if (authConfig.value.ldapEnabled && state.formModel.authMethod === 'legacy') {
+            state.formModel.authMethod = 'ldap'
+        }
     } catch (error) {
         console.error('Failed to load auth config:', error)
         // 回退 - 无LDAP可用 (Fallback - no LDAP available)

@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2026-02-03 12:07:45
  * @LastEditors: LPY
- * @LastEditTime: 2026-02-04 10:56:54
+ * @LastEditTime: 2026-02-28 09:27:05
  * @FilePath: \glkvm-cloud\ui\src\stores\modules\userGroupManage.ts
  * @Description: 用户组管理相关状态管理
  */
@@ -65,7 +65,7 @@ export const useUserGroupManageStore = defineStore('userGroupManage', () => {
             const res = await reqUserGroupList()
             pageLink.value.setTotal(res.data.items.length)
             state.userGroupList = res.data.items.filter(d => {
-                return (d?.id?.toString()?.indexOf(computedUserGroupManageQuery.value.searchText) > -1 
+                return (d?.description?.toString()?.toLowerCase()?.indexOf(computedUserGroupManageQuery.value.searchText) > -1 
                 || d?.userGroup?.indexOf(computedUserGroupManageQuery.value.searchText) > -1) && 
                 (computedUserGroupManageQuery.value.deviceGroupId ? 
                     d.deviceGroupList.some(u => u.deviceGroupId === computedUserGroupManageQuery.value.deviceGroupId) : true)

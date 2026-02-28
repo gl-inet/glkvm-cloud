@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2026-02-02 15:00:13
  * @LastEditors: LPY
- * @LastEditTime: 2026-02-03 12:08:51
+ * @LastEditTime: 2026-02-28 09:26:50
  * @FilePath: \glkvm-cloud\ui\src\stores\modules\userManage.ts
  * @Description: 用户管理相关状态管理
  */
@@ -69,7 +69,7 @@ export const useUserManageStore = defineStore('userManage', () => {
             const res = await reqUserList()
             pageLink.value.setTotal(res.data.items.length)
             state.userList = res.data.items.filter(d => {
-                return (d?.id?.toString().toLowerCase()?.indexOf(computedUserManageQuery.value.searchText) > -1 
+                return (d?.description?.toString().toLowerCase()?.indexOf(computedUserManageQuery.value.searchText) > -1 
                 || d?.username?.toLowerCase()?.indexOf(computedUserManageQuery.value.searchText) > -1) && 
                 (computedUserManageQuery.value.userGroupId ? d.userGroupList.some(u => u.userGroupId === computedUserManageQuery.value.userGroupId) : true)
             }) || []
