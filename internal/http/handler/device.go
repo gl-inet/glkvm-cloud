@@ -118,13 +118,67 @@ func (h *DeviceHandler) ListDevices(c *gin.Context) {
 		}
 	}
 
+	// Parse sort parameters: sortBy and order
+	sortBy := strings.TrimSpace(c.Query("sortBy"))     // id, ip, mac, connectedTime, description, ddns
+	sortOrder := strings.TrimSpace(c.Query("order"))   // asc, desc (default: asc)
+
+	ascending := true
+	if strings.EqualFold(sortOrder, "desc") {
+		ascending = false
+	}
+
 	sort.SliceStable(items, func(i, j int) bool {
+		// Online devices always come first regardless of sort field/order
 		oi := items[i].Status == device.StatusOnline
 		oj := items[j].Status == device.StatusOnline
 		if oi != oj {
 			return oi
 		}
-		return items[i].Ddns < items[j].Ddns
+
+		// Secondary sort by the requested field
+		// cmp: -1 means i<j, 0 means equal, 1 means i>j
+		var cmp int
+		switch sortBy {
+		case "id":
+			switch {
+			case items[i].ID < items[j].ID:
+				cmp = -1
+			case items[i].ID > items[j].ID:
+				cmp = 1
+			}
+		case "ip":
+			cmp = strings.Compare(items[i].IP, items[j].IP)
+		case "mac":
+			cmp = strings.Compare(items[i].Mac, items[j].Mac)
+		case "connectedTime":
+			var ti, tj int64
+			if items[i].LastSeenAt != nil {
+				ti = *items[i].LastSeenAt
+			}
+			if items[j].LastSeenAt != nil {
+				tj = *items[j].LastSeenAt
+			}
+			switch {
+			case ti < tj:
+				cmp = -1
+			case ti > tj:
+				cmp = 1
+			}
+		case "description":
+			cmp = strings.Compare(items[i].Description, items[j].Description)
+		case "ddns":
+			cmp = strings.Compare(items[i].Ddns, items[j].Ddns)
+		default:
+			cmp = strings.Compare(items[i].Ddns, items[j].Ddns)
+		}
+
+		if cmp == 0 {
+			return false // equal, preserve original order
+		}
+		if ascending {
+			return cmp < 0
+		}
+		return cmp > 0
 	})
 
 	out := make([]dto.Device, 0, len(items))
