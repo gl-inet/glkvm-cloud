@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2025-05-30 10:18:18
  * @LastEditors: LPY
- * @LastEditTime: 2026-03-09 16:31:22
+ * @LastEditTime: 2026-03-10 11:52:27
  * @FilePath: \glkvm-cloud\ui\src\hooks\useLocalStorage.ts
  * @Description: 存储hook
  */
@@ -38,9 +38,15 @@ export function useLocalStorage <T> (
     const storageValue = ref<T>(initValue)
     /** 获取本地存储的值 */
     const getValue = () => {
-        const storageData = localStorage.getItem(key)
+        // 特殊兼容以前的版本直接存储字符串的情况
+        let storageData: T = null
+        try {
+            storageData = JSON.parse(localStorage.getItem(key))
+        } catch {
+            storageData = localStorage.getItem(key) as unknown as T
+        }
         if (storageData !== null) {
-            return transform(storageData)
+            return transform(storageData as unknown as string)
         }
         else {
             return initValue

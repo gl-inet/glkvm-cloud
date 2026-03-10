@@ -2,7 +2,7 @@
  * @Author: shufei.han
  * @Date: 2025-06-11 12:04:48
  * @LastEditors: LPY
- * @LastEditTime: 2026-03-10 09:57:59
+ * @LastEditTime: 2026-03-10 11:47:57
  * @FilePath: \glkvm-cloud\ui\src\views\device\components\deviceListView.vue
  * @Description: 
 -->
@@ -432,7 +432,7 @@ const init = () => {
 
     const storedColumns = useLocalStorage(LocalStorageKeys.DEVICE_LIST_COLUMNS_KEY).getValue()
     if (storedColumns) {
-        const parsedColumns = JSON.parse(storedColumns as string)
+        const parsedColumns = storedColumns as Array<TableColumnType & { show: boolean }>
         // 兼容JSON.parse后丢失的函数等属性，重新赋值customHeaderCell属性
         parsedColumns.forEach((col: any) => {
             const completeCol = deviceCompleteColumns.find(c => c.key === col.key)

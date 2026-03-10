@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2026-03-09 14:27:32
  * @LastEditors: LPY
- * @LastEditTime: 2026-03-10 09:51:33
+ * @LastEditTime: 2026-03-10 11:48:15
  * @FilePath: \glkvm-cloud\ui\src\views\device\components\components\customColumns.vue
  * @Description: 自定义table列组件
 -->
@@ -106,9 +106,9 @@ const handleOpenChange = (open: boolean) => {
                 initDragFn()
 
                 // 初始化数据，若有存储，则以存储为准，否则使用 completeColumns 的默认值
-                const storedColumns = useLocalStorage(props.storageName).getValue()
+                const storedColumns = useLocalStorage(props.storageName).getValue() as CustomTableColumnType[] | null
                 if (storedColumns) {
-                    clonedColumns.value = JSON.parse(storedColumns as string)
+                    clonedColumns.value = storedColumns
                 } else {
                     clonedColumns.value = props.completeColumns.map(col => ({
                         ...col,
