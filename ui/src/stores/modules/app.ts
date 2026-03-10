@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2025-05-30 09:37:06
  * @LastEditors: LPY
- * @LastEditTime: 2026-01-05 14:35:02
+ * @LastEditTime: 2026-03-10 10:44:47
  * @FilePath: \glkvm-cloud\ui\src\stores\modules\app.ts
  * @Description: app相关状态存储
  */
@@ -25,7 +25,7 @@ export const useAppStore = defineStore('appGlobal', () => {
         /** 当前的主题模式 */
         themeMode: getThemeFromStorage(),
         /** 版本号 */
-        version: (useLocalStorage(LocalStorageKeys.VERSION).getValue() as string)?.toUpperCase() || 'V1.0.0',
+        version: JSON.parse(useLocalStorage(LocalStorageKeys.VERSION).getValue() as string)?.toUpperCase() || 'V1.0.0',
     })
     
     /** 获取主题模式 */
