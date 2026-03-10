@@ -2,7 +2,7 @@
  * @Author: shufei.han
  * @Date: 2025-06-10 16:46:00
  * @LastEditors: LPY
- * @LastEditTime: 2026-02-28 09:21:41
+ * @LastEditTime: 2026-03-09 12:17:03
  * @FilePath: \glkvm-cloud\ui\src\stores\modules\device.ts
  * @Description: 设备有关的状态管理
  */
@@ -36,6 +36,10 @@ export const useDeviceStore = defineStore('device', () => {
         onlyShowUnassigned: false,
         /** 这个字段存储是否有设备，因为UI上没有设备和没有筛选出来的设备是对应不同的展示画面的 */
         hasDevice: false,
+        /** 排序字段 */
+        sortBy: undefined,
+        /** 排序方式 */
+        order: undefined,
     })
 
     const pageLink = ref(new PageLink({ size: DEVICE_VIEW_PAGE_SIZE }))
@@ -49,6 +53,8 @@ export const useDeviceStore = defineStore('device', () => {
             searchText: state.searchText?.replaceAll(':','').toLowerCase(),
             deviceGroupId: state.deviceGroupId,
             onlyShowUnassigned: state.onlyShowUnassigned,
+            sortBy: state.sortBy,
+            order: state.order,
         }
         return query
     })
@@ -66,7 +72,11 @@ export const useDeviceStore = defineStore('device', () => {
         try {
             console.log('getDeviceList', computedDeviceQuery.value)
             !isPolling && (state.getDeviceLoading = true)
-            const res = await getDeviceListApi()
+            const res = await getDeviceListApi({
+                groupId: computedDeviceQuery.value.deviceGroupId,
+                sortBy: computedDeviceQuery.value.sortBy,
+                order: computedDeviceQuery.value.order,
+            })
             console.log(res)
             
             if (isGetAll) {

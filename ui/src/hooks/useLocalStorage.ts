@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2025-05-30 10:18:18
  * @LastEditors: LPY
- * @LastEditTime: 2026-01-05 14:22:12
+ * @LastEditTime: 2026-03-09 16:31:22
  * @FilePath: \glkvm-cloud\ui\src\hooks\useLocalStorage.ts
  * @Description: 存储hook
  */
@@ -20,6 +20,8 @@ export enum LocalStorageKeys {
     SIDEBAR_MANUAL_CONTROL_KEY = 'sidebar-manual-control',
     /** 版本号 */
     VERSION = 'version',
+    /** 设备列表列表顺序 */
+    DEVICE_LIST_COLUMNS_KEY = 'device-list-columns',
 }
 
 /** 
@@ -27,7 +29,7 @@ export enum LocalStorageKeys {
  * @param key 需要使用哪种数据
  * @param {T} initValue 如果没有存储，则返回的初始值
 */
-export function useLocalStorage <T extends {toString: () => string}> (
+export function useLocalStorage <T> (
     key: LocalStorageKeys,
     initValue: T = null, 
     transform: (value: string) => T = (value) => value as unknown as T,
@@ -46,7 +48,7 @@ export function useLocalStorage <T extends {toString: () => string}> (
     }
     /** 设置本地存储的值 */
     const setValue = (value: T) => {
-        localStorage.setItem(key, value?.toString())
+        localStorage.setItem(key, JSON.stringify(value))
     }
     /** 清除本地存储的值 */
     const removeValue = () => {

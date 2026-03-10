@@ -60,6 +60,16 @@ a {
       padding: 10px 12px !important;
     }
   }
+
+  // 增加类名，可以让列的表头左对齐（例如筛选按钮紧挨着列标题）
+  .custom-table-header-cell-to-left {
+    .ant-table-column-sorters {
+        justify-content: flex-start !important;
+    }
+    .ant-table-column-title {
+        flex: unset !important;
+    }
+  }
 }
 
 .text-nowrap {

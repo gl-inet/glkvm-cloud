@@ -124,7 +124,9 @@
     "ipNotCorrect": "IP 地址错误",
     "portNotCorrect": "端口号错误",
     "remoteWeb": "远程 Web",
-    "linuxTips": "支持 OpenWrt、树莓派、Ubuntu、CentOS 等"
+    "linuxTips": "支持 OpenWrt、树莓派、Ubuntu、CentOS 等",
+    "customColumns": "自定义列",
+    "dragColumnTips": "您可以自定义您的设备列表，拖动下列项右侧的按钮来调整显示顺序，也可以通过复选框来控制显示或隐藏某些列。"
   },
   "user": {
     "user": "用户",
