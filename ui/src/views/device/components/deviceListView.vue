@@ -2,7 +2,7 @@
  * @Author: shufei.han
  * @Date: 2025-06-11 12:04:48
  * @LastEditors: LPY
- * @LastEditTime: 2026-02-06 10:42:16
+ * @LastEditTime: 2026-03-10 09:57:59
  * @FilePath: \glkvm-cloud\ui\src\views\device\components\deviceListView.vue
  * @Description: 
 -->
@@ -26,7 +26,13 @@
                     </ASelect>
                 </div>
 
-                <div>
+                <div class="flex">
+                    <CustomColumns 
+                        :columns="deviceColumns"
+                        :completeColumns="deviceCompleteColumns"
+                        :storageName="LocalStorageKeys.DEVICE_LIST_COLUMNS_KEY"
+                        @change="handleDeviceColumnsChange"
+                    />
                     <BaseButton size="middle" style="margin-right: 12px;" @click="refresh">{{ $t('common.refresh') }}</BaseButton>
                     <BaseButton size="middle" style="margin-right: 12px;" @click="executeCommand">{{ $t('device.executeCommand') }}</BaseButton>
                     <BaseButton 
@@ -46,6 +52,7 @@
                     :columns="deviceColumns"
                     rowKey="id"
                     :rowSelection="{ selectedRowKeys: state.selectedRowKeys, onChange: onSelectChange }"
+                    @change="tableChange"
                 >
                     <template #mac="{ record }">
                         {{ macAddressFormatter(record.mac) }}
@@ -165,14 +172,14 @@ import BasePagination from '@/components/base/basePagination.vue'
 import BaseTable from '@/components/base/baseTable.vue'
 import { t } from '@/hooks/useLanguage'
 import { useDeviceStore } from '@/stores/modules/device'
-import { message, type TableColumnType } from 'ant-design-vue'
+import { message, TableProps, type TableColumnType } from 'ant-design-vue'
 import { computed, reactive, ref } from 'vue'
 import ExecuteCommandDialog from './executeCommandDialog.vue'
 import { DeviceInfo, DeviceStatusEnum, ExecuteCommandFormData } from '@/models/device'
 import CommandResponseDialog from './commandResponseDialog.vue'
 import { BaseDropdownSelect, BaseTag, GlSvg } from 'gl-web-main/components'
 import EditDescriptionDialog from './editDescriptionDialog.vue'
-import { baseCustomModal, macAddressFormatter, SelectOptions } from 'gl-web-main'
+import { baseCustomModal, deepClone, macAddressFormatter, SelectOptions } from 'gl-web-main'
 import { reqDeleteDevice, reqDeviceGroupListOptions } from '@/api/device'
 import AddDeviceDialog from './addDeviceDialog.vue'
 import MoveToDeviceGroupDialog from './moveToDeviceGroupDialog.vue'
@@ -180,21 +187,33 @@ import { PermissionEnum } from '@/models/permission'
 import { hasPermission } from '@/utils/permission'
 import AccessDeviceWebDialog from './accessDeviceWebDialog.vue'
 import dayjs from 'dayjs'
+import CustomColumns from './components/customColumns.vue'
+import { LocalStorageKeys, useLocalStorage } from '@/hooks/useLocalStorage'
 
 const deviceStore  = useDeviceStore()
 
-const deviceColumns = computed<TableColumnType[]>(() => { 
-    return [
-        {title: t('device.deviceID'), dataIndex: 'ddns', ellipsis: true},
-        {title: t('device.IPAddress'), dataIndex: 'ip', ellipsis: true},
-        {title: t('device.mac'), dataIndex: 'mac', ellipsis: true},
-        {title: t('device.status'), dataIndex: 'status', ellipsis: true},
-        {title: t('device.connectedTime'), dataIndex: 'connectedTime', ellipsis: true},
-        {title: t('user.associatedDeviceGroup'), dataIndex: 'deviceGroupName', ellipsis: true, width: 190},
-        {title: t('device.description'), dataIndex: 'description'},
-        {title: t('common.action'), dataIndex: 'action', width: 270},
-    ]
-})
+const deviceColumns = ref<TableColumnType[]>([
+    {title: t('device.deviceID'), dataIndex: 'ddns', key: 'ddns', ellipsis: true,
+        sorter: true, customHeaderCell: () => {return {class: 'custom-table-header-cell-to-left'}},
+    },
+    {title: t('device.IPAddress'), dataIndex: 'ip', key: 'ip', ellipsis: true,
+        sorter: true, customHeaderCell: () => {return {class: 'custom-table-header-cell-to-left'}},
+    },
+    {title: t('device.mac'), dataIndex: 'mac', key: 'mac', ellipsis: true,
+        sorter: true, customHeaderCell: () => {return {class: 'custom-table-header-cell-to-left'}},
+    },
+    {title: t('device.status'), dataIndex: 'status', key: 'status', ellipsis: true},
+    {title: t('device.connectedTime'), dataIndex: 'connectedTime', key: 'connectedTime', ellipsis: true,
+        sorter: true, customHeaderCell: () => {return {class: 'custom-table-header-cell-to-left'}},
+    },
+    {title: t('user.associatedDeviceGroup'), dataIndex: 'deviceGroupName', key: 'deviceGroupName', ellipsis: true, width: 190},
+    {title: t('device.description'), dataIndex: 'description', key: 'description',
+        sorter: true, customHeaderCell: () => {return {class: 'custom-table-header-cell-to-left'}},
+    },
+    {title: t('common.action'), dataIndex: 'action', key: 'action', width: 270},
+])
+
+const deviceCompleteColumns = deepClone(deviceColumns.value)
 
 const page = computed({
     get: () => deviceStore.pageLink.page,
@@ -226,6 +245,14 @@ const onSelectChange = (selectedRowKeys: Key[], selectedRows: DeviceInfo[]) => {
     console.log('selectedRowKeys changed: ', selectedRowKeys)
     state.selectedRowKeys = selectedRowKeys
     state.selectedRows = selectedRows
+}
+
+const tableChange: TableProps['onChange'] = (pagination, filters, sorter: any) => {
+    console.log('params', pagination, filters, sorter)
+    if (sorter) {
+        deviceStore.state.sortBy = sorter.field as string
+        deviceStore.state.order = sorter.order === 'ascend' ? 'asc' : 'desc'
+    }
 }
 
 /** 计算时间 */
@@ -389,7 +416,35 @@ const getDeviceGroupListOptions = async () => {
     state.groupList = res.data.items
 }
 
-getDeviceGroupListOptions()
+const handleDeviceColumnsChange = (columns: TableColumnType[]) => {
+    deviceColumns.value = columns.filter(col => (col as any).show)
+    // 兼容JSON.parse后丢失的函数等属性，重新赋值customHeaderCell属性
+    deviceColumns.value.forEach((col: any) => {
+        const completeCol = deviceCompleteColumns.find(c => c.key === col.key)
+        if (completeCol) {
+            col.customHeaderCell = completeCol.customHeaderCell
+        }
+    })
+}
+
+const init = () => {
+    getDeviceGroupListOptions()
+
+    const storedColumns = useLocalStorage(LocalStorageKeys.DEVICE_LIST_COLUMNS_KEY).getValue()
+    if (storedColumns) {
+        const parsedColumns = JSON.parse(storedColumns as string)
+        // 兼容JSON.parse后丢失的函数等属性，重新赋值customHeaderCell属性
+        parsedColumns.forEach((col: any) => {
+            const completeCol = deviceCompleteColumns.find(c => c.key === col.key)
+            if (completeCol) {
+                col.customHeaderCell = completeCol.customHeaderCell
+            }
+        })
+        deviceColumns.value = parsedColumns.filter(col => (col as any).show)
+    }
+}
+
+init()
 </script> 
 
 <style lang="scss" scoped>

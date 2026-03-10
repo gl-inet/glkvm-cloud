@@ -26,6 +26,8 @@ export interface DeviceQuery {
     searchText: string
     deviceGroupId: number
     onlyShowUnassigned: boolean
+    sortBy?: string
+    order?: 'asc' | 'desc'
 }
 
 /** 执行命令参数 */

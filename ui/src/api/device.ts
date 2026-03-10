@@ -2,7 +2,7 @@
  * @Author: shufei.han
  * @Date: 2025-06-11 11:48:02
  * @LastEditors: LPY
- * @LastEditTime: 2026-02-04 09:32:31
+ * @LastEditTime: 2026-03-09 12:08:45
  * @FilePath: \glkvm-cloud\ui\src\api\device.ts
  * @Description: 设备相关API
  */
@@ -10,7 +10,7 @@ import { ExecuteCommandParams, type DeviceInfo } from '@/models/device'
 import request, { httpService } from './request'
 
 /** 获取设备列表 */
-export const getDeviceListApi = (params?: { groupId: number }) => {
+export const getDeviceListApi = (params?: { groupId: number, sortBy?: string, order?: 'asc' | 'desc' }) => {
     return request<{ items: DeviceInfo[]}>({
         url: '/api/devices',
         params,

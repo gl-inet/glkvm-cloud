@@ -124,7 +124,9 @@
     "ipNotCorrect": "IP address is incorrect",
     "portNotCorrect": "Port is incorrect",
     "remoteWeb": "Remote Web",
-    "linuxTips": "Supports OpenWrt, Raspberry PI, Ubuntu, CentOS, etc."
+    "linuxTips": "Supports OpenWrt, Raspberry PI, Ubuntu, CentOS, etc.",
+    "customColumns": "Custom Columns",
+    "dragColumnTips": "You can customize your device list. Drag the button on the right side of the following items to adjust the display order, or use the checkboxes to control the display or hide of certain columns."
   },
   "user": {
     "user": "User",

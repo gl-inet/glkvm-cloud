@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2025-05-30 10:54:44
  * @LastEditors: LPY
- * @LastEditTime: 2026-02-03 10:22:56
+ * @LastEditTime: 2026-03-09 14:30:29
  * @FilePath: \glkvm-cloud\ui\src\projectInitialize\loadAdvComponent.ts
  * @Description: 加载Ant 组件
  */
@@ -25,6 +25,7 @@ import {
     Select,
     Tabs,
     Radio,
+    Popover,
 } from 'ant-design-vue'
 
 export default function (app: any) {
@@ -46,4 +47,5 @@ export default function (app: any) {
     app.use(Select)
     app.use(Tabs)
     app.use(Radio)
+    app.use(Popover)
 }
