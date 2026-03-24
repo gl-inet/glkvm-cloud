@@ -11,6 +11,7 @@ type User struct {
 	Description   string         `json:"description"`
 	Role          string         `json:"role"`
 	IsSystem      bool           `json:"isSystem"`
+	AuthProvider  string         `json:"authProvider"`
 	UserGroupList []UserGroupRef `json:"userGroupList"`
 }
 

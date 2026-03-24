@@ -25,6 +25,8 @@ type userRow struct {
     Role         string `gorm:"column:role"`
     Status       string `gorm:"column:status"`
     IsSystem     bool   `gorm:"column:is_system"`
+    AuthProvider string `gorm:"column:auth_provider"`
+    ExternalSub  string `gorm:"column:external_sub"`
 }
 
 func (userRow) TableName() string { return "users" }
@@ -51,6 +53,8 @@ func (r *UserRepo) FindByID(ctx context.Context, id int64) (*user.User, error) {
         Role:         identity.Role(row.Role),
         Status:       user.Status(row.Status),
         IsSystem:     row.IsSystem,
+        AuthProvider: row.AuthProvider,
+        ExternalSub:  row.ExternalSub,
     }
     return u, nil
 }
@@ -77,6 +81,35 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*user.U
         Role:         identity.Role(row.Role),
         Status:       user.Status(row.Status),
         IsSystem:     row.IsSystem,
+        AuthProvider: row.AuthProvider,
+        ExternalSub:  row.ExternalSub,
+    }, nil
+}
+
+func (r *UserRepo) FindByExternalID(ctx context.Context, provider, externalSub string) (*user.User, error) {
+    var row userRow
+    err := r.db.WithContext(ctx).
+        Where("auth_provider = ? AND external_sub = ?", provider, externalSub).
+        Take(&row).Error
+
+    if errors.Is(err, gorm.ErrRecordNotFound) {
+        return nil, nil
+    }
+    if err != nil {
+        return nil, err
+    }
+
+    return &user.User{
+        ID:           row.ID,
+        Username:     row.Username,
+        Email:        row.Email,
+        Description:  row.Description,
+        PasswordHash: row.PasswordHash,
+        Role:         identity.Role(row.Role),
+        Status:       user.Status(row.Status),
+        IsSystem:     row.IsSystem,
+        AuthProvider: row.AuthProvider,
+        ExternalSub:  row.ExternalSub,
     }, nil
 }
 
@@ -102,6 +135,8 @@ func (r *UserRepo) FindSystemAdmin(ctx context.Context) (*user.User, error) {
 		Role:         identity.Role(row.Role),
 		Status:       user.Status(row.Status),
 		IsSystem:     row.IsSystem,
+		AuthProvider: row.AuthProvider,
+		ExternalSub:  row.ExternalSub,
 	}, nil
 }
 
@@ -122,6 +157,8 @@ func (r *UserRepo) List(ctx context.Context) ([]user.User, error) {
             Role:         identity.Role(row.Role),
             Status:       user.Status(row.Status),
             IsSystem:     row.IsSystem,
+            AuthProvider: row.AuthProvider,
+            ExternalSub:  row.ExternalSub,
         })
     }
     return out, nil
@@ -136,6 +173,8 @@ func (r *UserRepo) Create(ctx context.Context, u *user.User) (int64, error) {
         Role:         string(u.Role),
         Status:       string(u.Status),
         IsSystem:     u.IsSystem,
+        AuthProvider: u.AuthProvider,
+        ExternalSub:  u.ExternalSub,
     }
 
     if err := r.db.WithContext(ctx).Create(&row).Error; err != nil {
@@ -157,6 +196,8 @@ func (r *UserRepo) Update(ctx context.Context, u *user.User) error {
             "role":          string(u.Role),
             "status":        string(u.Status),
             "is_system":     u.IsSystem,
+            "auth_provider": u.AuthProvider,
+            "external_sub":  u.ExternalSub,
         }).Error
 }
 

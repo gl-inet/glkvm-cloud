@@ -81,7 +81,16 @@ func InitSchema(ctx context.Context, db *sql.DB, schemaPath string) error {
     if err := ensureDeviceClientColumn(ctx, db); err != nil {
         return err
     }
-    return ensureUserIsSystemColumn(ctx, db)
+    if err := ensureUserIsSystemColumn(ctx, db); err != nil {
+        return err
+    }
+    if err := ensureAuthProviderColumn(ctx, db); err != nil {
+        return err
+    }
+    if err := ensureExternalSubColumn(ctx, db); err != nil {
+        return err
+    }
+    return ensureExternalIdentityIndex(ctx, db)
 }
 
 func ensureDeviceClientColumn(ctx context.Context, db *sql.DB) error {
@@ -109,5 +118,44 @@ func ensureUserIsSystemColumn(ctx context.Context, db *sql.DB) error {
     if strings.Contains(err.Error(), "duplicate column name") {
         return nil
     }
+    return err
+}
+
+func ensureAuthProviderColumn(ctx context.Context, db *sql.DB) error {
+    if db == nil {
+        return nil
+    }
+    _, err := db.ExecContext(ctx, `ALTER TABLE users ADD COLUMN auth_provider TEXT NOT NULL DEFAULT 'local'`)
+    if err == nil {
+        return nil
+    }
+    if strings.Contains(err.Error(), "duplicate column name") {
+        return nil
+    }
+    return err
+}
+
+func ensureExternalSubColumn(ctx context.Context, db *sql.DB) error {
+    if db == nil {
+        return nil
+    }
+    _, err := db.ExecContext(ctx, `ALTER TABLE users ADD COLUMN external_sub TEXT NOT NULL DEFAULT ''`)
+    if err == nil {
+        return nil
+    }
+    if strings.Contains(err.Error(), "duplicate column name") {
+        return nil
+    }
+    return err
+}
+
+func ensureExternalIdentityIndex(ctx context.Context, db *sql.DB) error {
+    if db == nil {
+        return nil
+    }
+    _, err := db.ExecContext(ctx,
+        `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_external_identity
+         ON users(auth_provider, external_sub)
+         WHERE external_sub != ''`)
     return err
 }

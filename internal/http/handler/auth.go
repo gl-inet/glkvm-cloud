@@ -40,7 +40,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	// ---- LDAP ----
 	authMethod := req.AuthMethod
 	if authMethod == "ldap" {
-		ok, errorType := ldap.AuthenticateUserWithError(cfg, req.Username, req.Password, authMethod)
+		ok, errorType, userDN := ldap.AuthenticateUserWithError(cfg, req.Username, req.Password, authMethod)
 		if !ok {
 			if errorType == "authorization" {
 				dto.Write(c, dto.Err(traceID, dto.CodeForbidden, "User not authorized", nil))
@@ -49,12 +49,12 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			}
 			return
 		}
-		sysAdmin, err := h.userSvc.GetSystemAdmin(c.Request.Context())
+		ldapUser, err := h.userSvc.FindOrCreateExternalUser(c.Request.Context(), "ldap", userDN, req.Username, "", req.Username)
 		if err != nil {
-			dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "System admin not found", nil))
+			dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Failed to create LDAP user", nil))
 			return
 		}
-		userID = sysAdmin.ID
+		userID = ldapUser.ID
 	} else {
 		u, err := h.userSvc.Authenticate(c.Request.Context(), req.Username, req.Password)
 		if err != nil || u == nil {

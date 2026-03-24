@@ -20,6 +20,7 @@ type Principal struct {
     Username       string        `json:"username"`
     DisplayName    string        `json:"displayName"`
     Role           identity.Role `json:"role"`
+    AuthProvider   string        `json:"authProvider"`
     PermissionKeys []string      `json:"permissions"`
 }
 
@@ -82,11 +83,17 @@ func Auth(sessionStore *memory.SessionStore, userSvc *user.Service, permSvc *per
             displayName = u.Username
         }
 
+        authProvider := u.AuthProvider
+        if authProvider == "" {
+            authProvider = "local"
+        }
+
         c.Set(PrincipalKey, Principal{
             UserID:         u.ID,
             Username:       u.Username,
             DisplayName:    displayName,
             Role:           u.Role,
+            AuthProvider:   authProvider,
             PermissionKeys: perms,
         })
 

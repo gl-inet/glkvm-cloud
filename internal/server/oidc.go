@@ -232,21 +232,22 @@ func oidcCallbackHandler(cfg *xconfig.Config, userSvc *user.Service) gin.Handler
             return
         }
 
-        // ==== Create application session (new session_store, same as LDAP) ====
-        sid, err := randtoken.New() // randtoken.New()
+        // ==== Create application session ====
+        sid, err := randtoken.New()
         if err != nil {
             log.Error().Err(err).Msg("Failed to create session token")
             c.Redirect(http.StatusFound, "/?error=internal_error")
             return
         }
 
-        sysAdmin, err := userSvc.GetSystemAdmin(c.Request.Context())
+        preferredUsername, _ := claims["preferred_username"].(string)
+        oidcUser, err := userSvc.FindOrCreateExternalUser(c.Request.Context(), "oidc", sub, preferredUsername, userEmail, userName)
         if err != nil {
-            log.Error().Err(err).Msg("Failed to find system admin user")
+            log.Error().Err(err).Msg("Failed to find or create OIDC user")
             c.Redirect(http.StatusFound, "/?error=internal_error")
             return
         }
-        sessionStore.Create(sid, sysAdmin.ID)
+        sessionStore.Create(sid, oidcUser.ID)
 
         c.SetCookie("sid", sid, 0, "/", "", cfg.SslCert != "", false)
 

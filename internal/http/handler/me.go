@@ -18,10 +18,11 @@ func (h *MeHandler) GetMe(c *gin.Context) {
 
 	dto.Write(c, dto.Ok(traceID, dto.MeResp{
 		User: dto.MeUser{
-			ID:          p.UserID,
-			Username:    p.Username,
-			DisplayName: p.DisplayName,
-			Role:        string(p.Role),
+			ID:           p.UserID,
+			Username:     p.Username,
+			DisplayName:  p.DisplayName,
+			Role:         string(p.Role),
+			AuthProvider: p.AuthProvider,
 		},
 		Permissions: p.PermissionKeys,
 	}))

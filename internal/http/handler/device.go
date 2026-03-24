@@ -168,6 +168,15 @@ func (h *DeviceHandler) ListDevices(c *gin.Context) {
 			cmp = strings.Compare(items[i].Description, items[j].Description)
 		case "ddns":
 			cmp = strings.Compare(items[i].Ddns, items[j].Ddns)
+		case "deviceGroupName":
+			var gi, gj string
+			if items[i].DeviceGroupID != nil {
+				gi = groupNameByID[*items[i].DeviceGroupID]
+			}
+			if items[j].DeviceGroupID != nil {
+				gj = groupNameByID[*items[j].DeviceGroupID]
+			}
+			cmp = strings.Compare(gi, gj)
 		default:
 			cmp = strings.Compare(items[i].Ddns, items[j].Ddns)
 		}
