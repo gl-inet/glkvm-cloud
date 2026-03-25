@@ -2,8 +2,8 @@
  * @Author: LPY
  * @Date: 2025-05-30 09:44:40
  * @LastEditors: LPY
- * @LastEditTime: 2025-06-19 10:12:11
- * @FilePath: /kvm-cloud-frontend/src/projectInitialize/index.ts
+ * @LastEditTime: 2026-03-25 11:09:30
+ * @FilePath: \glkvm-cloud\ui\src\projectInitialize\index.ts
  * @Description: 项目初始化的操作
  */
 import type { App } from 'vue'
@@ -12,6 +12,7 @@ import { initializeAllLanguage } from '@/lang'
 import { installComponent } from './installComponent'
 import loadAdvComponent from './loadAdvComponent'
 import { installDirective } from './installDirective'
+import { checkAndClearCache } from '@/utils/versionManager'
 
 export default function (app: App ) {
     /** 加载插件 */
@@ -28,4 +29,7 @@ export default function (app: App ) {
 
     /** 初始化语言 */
     initializeAllLanguage()
+
+    /** 检查并清理缓存 */
+    checkAndClearCache()
 }

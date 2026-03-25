@@ -23,39 +23,39 @@ export default defineConfig(({ mode }) => {
             port: 3011,
             proxy: {
                 '/devs': {
-                    target: 'https://107.173.152.173',
+                    target: 'https://106.55.158.199/',
                     secure: false,
                 },
                 '/api': {
-                    target: 'https://107.173.152.173',
+                    target: 'https://106.55.158.199/',
                     secure: false,
                     changeOrigin: true,
                 },
                 '/signout': {
-                    target: 'https://107.173.152.173',
+                    target: 'https://106.55.158.199/',
                     secure: false,
                 },
                 '/alive': {
-                    target: 'https://107.173.152.173',
+                    target: 'https://106.55.158.199/',
                     secure: false,
                 },
                 '/get': {
-                    target: 'https://107.173.152.173',
+                    target: 'https://106.55.158.199/',
                     secure: false,
                 },
                 '^/cmd/.*': {
-                    target: 'https://107.173.152.173',
+                    target: 'https://106.55.158.199/',
                     secure: false,
                 },
                 '^/connect/.*': {
                     ws: true,
-                    target: 'https://107.173.152.173',
+                    target: 'https://106.55.158.199/',
                 },
                 '^/web/*': {
-                    target: 'https://107.173.152.173',
+                    target: 'https://106.55.158.199/',
                 },
                 '/auth-config': {
-                    target: 'https://107.173.152.173',
+                    target: 'https://106.55.158.199/',
                     secure: false,
                     changeOrigin: true,
                 },

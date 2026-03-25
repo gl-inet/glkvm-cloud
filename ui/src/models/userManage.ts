@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2026-02-02 15:13:17
  * @LastEditors: LPY
- * @LastEditTime: 2026-02-09 09:13:22
+ * @LastEditTime: 2026-03-25 10:09:43
  * @FilePath: \glkvm-cloud\ui\src\models\userManage.ts
  * @Description: 用户管理相关类型声明
  */
@@ -22,12 +22,25 @@ export const UserRoleLabelMap = new Map([
     [UserRoleEnum.USER, 'user.user'],
 ])
 
+export enum AuthProviderEnum {
+    LOCAL = 'local',
+    LDAP = 'ldap',
+    OIDC = 'oidc',
+}
+
+export const AuthProviderLabelMap = new Map([
+    [AuthProviderEnum.LOCAL, 'login.local'],
+    [AuthProviderEnum.LDAP, 'login.ldap'],
+    [AuthProviderEnum.OIDC, 'login.oidc'],
+])
+
 export interface UserManage {
     id: number
     username: string
     role: UserRoleEnum
     description: string
     isSystem: boolean
+    authProvider: AuthProviderEnum,
     userGroupList: {
       userGroupId: number
       userGroupName: string

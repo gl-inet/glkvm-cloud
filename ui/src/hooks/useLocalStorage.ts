@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2025-05-30 10:18:18
  * @LastEditors: LPY
- * @LastEditTime: 2026-03-10 11:52:27
+ * @LastEditTime: 2026-03-25 11:06:30
  * @FilePath: \glkvm-cloud\ui\src\hooks\useLocalStorage.ts
  * @Description: 存储hook
  */
@@ -10,6 +10,8 @@ import { ref } from 'vue'
 
 /** 整个系统 */
 export enum LocalStorageKeys {
+    /** 当前系统版本 */
+    APP_VERSION_KEY = 'app_version',
     /** 存储语言的key */
     STORAGE_LANGUAGE_KEY = 'language',
     /** 主题色 */
@@ -22,6 +24,8 @@ export enum LocalStorageKeys {
     VERSION = 'version',
     /** 设备列表列表顺序 */
     DEVICE_LIST_COLUMNS_KEY = 'device-list-columns',
+    /** 设备列表排序 */
+    DEVICE_LIST_SORT_KEY = 'device-list-sort',
 }
 
 /** 

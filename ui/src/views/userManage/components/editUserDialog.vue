@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2026-02-03 11:24:20
  * @LastEditors: LPY
- * @LastEditTime: 2026-02-28 09:51:05
+ * @LastEditTime: 2026-03-25 10:19:00
  * @FilePath: \glkvm-cloud\ui\src\views\userManage\components\editUserDialog.vue
  * @Description: 编辑用户弹窗
 -->
@@ -48,7 +48,8 @@
                         v-model:value="state.formData.username"
                         :maxlength="32"
                         :placeholder="$t('device.requiredDeviceGroupName')"
-                        :disabled="props.currentUser?.isSystem"
+                        :disabled="props.currentUser?.isSystem ||
+                            props.currentUser?.authProvider == AuthProviderEnum.LDAP || props.currentUser?.authProvider == AuthProviderEnum.OIDC"
                         style="width: 100%;" />
                 </AFormItem>
                 <AFormItem name="description" :label="$t('device.description')" labelAlign="left">
@@ -100,7 +101,7 @@ import { FormRules, OnBeforeOk } from 'gl-web-main'
 import { t } from '@/hooks/useLanguage'
 import { FormInstance, Tooltip } from 'ant-design-vue'
 import { reqUserGroupListOptions } from '@/api/deviceGroup'
-import { UserManage, UserRoleEnum, UserRoleLabelMap } from '@/models/userManage'
+import { AuthProviderEnum, UserManage, UserRoleEnum, UserRoleLabelMap } from '@/models/userManage'
 import { reqEditUser } from '@/api/userManage'
 import AddUserGroupDialog from './addUserGroupDialog.vue'
 import { useUserManageStore } from '@/stores/modules/userManage'

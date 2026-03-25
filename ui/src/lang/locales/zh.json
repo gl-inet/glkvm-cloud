@@ -40,7 +40,9 @@
     "loginWithOidc": "使用OIDC登录",
     "confirmPasswordValidateError": "密码不一致。",
     "accountLogin": "账号登录",
-    "ldap": "LDAP"
+    "ldap": "LDAP",
+    "local": "本地",
+    "oidc": "OIDC"
   },
   "device": {
     "devices": "设备数",
@@ -158,7 +160,8 @@
     "deleteUserGroupConfirmTips3": "你确定要删除它吗？",
     "deleteOnlyOneAdminTips": "无法删除：只剩一个系统管理员了。",
     "myGroup": "我的用户组",
-    "userRoleDesc": "管理员可以看到所有设备，普通用户只能看到用户组关联设备组的设备"
+    "userRoleDesc": "管理员可以看到所有设备，普通用户只能看到用户组关联设备组的设备",
+    "userType": "用户类型"
   },
   "rtty": {
     "requestingDeviceToCreateTerminal": "正在请求设备创建终端...",

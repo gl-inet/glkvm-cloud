@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2026-02-02 14:32:56
  * @LastEditors: LPY
- * @LastEditTime: 2026-02-06 18:00:36
+ * @LastEditTime: 2026-03-25 10:10:53
  * @FilePath: \glkvm-cloud\ui\src\views\userManage\userManagePage.vue
  * @Description: 用户管理页
 -->
@@ -49,6 +49,9 @@
                                     v-else-if="record.role === UserRoleEnum.ADMIN"
                                     style="background-color: var(--gl-color-warning-primary);color: var(--gl-color-warning-background);"
                                 >{{ $t(UserRoleLabelMap.get(record.role)) }}</BaseTag>
+                            </template>
+                            <template #authProvider="{ record }">
+                                {{ $t(AuthProviderLabelMap.get(record.authProvider || AuthProviderEnum.LOCAL)) }}
                             </template>
                             <template #userGroupList="{ record }">
                                 <div class="groups-a">
@@ -131,7 +134,7 @@ import BaseLoadingContainer from '@/components/base/baseLoadingContainer.vue'
 import BasePagination from '@/components/base/basePagination.vue'
 import BaseTable from '@/components/base/baseTable.vue'
 import { t } from '@/hooks/useLanguage'
-import { UserManage, UserRoleEnum, UserRoleLabelMap } from '@/models/userManage'
+import { AuthProviderEnum, AuthProviderLabelMap, UserManage, UserRoleEnum, UserRoleLabelMap } from '@/models/userManage'
 import { useUserManageStore } from '@/stores/modules/userManage'
 import { message, TableColumnType, Tooltip } from 'ant-design-vue'
 import { baseCustomModal, SelectOptions } from 'gl-web-main'
@@ -156,6 +159,7 @@ const userColumns = computed<TableColumnType[]>(() => {
     return [
         {title: t('user.userName'), dataIndex: 'username', ellipsis: true},
         {title: t('user.role'), dataIndex: 'role', ellipsis: true},
+        {title: t('user.userType'), dataIndex: 'authProvider'},
         {title: t('device.description'), dataIndex: 'description'},
         {title: t('device.associatedUserGroups'), dataIndex: 'userGroupList', ellipsis: true},
         {title: t('common.action'), dataIndex: 'action', width: 270},

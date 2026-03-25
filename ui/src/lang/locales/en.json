@@ -40,7 +40,9 @@
     "loginWithOidc": "Log in with OIDC",
     "confirmPasswordValidateError": "The passwords you typed do not match.",
     "accountLogin": "Account Login",
-    "ldap": "LDAP"
+    "ldap": "LDAP",
+    "local": "Local",
+    "oidc": "OIDC"
   },
   "device": {
     "devices": "Devices",
@@ -158,7 +160,8 @@
     "deleteUserGroupConfirmTips3": "Are you sure you want to delete it?",
     "deleteOnlyOneAdminTips": "Cannot delete: Only system admin left.",
     "myGroup": "My Group",
-    "userRoleDesc": "Administrators can view all devices, while ordinary users can only see the devices in the device group associated with the user group"
+    "userRoleDesc": "Administrators can view all devices, while ordinary users can only see the devices in the device group associated with the user group",
+    "userType": "User Type"
   },
   "rtty": {
     "requestingDeviceToCreateTerminal": "Requesting device to create terminal...",

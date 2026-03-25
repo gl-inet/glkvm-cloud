@@ -2,7 +2,7 @@
  * @Author: LPY
  * @Date: 2025-08-25 09:32:42
  * @LastEditors: LPY
- * @LastEditTime: 2026-02-11 09:31:33
+ * @LastEditTime: 2026-03-25 10:11:49
  * @FilePath: \glkvm-cloud\ui\src\views\device\components\addDeviceDialog.vue
  * @Description: 添加设备弹窗
 -->
@@ -65,8 +65,8 @@ const OperatingSystemTranslated = computed(() => {
     return useTranslatedOptions([
         { label: operatingSystemLabelMap.get(OperatingSystemEnum.GL_KVM), value: OperatingSystemEnum.GL_KVM },
         { label: operatingSystemLabelMap.get(OperatingSystemEnum.LINUX), value: OperatingSystemEnum.LINUX },
-        { label: operatingSystemLabelMap.get(OperatingSystemEnum.WINDOWS), value: OperatingSystemEnum.WINDOWS },
-        { label: operatingSystemLabelMap.get(OperatingSystemEnum.MAC_OS), value: OperatingSystemEnum.MAC_OS },
+        // { label: operatingSystemLabelMap.get(OperatingSystemEnum.WINDOWS), value: OperatingSystemEnum.WINDOWS },
+        // { label: operatingSystemLabelMap.get(OperatingSystemEnum.MAC_OS), value: OperatingSystemEnum.MAC_OS },
     ])
 })
 

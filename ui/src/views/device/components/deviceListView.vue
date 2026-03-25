@@ -2,7 +2,7 @@
  * @Author: shufei.han
  * @Date: 2025-06-11 12:04:48
  * @LastEditors: LPY
- * @LastEditTime: 2026-03-10 11:47:57
+ * @LastEditTime: 2026-03-25 10:54:42
  * @FilePath: \glkvm-cloud\ui\src\views\device\components\deviceListView.vue
  * @Description: 
 -->
@@ -206,7 +206,9 @@ const deviceColumns = ref<TableColumnType[]>([
     {title: t('device.connectedTime'), dataIndex: 'connectedTime', key: 'connectedTime', ellipsis: true,
         sorter: true, customHeaderCell: () => {return {class: 'custom-table-header-cell-to-left'}},
     },
-    {title: t('user.associatedDeviceGroup'), dataIndex: 'deviceGroupName', key: 'deviceGroupName', ellipsis: true, width: 190},
+    {title: t('user.associatedDeviceGroup'), dataIndex: 'deviceGroupName', key: 'deviceGroupName', ellipsis: true, width: 190,
+        sorter: true, customHeaderCell: () => {return {class: 'custom-table-header-cell-to-left'}},
+    },
     {title: t('device.description'), dataIndex: 'description', key: 'description',
         sorter: true, customHeaderCell: () => {return {class: 'custom-table-header-cell-to-left'}},
     },
@@ -249,9 +251,17 @@ const onSelectChange = (selectedRowKeys: Key[], selectedRows: DeviceInfo[]) => {
 
 const tableChange: TableProps['onChange'] = (pagination, filters, sorter: any) => {
     console.log('params', pagination, filters, sorter)
-    if (sorter) {
+    if (sorter?.order) {
         deviceStore.state.sortBy = sorter.field as string
         deviceStore.state.order = sorter.order === 'ascend' ? 'asc' : 'desc'
+        useLocalStorage(LocalStorageKeys.DEVICE_LIST_SORT_KEY).setValue({
+            sortBy: deviceStore.state.sortBy,
+            order: deviceStore.state.order,
+        })
+    } else {
+        deviceStore.state.sortBy = undefined
+        deviceStore.state.order = undefined
+        useLocalStorage(LocalStorageKeys.DEVICE_LIST_SORT_KEY).removeValue()
     }
 }
 
@@ -441,6 +451,13 @@ const init = () => {
             }
         })
         deviceColumns.value = parsedColumns.filter(col => (col as any).show)
+    }
+
+    const sortKey = useLocalStorage(LocalStorageKeys.DEVICE_LIST_SORT_KEY).getValue() as { sortBy: string, order: string }
+    if (sortKey) {
+        deviceStore.state.sortBy = sortKey.sortBy
+        deviceStore.state.order = sortKey.order
+        deviceColumns.value.find(col => col.key === sortKey.sortBy).defaultSortOrder = sortKey.order === 'asc' ? 'ascend' : 'descend'
     }
 }
 
