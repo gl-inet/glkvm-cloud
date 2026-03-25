@@ -20,4 +20,6 @@ type User struct {
     Role         identity.Role
     Status       Status
     IsSystem     bool
+    AuthProvider string // "local", "oidc", "ldap"
+    ExternalSub  string // OIDC sub claim / LDAP user DN
 }

@@ -13,6 +13,7 @@ import (
     "math/rand"
     "net/http"
     "net/url"
+    "rttys/internal/domain/identity"
     "rttys/internal/domain/user"
     "rttys/internal/pkg/randtoken"
     "rttys/xconfig"
@@ -232,21 +233,59 @@ func oidcCallbackHandler(cfg *xconfig.Config, userSvc *user.Service) gin.Handler
             return
         }
 
-        // ==== Create application session (new session_store, same as LDAP) ====
-        sid, err := randtoken.New() // randtoken.New()
+        // ==== Create application session ====
+        sid, err := randtoken.New()
         if err != nil {
             log.Error().Err(err).Msg("Failed to create session token")
             c.Redirect(http.StatusFound, "/?error=internal_error")
             return
         }
 
-        sysAdmin, err := userSvc.GetSystemAdmin(c.Request.Context())
+        preferredUsername, _ := claims["preferred_username"].(string)
+
+        // Determine role based on admin group / admin users
+        role := identity.RoleUser
+        hasAdminRule := len(cfg.OIDCAdminGroup) > 0 || len(cfg.OIDCAdminUsers) > 0
+        if hasAdminRule {
+            // Check admin users list (match preferred_username or email)
+            if len(cfg.OIDCAdminUsers) > 0 {
+                if contains(cfg.OIDCAdminUsers, preferredUsername) || contains(cfg.OIDCAdminUsers, userEmail) {
+                    role = identity.RoleAdmin
+                }
+            }
+            // Check admin group membership
+            if role != identity.RoleAdmin && len(cfg.OIDCAdminGroup) > 0 {
+                groups := extractStringSlice(claims["groups"])
+                if intersects(groups, cfg.OIDCAdminGroup) {
+                    role = identity.RoleAdmin
+                }
+            }
+            log.Info().
+                Str("sub", sub).
+                Str("email", userEmail).
+                Str("name", userName).
+                Str("preferredUsername", preferredUsername).
+                Strs("userGroups", extractStringSlice(claims["groups"])).
+                Strs("adminGroup", cfg.OIDCAdminGroup).
+                Strs("adminUsers", cfg.OIDCAdminUsers).
+                Str("role", string(role)).
+                Msg("OIDC admin role check")
+        }
+
+        oidcUser, err := userSvc.FindOrCreateExternalUser(c.Request.Context(), "oidc", sub, preferredUsername, userEmail, userName, role)
         if err != nil {
-            log.Error().Err(err).Msg("Failed to find system admin user")
+            log.Error().Err(err).Msg("Failed to find or create OIDC user")
             c.Redirect(http.StatusFound, "/?error=internal_error")
             return
         }
-        sessionStore.Create(sid, sysAdmin.ID)
+        log.Info().
+            Str("sub", sub).
+            Str("email", userEmail).
+            Str("preferredUsername", preferredUsername).
+            Str("role", string(role)).
+            Int64("userID", oidcUser.ID).
+            Msg("OIDC user login completed")
+        sessionStore.Create(sid, oidcUser.ID)
 
         c.SetCookie("sid", sid, 0, "/", "", cfg.SslCert != "", false)
 

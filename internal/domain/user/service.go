@@ -3,8 +3,9 @@ package user
 import (
     "context"
     "errors"
-    "rttys/internal/domain/identity"
+    "strconv"
 
+    "rttys/internal/domain/identity"
     "rttys/internal/pkg/password"
 )
 
@@ -107,4 +108,91 @@ func (s *Service) UpdateUser(ctx context.Context, id int64, username, descriptio
 
 func (s *Service) DeleteUser(ctx context.Context, id int64) error {
     return s.repo.Delete(ctx, id)
+}
+
+// FindOrCreateExternalUser looks up a user by (provider, externalSub).
+// If found, it updates email/description and returns the user.
+// If not found, it creates a new user with the given role and status=active.
+//
+// role is determined by the caller based on admin-group/admin-users membership
+// and is only applied at user creation time. Existing users keep their current role.
+func (s *Service) FindOrCreateExternalUser(ctx context.Context, provider, externalSub, preferredUsername, email, displayName string, role identity.Role) (*User, error) {
+    u, err := s.repo.FindByExternalID(ctx, provider, externalSub)
+    if err != nil {
+        return nil, err
+    }
+    if u != nil {
+        // Update email and display name on each login (IdP may change them).
+        changed := false
+        if email != "" && u.Email != email {
+            u.Email = email
+            changed = true
+        }
+        if displayName != "" && u.Description != displayName {
+            u.Description = displayName
+            changed = true
+        }
+        if changed {
+            _ = s.repo.Update(ctx, u)
+        }
+        return u, nil
+    }
+
+    // --- Create new user ---
+    username := s.pickUniqueUsername(ctx, preferredUsername, email, provider)
+
+    newUser := &User{
+        Username:     username,
+        Email:        email,
+        Description:  displayName,
+        PasswordHash: "", // external users never authenticate via password
+        Role:         role,
+        Status:       StatusActive,
+        AuthProvider: provider,
+        ExternalSub:  externalSub,
+    }
+    id, err := s.repo.Create(ctx, newUser)
+    if err != nil {
+        return nil, err
+    }
+    newUser.ID = id
+    return newUser, nil
+}
+
+// pickUniqueUsername tries candidate usernames until one doesn't conflict.
+func (s *Service) pickUniqueUsername(ctx context.Context, preferredUsername, email, provider string) string {
+    candidates := make([]string, 0, 4)
+    if preferredUsername != "" {
+        candidates = append(candidates, preferredUsername)
+    }
+    if email != "" && email != preferredUsername {
+        candidates = append(candidates, email)
+    }
+    // Fallback with provider suffix
+    if preferredUsername != "" {
+        candidates = append(candidates, preferredUsername+"_"+provider)
+    }
+    if email != "" {
+        candidates = append(candidates, email+"_"+provider)
+    }
+    // Last resort
+    if len(candidates) == 0 {
+        candidates = append(candidates, provider+"_user")
+    }
+
+    for _, c := range candidates {
+        existing, _ := s.repo.FindByUsername(ctx, c)
+        if existing == nil {
+            return c
+        }
+    }
+    // All candidates taken — append a numeric suffix
+    base := candidates[0] + "_" + provider
+    for i := 2; ; i++ {
+        name := base + "_" + strconv.Itoa(i)
+        existing, _ := s.repo.FindByUsername(ctx, name)
+        if existing == nil {
+            return name
+        }
+    }
 }
