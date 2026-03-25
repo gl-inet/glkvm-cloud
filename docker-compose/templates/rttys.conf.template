@@ -29,6 +29,8 @@ ldap-base-dn: {{LDAP_BASE_DN}}
 ldap-user-filter: {{LDAP_USER_FILTER}}
 ldap-allowed-groups: {{LDAP_ALLOWED_GROUPS}}
 ldap-allowed-users: {{LDAP_ALLOWED_USERS}}
+ldap-admin-group: {{LDAP_ADMIN_GROUP}}
+ldap-admin-users: {{LDAP_ADMIN_USERS}}
 
 # OIDC Authentication (generic OIDC provider)
 oidc-enabled: {{OIDC_ENABLED}}
@@ -50,3 +52,5 @@ oidc-generic-allowed-users: {{OIDC_ALLOWED_USERS}}
 oidc-generic-allowed-subs: {{OIDC_ALLOWED_SUBS}}
 oidc-generic-allowed-usernames: {{OIDC_ALLOWED_USERNAMES}}
 oidc-generic-allowed-groups: {{OIDC_ALLOWED_GROUPS}}
+oidc-admin-group: {{OIDC_ADMIN_GROUP}}
+oidc-admin-users: {{OIDC_ADMIN_USERS}}

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"rttys/internal/domain/identity"
 	"rttys/internal/pkg/ldap"
 	"rttys/xconfig"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"rttys/internal/store/memory"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
 type AuthHandler struct {
@@ -40,7 +42,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	// ---- LDAP ----
 	authMethod := req.AuthMethod
 	if authMethod == "ldap" {
-		ok, errorType, userDN := ldap.AuthenticateUserWithError(cfg, req.Username, req.Password, authMethod)
+		ok, errorType, userDN, isAdmin := ldap.AuthenticateUserWithError(cfg, req.Username, req.Password, authMethod)
 		if !ok {
 			if errorType == "authorization" {
 				dto.Write(c, dto.Err(traceID, dto.CodeForbidden, "User not authorized", nil))
@@ -49,11 +51,21 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			}
 			return
 		}
-		ldapUser, err := h.userSvc.FindOrCreateExternalUser(c.Request.Context(), "ldap", userDN, req.Username, "", req.Username)
+		role := identity.RoleUser
+		if isAdmin {
+			role = identity.RoleAdmin
+		}
+		ldapUser, err := h.userSvc.FindOrCreateExternalUser(c.Request.Context(), "ldap", userDN, req.Username, "", req.Username, role)
 		if err != nil {
 			dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Failed to create LDAP user", nil))
 			return
 		}
+		log.Info().
+			Str("username", req.Username).
+			Str("userDN", userDN).
+			Str("role", string(role)).
+			Int64("userID", ldapUser.ID).
+			Msg("LDAP user login completed")
 		userID = ldapUser.ID
 	} else {
 		u, err := h.userSvc.Authenticate(c.Request.Context(), req.Username, req.Password)

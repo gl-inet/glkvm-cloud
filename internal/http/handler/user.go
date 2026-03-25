@@ -162,6 +162,8 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
         return
     }
 
+    p := middleware.MustPrincipal(c)
+
     target, err := h.userSvc.FindByID(c.Request.Context(), id)
     if err != nil {
         dto.Write(c, dto.Err(traceID, dto.CodeNotFound, "Not found", nil))
@@ -172,6 +174,10 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
         req.Role = nil
         req.Password = nil
         req.Repassword = nil
+    }
+    // Users cannot change their own role
+    if id == p.UserID {
+        req.Role = nil
     }
     // External users (OIDC/LDAP): username and password are managed by the IdP
     if target.AuthProvider != "" && target.AuthProvider != "local" {

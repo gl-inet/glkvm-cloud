@@ -112,8 +112,11 @@ func (s *Service) DeleteUser(ctx context.Context, id int64) error {
 
 // FindOrCreateExternalUser looks up a user by (provider, externalSub).
 // If found, it updates email/description and returns the user.
-// If not found, it creates a new user with role=user, status=active.
-func (s *Service) FindOrCreateExternalUser(ctx context.Context, provider, externalSub, preferredUsername, email, displayName string) (*User, error) {
+// If not found, it creates a new user with the given role and status=active.
+//
+// role is determined by the caller based on admin-group/admin-users membership
+// and is only applied at user creation time. Existing users keep their current role.
+func (s *Service) FindOrCreateExternalUser(ctx context.Context, provider, externalSub, preferredUsername, email, displayName string, role identity.Role) (*User, error) {
     u, err := s.repo.FindByExternalID(ctx, provider, externalSub)
     if err != nil {
         return nil, err
@@ -143,7 +146,7 @@ func (s *Service) FindOrCreateExternalUser(ctx context.Context, provider, extern
         Email:        email,
         Description:  displayName,
         PasswordHash: "", // external users never authenticate via password
-        Role:         identity.RoleUser,
+        Role:         role,
         Status:       StatusActive,
         AuthProvider: provider,
         ExternalSub:  externalSub,

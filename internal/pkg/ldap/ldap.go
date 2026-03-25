@@ -31,60 +31,71 @@ func NewLDAPAuthenticator(config *xconfig.Config) *LDAPAuthenticator {
 }
 
 // 执行用户LDAP认证 (Perform LDAP authentication for a user)
-// Returns (success, userDN, error). userDN is the distinguished name of the authenticated user.
-func (l *LDAPAuthenticator) Authenticate(username, password string) (bool, string, error) {
+// Returns (success, userDN, isAdmin, error). userDN is the distinguished name of the authenticated user.
+func (l *LDAPAuthenticator) Authenticate(username, password string) (bool, string, bool, error) {
     if !l.config.LdapEnabled {
-        return false, "", fmt.Errorf("LDAP authentication is disabled")
+        return false, "", false, fmt.Errorf("LDAP authentication is disabled")
     }
 
     if username == "" || password == "" {
-        return false, "", fmt.Errorf("username and password are required")
+        return false, "", false, fmt.Errorf("username and password are required")
     }
 
     // 连接到LDAP服务器 (Connect to LDAP server)
     conn, err := l.connect()
     if err != nil {
-        return false, "", fmt.Errorf("failed to connect to LDAP server: %v", err)
+        return false, "", false, fmt.Errorf("failed to connect to LDAP server: %v", err)
     }
     defer conn.Close()
 
     // 使用服务账户进行绑定和搜索 (Use service account for binding and searching)
     if l.config.LdapBindDN == "" || l.config.LdapBindPassword == "" {
-        return false, "", fmt.Errorf("service account credentials are required for LDAP authentication - BindDN empty: %v, BindPassword empty: %v", l.config.LdapBindDN == "", l.config.LdapBindPassword == "")
+        return false, "", false, fmt.Errorf("service account credentials are required for LDAP authentication - BindDN empty: %v, BindPassword empty: %v", l.config.LdapBindDN == "", l.config.LdapBindPassword == "")
     }
 
     err = conn.Bind(l.config.LdapBindDN, l.config.LdapBindPassword)
     if err != nil {
-        return false, "", fmt.Errorf("service account bind failed: %v", err)
+        return false, "", false, fmt.Errorf("service account bind failed: %v", err)
     } // 使用服务账户搜索用户 (Use service account to search for user)
     userDN, err := l.findUserDN(conn, username)
     if err != nil {
-        return false, "", fmt.Errorf("user search failed: %v", err)
+        return false, "", false, fmt.Errorf("user search failed: %v", err)
     }
 
     // 找到用户，现在用用户凭证验证密码 (Found user, now validate password with user credentials)
     err = conn.Bind(userDN, password)
     if err != nil {
-        return false, "", fmt.Errorf("password validation failed: %v", err)
+        return false, "", false, fmt.Errorf("password validation failed: %v", err)
     }
 
     // 重新绑定为服务账户以进行授权检查 (Rebind as service account for authorization check)
     err = conn.Bind(l.config.LdapBindDN, l.config.LdapBindPassword)
     if err != nil {
-        return false, "", fmt.Errorf("failed to rebind as service account for authorization: %v", err)
+        return false, "", false, fmt.Errorf("failed to rebind as service account for authorization: %v", err)
     }
 
     // 检查用户授权 (Check user authorization)
     authorized, err := l.checkAuthorization(conn, userDN, username)
     if err != nil {
-        return false, "", fmt.Errorf("authorization check failed: %v", err)
+        return false, "", false, fmt.Errorf("authorization check failed: %v", err)
     }
 
     if !authorized {
-        return false, "", fmt.Errorf("user not authorized")
+        return false, "", false, fmt.Errorf("user not authorized")
     }
 
-    return true, userDN, nil
+    // 检查用户是否为管理员 (Check if user is admin by group or username)
+    isAdmin := l.checkIsAdmin(conn, userDN, username)
+
+    log.Info().
+        Str("username", username).
+        Str("userDN", userDN).
+        Str("adminGroup", l.config.LdapAdminGroup).
+        Str("adminUsers", l.config.LdapAdminUsers).
+        Bool("isAdmin", isAdmin).
+        Msg("LDAP authentication successful")
+
+    return true, userDN, isAdmin, nil
 }
 
 // 建立到LDAP服务器的连接 (Establish connection to LDAP server)
@@ -343,36 +354,73 @@ func (l *LDAPAuthenticator) findActualUserDN(conn *ldap.Conn, username string) (
     return sr.Entries[0].DN, nil
 }
 
+// checkIsAdmin checks whether the authenticated user should be assigned the admin role,
+// by matching against LdapAdminUsers (username list) OR LdapAdminGroup (group membership).
+func (l *LDAPAuthenticator) checkIsAdmin(conn *ldap.Conn, userDN, username string) bool {
+    // 1) Check admin users list
+    adminUsers := strings.TrimSpace(l.config.LdapAdminUsers)
+    if adminUsers != "" {
+        users := strings.Split(adminUsers, ",")
+        for _, u := range users {
+            if strings.TrimSpace(u) == username {
+                return true
+            }
+        }
+    }
+
+    // 2) Check admin group membership
+    adminGroups := strings.TrimSpace(l.config.LdapAdminGroup)
+    if adminGroups != "" {
+        groups := strings.Split(adminGroups, ",")
+        for _, group := range groups {
+            group = strings.TrimSpace(group)
+            if group == "" {
+                continue
+            }
+            isMember, err := l.isGroupMember(conn, userDN, username, group)
+            if err != nil {
+                log.Warn().Msgf("Error checking admin group membership for %s in %s: %v", username, group, err)
+                continue
+            }
+            if isMember {
+                return true
+            }
+        }
+    }
+
+    return false
+}
+
 // 执行用户认证，支持LDAP和传统密码认证 (Perform user authentication with LDAP and legacy password support)
 func AuthenticateUser(cfg *xconfig.Config, username, password, authMethod string) bool {
-    success, _, _ := AuthenticateUserWithError(cfg, username, password, authMethod)
+    success, _, _, _ := AuthenticateUserWithError(cfg, username, password, authMethod)
     return success
 }
 
-// AuthenticateUserWithError performs authentication and returns (success, errorType, userDN).
-// userDN is only populated for successful LDAP authentication.
-func AuthenticateUserWithError(cfg *xconfig.Config, username, password, authMethod string) (bool, string, string) {
+// AuthenticateUserWithError performs authentication and returns (success, errorType, userDN, isAdmin).
+// userDN and isAdmin are only populated for successful LDAP authentication.
+func AuthenticateUserWithError(cfg *xconfig.Config, username, password, authMethod string) (bool, string, string, bool) {
     // 处理LDAP认证 (Handle LDAP authentication)
     if cfg.LdapEnabled && authMethod == "ldap" && username != "" {
         ldapAuth := NewLDAPAuthenticator(cfg)
-        success, userDN, err := ldapAuth.Authenticate(username, password)
+        success, userDN, isAdmin, err := ldapAuth.Authenticate(username, password)
         if err != nil {
             log.Error().Msgf("LDAP authentication error: %v", err)
             // 检查错误类型以区分认证和授权错误 (Check error type to distinguish between authentication and authorization errors)
             if strings.Contains(err.Error(), "user not authorized") {
-                return false, "authorization", ""
+                return false, "authorization", "", false
             }
-            return false, "authentication", ""
+            return false, "authentication", "", false
         }
-        return success, "", userDN
+        return success, "", userDN, isAdmin
     }
 
     if authMethod == "legacy" || authMethod == "" {
         if cfg.Password == password {
-            return true, "", ""
+            return true, "", "", false
         }
-        return false, "authentication", ""
+        return false, "authentication", "", false
     }
 
-    return false, "authentication", ""
+    return false, "authentication", "", false
 }

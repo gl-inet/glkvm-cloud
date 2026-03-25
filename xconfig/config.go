@@ -70,6 +70,8 @@ type Config struct {
     LdapUserFilter    string
     LdapAllowedGroups string
     LdapAllowedUsers  string
+    LdapAdminGroup    string
+    LdapAdminUsers    string
 
     // Generic OIDC Provider (supports any standard OIDC provider)
     OIDCEnabled                 bool
@@ -84,6 +86,8 @@ type Config struct {
     OIDCGenericAllowedSubs      []string
     OIDCGenericAllowedUsernames []string
     OIDCGenericAllowedGroups    []string
+    OIDCAdminGroup              []string
+    OIDCAdminUsers              []string
 
     // =====================================================
     // Reverse Proxy / Proxy Mode
@@ -195,6 +199,8 @@ func parseYamlCfg(cfg *Config, conf string) error {
     getConfigOpt(yamlCfg, "ldap-user-filter", &cfg.LdapUserFilter)
     getConfigOpt(yamlCfg, "ldap-allowed-groups", &cfg.LdapAllowedGroups)
     getConfigOpt(yamlCfg, "ldap-allowed-users", &cfg.LdapAllowedUsers)
+    getConfigOpt(yamlCfg, "ldap-admin-group", &cfg.LdapAdminGroup)
+    getConfigOpt(yamlCfg, "ldap-admin-users", &cfg.LdapAdminUsers)
 
     // ===== OIDC configuration (generic OIDC provider) =====
     // Switch and basic endpoints
@@ -236,6 +242,16 @@ func parseYamlCfg(cfg *Config, conf string) error {
         cfg.OIDCGenericAllowedGroups = splitScopes(s)
     }
 
+    // OIDC admin group
+    if s, err := yamlCfg.Get("oidc-admin-group"); err == nil && strings.TrimSpace(s) != "" {
+        cfg.OIDCAdminGroup = splitScopes(s)
+    }
+
+    // OIDC admin users (preferred_username / email whitelist for admin role)
+    if s, err := yamlCfg.Get("oidc-admin-users"); err == nil && strings.TrimSpace(s) != "" {
+        cfg.OIDCAdminUsers = splitScopes(s)
+    }
+
     return nil
 }
 
@@ -272,6 +288,22 @@ func applyEnvCfg(cfg *Config) error {
     // LDAP password is always read from environment variable to avoid YAML special character parsing issues and for security.
     if envPassword := os.Getenv("LDAP_BIND_PASSWORD"); envPassword != "" {
         cfg.LdapBindPassword = envPassword
+    }
+
+    // LDAP admin group / admin users
+    if v := strings.TrimSpace(os.Getenv("LDAP_ADMIN_GROUP")); v != "" {
+        cfg.LdapAdminGroup = v
+    }
+    if v := strings.TrimSpace(os.Getenv("LDAP_ADMIN_USERS")); v != "" {
+        cfg.LdapAdminUsers = v
+    }
+
+    // OIDC admin group / admin users
+    if v := strings.TrimSpace(os.Getenv("OIDC_ADMIN_GROUP")); v != "" {
+        cfg.OIDCAdminGroup = splitScopes(v)
+    }
+    if v := strings.TrimSpace(os.Getenv("OIDC_ADMIN_USERS")); v != "" {
+        cfg.OIDCAdminUsers = splitScopes(v)
     }
 
     // Note: oidc-generic-client-secret is intentionally not read from YAML
