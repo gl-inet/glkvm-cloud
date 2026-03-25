@@ -1,11 +1,8 @@
-version: "2.0"
-
 services:
   rttys:
     image: ${GLKVM_IMAGE:-glzhitong/glkvm-cloud:latest}
     container_name: glkvm_cloud
     restart: always
-    network_mode: "host"
     environment:
       # Preferred: set GLKVM_ACCESS_IP explicitly; if empty, entrypoint will auto-detect once.
       GLKVM_ACCESS_IP: ${GLKVM_ACCESS_IP:-}
@@ -13,6 +10,7 @@ services:
       # ---- rttys ----
       RTTYS_TOKEN: ${RTTYS_TOKEN:-DeviceTokenYouCanChangeMe}
       RTTYS_PASS:  ${RTTYS_PASS:-StrongP@ssw0rd}
+      RTTYS_ADMIN_NAME: ${RTTYS_ADMIN_NAME:-}
 
       # Ports inside container (mirrored to host via `ports` below)
       RTTYS_DEVICE_PORT:      ${RTTYS_DEVICE_PORT:-5912}    # addr-dev
@@ -66,12 +64,15 @@ services:
       - ./database:/home/database:rw
     entrypoint: ["/bin/sh", "/docker-entrypoint.sh"]
     command: ["rttys"]
+    ports:
+      - "${RTTYS_WEBUI_PORT:-443}:${RTTYS_WEBUI_PORT:-443}"
+      - "${RTTYS_HTTP_PROXY_PORT:-10443}:${RTTYS_HTTP_PROXY_PORT:-10443}"
+      - "${RTTYS_DEVICE_PORT:-5912}:${RTTYS_DEVICE_PORT:-5912}"
 
   coturn:
     image: ${COTURN_IMAGE:-coturn/coturn:edge-alpine}
     container_name: glkvm_coturn
     restart: always
-    network_mode: "host"
     environment:
       # Same semantics as above: prefer explicit value, else auto-detect
       GLKVM_ACCESS_IP: ${GLKVM_ACCESS_IP:-}
@@ -83,3 +84,6 @@ services:
     volumes:
       - ./templates/turnserver.conf.template:/tpl/turnserver.conf.tmpl:ro
       - ./scripts/docker-entrypoint.sh:/docker-entrypoint.sh:ro
+    ports:
+      - "${TURN_PORT:-3478}:3478/tcp"
+      - "${TURN_PORT:-3478}:3478/udp"

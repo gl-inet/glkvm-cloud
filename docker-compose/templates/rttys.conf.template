@@ -4,6 +4,9 @@ token: {{RTTYS_TOKEN}}
 # Web management password
 password: {{RTTYS_PASS}}
 
+# Admin username (leave empty to default to "admin")
+admin-name: {{RTTYS_ADMIN_NAME}}
+
 # WebRTC
 webrtc-ip: {{GLKVM_ACCESS_IP}}
 webrtc-port: {{TURN_PORT}}
