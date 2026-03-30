@@ -90,6 +90,19 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
             }
         }
 
+        // Determine selfhost WebUI URL
+        webUIURL := strings.TrimSpace(cfg.SelfhostWebUIURL)
+        if webUIURL == "" {
+            scheme := "https"
+            if c.Request.TLS == nil {
+                scheme = "http"
+            }
+            if fwdProto := c.GetHeader("X-Forwarded-Proto"); fwdProto != "" {
+                scheme = fwdProto
+            }
+            webUIURL = scheme + "://" + c.Request.Host
+        }
+
         data := scriptInfoResp{
             Hostname:       chosen, // reuse the same chosen value
             Port:           cfg.AddrDev,
@@ -98,6 +111,7 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
             WebrtcPort:     cfg.WebrtcPort,
             WebrtcUsername: cfg.WebrtcUsername,
             WebrtcPassword: cfg.WebrtcPassword,
+            WebUIURL:       webUIURL,
         }
 
         dto.Write(c, dto.Ok(traceID, data))
@@ -158,6 +172,7 @@ type scriptInfoResp struct {
     WebrtcPort     string `json:"webrtcPort"`
     WebrtcUsername string `json:"webrtcUsername"`
     WebrtcPassword string `json:"webrtcPassword"`
+    WebUIURL       string `json:"webUIURL"`
 }
 
 func isIP(addr string) bool {

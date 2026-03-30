@@ -105,6 +105,15 @@ type Config struct {
     // Platform access domain restriction.
     // When set, only requests with a matching domain are allowed to access the platform.
     WebUIHost string
+
+    // =====================================================
+    // Selfhost WebUI URL
+    // =====================================================
+    // The full URL (including scheme) of the self-hosted cloud WebUI.
+    // Written to the KVM device as /etc/kvmd/user/selfhost-cloud.json
+    // so firmware can read it and create a link in the device's web page.
+    // If empty, the URL is derived from the browser's current request.
+    SelfhostWebUIURL string
 }
 
 // docker mode fixed path for reading certificate
@@ -201,6 +210,9 @@ func parseYamlCfg(cfg *Config, conf string) error {
     getConfigOpt(yamlCfg, "ldap-allowed-users", &cfg.LdapAllowedUsers)
     getConfigOpt(yamlCfg, "ldap-admin-group", &cfg.LdapAdminGroup)
     getConfigOpt(yamlCfg, "ldap-admin-users", &cfg.LdapAdminUsers)
+
+    // Selfhost WebUI URL
+    getConfigOpt(yamlCfg, "selfhost-webui-url", &cfg.SelfhostWebUIURL)
 
     // ===== OIDC configuration (generic OIDC provider) =====
     // Switch and basic endpoints
@@ -340,6 +352,10 @@ func applyEnvCfg(cfg *Config) error {
         // 3. Final trim
         cleaned = strings.TrimSpace(cleaned)
         cfg.DeviceEndpointHost = cleaned
+    }
+
+    if v := strings.TrimSpace(os.Getenv("SELFHOST_WEBUI_URL")); v != "" {
+        cfg.SelfhostWebUIURL = v
     }
 
     if v := strings.TrimSpace(os.Getenv("WEB_UI_HOST")); v != "" {

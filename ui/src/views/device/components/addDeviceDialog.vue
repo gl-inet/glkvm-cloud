@@ -70,7 +70,7 @@ const OperatingSystemTranslated = computed(() => {
     ])
 })
 
-const generateScript = (hostname: string, port:string, token: string, webrtcIP: string, webrtcPort: string, webrtcUsername: string, webrtcPassword: string) => {
+const generateScript = (hostname: string, port:string, token: string, webrtcIP: string, webrtcPort: string, webrtcUsername: string, webrtcPassword: string, webUIURL: string) => {
     if (state.operatingSystem === OperatingSystemEnum.GL_KVM) {
         return `#!/bin/sh
 
@@ -81,15 +81,25 @@ WEBRTC_IP="${webrtcIP}"
 WEBRTC_PORT="${webrtcPort}"
 WEBRTC_USERNAME="${webrtcUsername}"
 WEBRTC_PASSWORD="${webrtcPassword}"
+WEBUI_URL="${webUIURL}"
 
 TARGET_DIR="/etc/kvmd/user/scripts"
 SCRIPT_FILE="$TARGET_DIR/S01selfCloud"
 WATCHDOG_SCRIPT="$TARGET_DIR/rtty-loop.sh"
+CLOUD_CONFIG="/etc/kvmd/user/selfhost-cloud.json"
 
 # 1. Create directory
 mkdir -p "$TARGET_DIR"
 
-# 2. Write S01selfCloud script
+# 2. Write selfhost cloud config JSON
+cat <<CLOUDCFG > "$CLOUD_CONFIG"
+{
+    "webui_url": "$WEBUI_URL",
+    "updated_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+CLOUDCFG
+
+# 3. Write S01selfCloud script
 cat <<'EOF' > "$SCRIPT_FILE"
 #!/bin/sh
 
@@ -181,10 +191,10 @@ esac
 exit 0
 EOF
 
-# 3. Add execution permissions
+# 4. Add execution permissions
 chmod +x "$SCRIPT_FILE"
 
-# 4. Execute restart once
+# 5. Execute restart once
 "$SCRIPT_FILE" restart
 
 `
@@ -202,8 +212,8 @@ chmod +x "$SCRIPT_FILE"
 
 /** 组装脚本 */
 const handleGenerateScript = () => {
-    const { hostname, port, token, webrtcIP, webrtcPort, webrtcUsername, webrtcPassword } = state.scriptData as any
-    state.scriptContent = generateScript(hostname, port, token, webrtcIP, webrtcPort, webrtcUsername, webrtcPassword)
+    const { hostname, port, token, webrtcIP, webrtcPort, webrtcUsername, webrtcPassword, webUIURL } = state.scriptData as any
+    state.scriptContent = generateScript(hostname, port, token, webrtcIP, webrtcPort, webrtcUsername, webrtcPassword, webUIURL)
 }
 
 /** 复制脚本 */
