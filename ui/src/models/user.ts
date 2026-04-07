@@ -13,8 +13,19 @@ import { UserRoleEnum } from './userManage'
 /** 登录参数 (Login parameters) */
 export interface LoginParams {
     username: string;
-    password: string; 
+    password: string;
     authMethod?: 'ldap' | 'legacy';
+    /** 6 位 TOTP 验证码，2FA 启用且未绑定信任设备时需提供 */
+    totpCode?: string;
+    /** 是否将本浏览器加入信任设备（30 天免 2FA） */
+    rememberDevice?: boolean;
+}
+
+/** 登录响应 (Login response) */
+export interface LoginResp {
+    token?: string;
+    /** 后端要求 2FA 时为 true，前端应弹出 TOTP 输入框 */
+    twoFactorRequired?: boolean;
 }
 
 /** 认证配置 (Authentication configuration) */

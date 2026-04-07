@@ -110,6 +110,21 @@ func (s *Service) DeleteUser(ctx context.Context, id int64) error {
     return s.repo.Delete(ctx, id)
 }
 
+// UpdateDescription persists a new description (a.k.a. display name) for a user.
+func (s *Service) UpdateDescription(ctx context.Context, id int64, description string) error {
+    return s.repo.UpdateDescription(ctx, id, description)
+}
+
+// SetTotp toggles 2FA for a user. Pass enabled=false and secret="" to disable.
+func (s *Service) SetTotp(ctx context.Context, id int64, secret string, enabled bool) error {
+    return s.repo.UpdateTotp(ctx, id, secret, enabled)
+}
+
+// TouchLastLogin records a fresh last_login_at timestamp.
+func (s *Service) TouchLastLogin(ctx context.Context, id int64, ts int64) error {
+    return s.repo.UpdateLastLoginAt(ctx, id, ts)
+}
+
 // FindOrCreateExternalUser looks up a user by (provider, externalSub).
 // If found, it updates email/description and returns the user.
 // If not found, it creates a new user with the given role and status=active.

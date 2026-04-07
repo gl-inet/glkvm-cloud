@@ -65,6 +65,10 @@
                             </BaseText>
                         </div>
                         <div class="user-info-divider-line" />
+                        <a-menu-item @click="goPersonalCenter">
+                            <a>{{ $t('personalCenter.title') }}</a>
+                        </a-menu-item>
+                        <div class="user-info-divider-line" />
                         <a-menu-item class="dropdown-menu-item-danger" @click="userStore.manualLogout">
                             <a>{{ $t('login.signOut') }}</a>
                         </a-menu-item>
@@ -81,9 +85,15 @@ import { useAppStore } from '@/stores/modules/app'
 import { useUserStore } from '@/stores/modules/user'
 import { getUserAvatarInitials } from '@/utils/user'
 import { BaseTag } from 'gl-web-main/components'
+import { useRouter } from 'vue-router'
 
 const userStore = useUserStore()
 const appStore = useAppStore()
+const router = useRouter()
+
+const goPersonalCenter = () => {
+    router.push({ path: '/personal-center' })
+}
 
 // github链接
 const githubLink = 'https://github.com/gl-inet/glkvm-cloud'

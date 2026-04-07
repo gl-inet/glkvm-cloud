@@ -12,4 +12,9 @@ type Repository interface {
 	Update(ctx context.Context, u *User) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context) ([]User, error)
+
+	// Partial updates
+	UpdateLastLoginAt(ctx context.Context, id int64, ts int64) error
+	UpdateDescription(ctx context.Context, id int64, description string) error
+	UpdateTotp(ctx context.Context, id int64, secret string, enabled bool) error
 }

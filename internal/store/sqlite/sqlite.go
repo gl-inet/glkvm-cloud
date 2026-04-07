@@ -90,7 +90,19 @@ func InitSchema(ctx context.Context, db *sql.DB, schemaPath string) error {
     if err := ensureExternalSubColumn(ctx, db); err != nil {
         return err
     }
-    return ensureExternalIdentityIndex(ctx, db)
+    if err := ensureExternalIdentityIndex(ctx, db); err != nil {
+        return err
+    }
+    if err := ensureUserLastLoginAtColumn(ctx, db); err != nil {
+        return err
+    }
+    if err := ensureUserTotpSecretColumn(ctx, db); err != nil {
+        return err
+    }
+    if err := ensureUserTotpEnabledColumn(ctx, db); err != nil {
+        return err
+    }
+    return ensureTrustedDevicesTable(ctx, db)
 }
 
 func ensureDeviceClientColumn(ctx context.Context, db *sql.DB) error {
@@ -158,4 +170,72 @@ func ensureExternalIdentityIndex(ctx context.Context, db *sql.DB) error {
          ON users(auth_provider, external_sub)
          WHERE external_sub != ''`)
     return err
+}
+
+func ensureUserLastLoginAtColumn(ctx context.Context, db *sql.DB) error {
+    if db == nil {
+        return nil
+    }
+    _, err := db.ExecContext(ctx, `ALTER TABLE users ADD COLUMN last_login_at INTEGER`)
+    if err == nil {
+        return nil
+    }
+    if strings.Contains(err.Error(), "duplicate column name") {
+        return nil
+    }
+    return err
+}
+
+func ensureUserTotpSecretColumn(ctx context.Context, db *sql.DB) error {
+    if db == nil {
+        return nil
+    }
+    _, err := db.ExecContext(ctx, `ALTER TABLE users ADD COLUMN totp_secret TEXT NOT NULL DEFAULT ''`)
+    if err == nil {
+        return nil
+    }
+    if strings.Contains(err.Error(), "duplicate column name") {
+        return nil
+    }
+    return err
+}
+
+func ensureUserTotpEnabledColumn(ctx context.Context, db *sql.DB) error {
+    if db == nil {
+        return nil
+    }
+    _, err := db.ExecContext(ctx, `ALTER TABLE users ADD COLUMN totp_enabled INTEGER NOT NULL DEFAULT 0`)
+    if err == nil {
+        return nil
+    }
+    if strings.Contains(err.Error(), "duplicate column name") {
+        return nil
+    }
+    return err
+}
+
+func ensureTrustedDevicesTable(ctx context.Context, db *sql.DB) error {
+    if db == nil {
+        return nil
+    }
+    if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS user_trusted_devices (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id      INTEGER NOT NULL,
+  token        TEXT    NOT NULL UNIQUE,
+  device_name  TEXT    NOT NULL DEFAULT '',
+  ip           TEXT    NOT NULL DEFAULT '',
+  created_at   INTEGER NOT NULL DEFAULT (unixepoch()),
+  last_used_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  expires_at   INTEGER NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+)`); err != nil {
+        return err
+    }
+    if _, err := db.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_trusted_devices_user_id ON user_trusted_devices(user_id)`); err != nil {
+        return err
+    }
+    if _, err := db.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_trusted_devices_token ON user_trusted_devices(token)`); err != nil {
+        return err
+    }
+    return nil
 }

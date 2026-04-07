@@ -8,11 +8,11 @@
  */
 
 import request from './request'
-import type { LoginParams, AuthConfig, UserInfo } from '@/models/user'
+import type { LoginParams, LoginResp, AuthConfig, UserInfo } from '@/models/user'
 
 /** 登录 */
 export function reqLogin (data: LoginParams) {
-    return request<{ token: string }>({
+    return request<LoginResp>({
         url: '/api/login',
         method: 'POST',
         data,

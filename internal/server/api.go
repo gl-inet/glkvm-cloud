@@ -89,6 +89,7 @@ func InitAppContainer(r *gin.Engine) (*AppContainer, error) {
 	groupRepo := sqlite.NewGroupRepo(appDB.Gorm())
 	deviceRepo := sqlite.NewDeviceRepo(appDB.Gorm())
 	relationsRepo := sqlite.NewRelationsRepo(appDB.Gorm())
+	trustedDeviceRepo := sqlite.NewTrustedDeviceRepo(appDB.Gorm())
 
 	userSvc := user.NewService(userRepo)
 	devSvc := device.NewService(deviceRepo, groupRepo)
@@ -99,14 +100,15 @@ func InitAppContainer(r *gin.Engine) (*AppContainer, error) {
 	sessionStore = memory.NewSessionStore(cfg.AuthSessionTTL)
 
 	httpx.RegisterAPIRoutes(r, httpx.Deps{
-		UserSvc:       userSvc,
-		PermSvc:       permSvc,
-		DevSvc:        devSvc,
-		GroupRepo:     groupRepo,
-		SessionStore:  sessionStore,
-		RelationsRepo: relationsRepo,
-		Cfg:           cfg,
-		CloudVersion:  KVMCloudVersion,
+		UserSvc:           userSvc,
+		PermSvc:           permSvc,
+		DevSvc:            devSvc,
+		GroupRepo:         groupRepo,
+		SessionStore:      sessionStore,
+		RelationsRepo:     relationsRepo,
+		TrustedDeviceRepo: trustedDeviceRepo,
+		Cfg:               cfg,
+		CloudVersion:      KVMCloudVersion,
 	})
 
 	c := &AppContainer{

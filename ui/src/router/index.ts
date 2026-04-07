@@ -88,7 +88,16 @@ const router = createRouter({
                         icon: 'gl-icon-user-manage',
                     },
                 },
-                
+                /** 个人中心 */
+                {
+                    path: '/personal-center',
+                    component: () => import('@/views/personalCenter/personalCenterPage.vue'),
+                    name: 'personalCenter',
+                    meta: {
+                        title: 'personalCenter.title',
+                    },
+                },
+
                 /** 测试页 */
                 {
                     path: '/test',

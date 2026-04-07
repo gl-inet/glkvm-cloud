@@ -15,7 +15,7 @@ IMAGE_TAG   ?= build
 GOARCH ?= $(shell go env GOARCH)
 
 # ---------------- Commands ----------------
-.PHONY: all ui debug-local \
+.PHONY: all ui debug-local debug-cn \
         build-linux-amd64 build-linux-arm64 build-linux-all \
         docker-buildx docker-buildx-full
 
@@ -72,3 +72,15 @@ debug-local: build-linux-amd64 docker-buildx
 	scp glkvmcloudbuild.tar $(DEBUG_HOST):$(DEBUG_PATH)
 	ssh $(DEBUG_HOST) "docker load < $(DEBUG_PATH)"
 	ssh $(DEBUG_HOST) "cd /root/glkvm_cloud && docker-compose down && docker-compose up -d"
+
+# ---------------- China dev server debug ----------------
+# Target host: ubuntu@106.55.158.199, project at /home/ubuntu/glkvm_cloud
+DEBUG_CN_HOST ?= ubuntu@106.55.158.199
+DEBUG_CN_PATH ?= /home/ubuntu/glkvmcloudbuild.tar
+DEBUG_CN_DIR  ?= /home/ubuntu/glkvm_cloud
+debug-cn: build-linux-amd64 docker-buildx
+	docker save $(IMAGE_NAME):$(IMAGE_TAG) -o glkvmcloudbuild.tar
+	ssh $(DEBUG_CN_HOST) "rm -f $(DEBUG_CN_PATH)"
+	scp glkvmcloudbuild.tar $(DEBUG_CN_HOST):$(DEBUG_CN_PATH)
+	ssh $(DEBUG_CN_HOST) "sudo docker load < $(DEBUG_CN_PATH)"
+	ssh $(DEBUG_CN_HOST) "cd $(DEBUG_CN_DIR) && sudo docker-compose down && sudo docker-compose up -d"

@@ -56,11 +56,19 @@ export const useUserStore = defineStore('user', () => {
             username: credentials.username,
             password: credentials.password,
             authMethod: credentials.authMethod,
+            totpCode: credentials.totpCode,
+            rememberDevice: credentials.rememberDevice,
         }
-        
+
         const data = await reqLogin(params)
+        // 后端在需要 2FA 时返回 twoFactorRequired=true 且不携带 token，
+        // 此时不应建立会话；交由调用方弹出 TOTP 输入框后再次调用 login。
+        if (data.data?.twoFactorRequired && !data.data?.token) {
+            return { twoFactorRequired: true }
+        }
         setToken(data.data.token)
         fetchUserInfo()
+        return { twoFactorRequired: false }
     }
 
     /** 合并登出方法，不可导出使用 */

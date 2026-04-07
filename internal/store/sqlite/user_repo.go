@@ -27,6 +27,29 @@ type userRow struct {
     IsSystem     bool   `gorm:"column:is_system"`
     AuthProvider string `gorm:"column:auth_provider"`
     ExternalSub  string `gorm:"column:external_sub"`
+    LastLoginAt  *int64 `gorm:"column:last_login_at"`
+    TotpSecret   string `gorm:"column:totp_secret"`
+    TotpEnabled  bool   `gorm:"column:totp_enabled"`
+    CreatedAt    int64  `gorm:"column:created_at"`
+}
+
+func (r userRow) toDomain() *user.User {
+    return &user.User{
+        ID:           r.ID,
+        Username:     r.Username,
+        Email:        r.Email,
+        Description:  r.Description,
+        PasswordHash: r.PasswordHash,
+        Role:         identity.Role(r.Role),
+        Status:       user.Status(r.Status),
+        IsSystem:     r.IsSystem,
+        AuthProvider: r.AuthProvider,
+        ExternalSub:  r.ExternalSub,
+        LastLoginAt:  r.LastLoginAt,
+        TotpSecret:   r.TotpSecret,
+        TotpEnabled:  r.TotpEnabled,
+        CreatedAt:    r.CreatedAt,
+    }
 }
 
 func (userRow) TableName() string { return "users" }
@@ -43,20 +66,7 @@ func (r *UserRepo) FindByID(ctx context.Context, id int64) (*user.User, error) {
     if err != nil {
         return nil, err
     }
-
-    u := &user.User{
-        ID:           row.ID,
-        Username:     row.Username,
-        Email:        row.Email,
-        Description:  row.Description,
-        PasswordHash: row.PasswordHash,
-        Role:         identity.Role(row.Role),
-        Status:       user.Status(row.Status),
-        IsSystem:     row.IsSystem,
-        AuthProvider: row.AuthProvider,
-        ExternalSub:  row.ExternalSub,
-    }
-    return u, nil
+    return row.toDomain(), nil
 }
 
 func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*user.User, error) {
@@ -71,19 +81,7 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*user.U
     if err != nil {
         return nil, err
     }
-
-    return &user.User{
-        ID:           row.ID,
-        Username:     row.Username,
-        Email:        row.Email,
-        Description:  row.Description,
-        PasswordHash: row.PasswordHash,
-        Role:         identity.Role(row.Role),
-        Status:       user.Status(row.Status),
-        IsSystem:     row.IsSystem,
-        AuthProvider: row.AuthProvider,
-        ExternalSub:  row.ExternalSub,
-    }, nil
+    return row.toDomain(), nil
 }
 
 func (r *UserRepo) FindByExternalID(ctx context.Context, provider, externalSub string) (*user.User, error) {
@@ -98,19 +96,7 @@ func (r *UserRepo) FindByExternalID(ctx context.Context, provider, externalSub s
     if err != nil {
         return nil, err
     }
-
-    return &user.User{
-        ID:           row.ID,
-        Username:     row.Username,
-        Email:        row.Email,
-        Description:  row.Description,
-        PasswordHash: row.PasswordHash,
-        Role:         identity.Role(row.Role),
-        Status:       user.Status(row.Status),
-        IsSystem:     row.IsSystem,
-        AuthProvider: row.AuthProvider,
-        ExternalSub:  row.ExternalSub,
-    }, nil
+    return row.toDomain(), nil
 }
 
 func (r *UserRepo) FindSystemAdmin(ctx context.Context) (*user.User, error) {
@@ -125,19 +111,7 @@ func (r *UserRepo) FindSystemAdmin(ctx context.Context) (*user.User, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	return &user.User{
-		ID:           row.ID,
-		Username:     row.Username,
-		Email:        row.Email,
-		Description:  row.Description,
-		PasswordHash: row.PasswordHash,
-		Role:         identity.Role(row.Role),
-		Status:       user.Status(row.Status),
-		IsSystem:     row.IsSystem,
-		AuthProvider: row.AuthProvider,
-		ExternalSub:  row.ExternalSub,
-	}, nil
+	return row.toDomain(), nil
 }
 
 func (r *UserRepo) List(ctx context.Context) ([]user.User, error) {
@@ -148,18 +122,7 @@ func (r *UserRepo) List(ctx context.Context) ([]user.User, error) {
 
     out := make([]user.User, 0, len(rows))
     for _, row := range rows {
-        out = append(out, user.User{
-            ID:           row.ID,
-            Username:     row.Username,
-            Email:        row.Email,
-            Description:  row.Description,
-            PasswordHash: row.PasswordHash,
-            Role:         identity.Role(row.Role),
-            Status:       user.Status(row.Status),
-            IsSystem:     row.IsSystem,
-            AuthProvider: row.AuthProvider,
-            ExternalSub:  row.ExternalSub,
-        })
+        out = append(out, *row.toDomain())
     }
     return out, nil
 }
@@ -204,6 +167,25 @@ func (r *UserRepo) Update(ctx context.Context, u *user.User) error {
 func (r *UserRepo) Delete(ctx context.Context, id int64) error {
     return r.db.WithContext(ctx).
         Exec("DELETE FROM users WHERE id = ?", id).Error
+}
+
+func (r *UserRepo) UpdateLastLoginAt(ctx context.Context, id int64, ts int64) error {
+    return r.db.WithContext(ctx).
+        Exec("UPDATE users SET last_login_at = ? WHERE id = ?", ts, id).Error
+}
+
+func (r *UserRepo) UpdateDescription(ctx context.Context, id int64, description string) error {
+    return r.db.WithContext(ctx).
+        Exec("UPDATE users SET description = ? WHERE id = ?", description, id).Error
+}
+
+func (r *UserRepo) UpdateTotp(ctx context.Context, id int64, secret string, enabled bool) error {
+    enabledInt := 0
+    if enabled {
+        enabledInt = 1
+    }
+    return r.db.WithContext(ctx).
+        Exec("UPDATE users SET totp_secret = ?, totp_enabled = ? WHERE id = ?", secret, enabledInt, id).Error
 }
 
 func IsUniqueViolation(err error) bool {

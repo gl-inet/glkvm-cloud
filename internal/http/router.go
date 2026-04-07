@@ -18,14 +18,15 @@ import (
 )
 
 type Deps struct {
-    UserSvc       *user.Service
-    PermSvc       *permission.Service
-    DevSvc        *device.Service
-    GroupRepo     *sqlite.GroupRepo
-    SessionStore  *memory.SessionStore
-    RelationsRepo *sqlite.RelationsRepo
-    Cfg           *xconfig.Config
-    CloudVersion  string
+    UserSvc           *user.Service
+    PermSvc           *permission.Service
+    DevSvc            *device.Service
+    GroupRepo         *sqlite.GroupRepo
+    SessionStore      *memory.SessionStore
+    RelationsRepo     *sqlite.RelationsRepo
+    TrustedDeviceRepo *sqlite.TrustedDeviceRepo
+    Cfg               *xconfig.Config
+    CloudVersion      string
 }
 
 func RegisterAPIRoutes(r *gin.Engine, d Deps) {
@@ -34,7 +35,7 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
         cfg = xconfig.Must()
     }
 
-    authH := handler.NewAuthHandler(d.UserSvc, d.SessionStore)
+    authH := handler.NewAuthHandler(d.UserSvc, d.SessionStore, d.TrustedDeviceRepo)
     meH := handler.NewMeHandler()
     devH := handler.NewDeviceHandler(d.DevSvc, d.GroupRepo, d.RelationsRepo)
     dgH := handler.NewDeviceGroupHandler(d.GroupRepo, d.RelationsRepo)
@@ -42,6 +43,7 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
     relH := handler.NewRelationsHandler(d.RelationsRepo)
 
     userH := handler.NewUserHandler(d.UserSvc, d.GroupRepo, d.RelationsRepo, d.SessionStore)
+    personalH := handler.NewPersonalHandler(d.UserSvc, d.TrustedDeviceRepo, "GLKVM Cloud")
 
     // public
     r.GET("/auth-config", func(c *gin.Context) {
@@ -122,6 +124,15 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
 
     // me
     api.GET("/me", middleware.Require(permission.MeRead), meH.GetMe)
+
+    // personal center
+    api.GET("/me/profile", middleware.Require(permission.MeRead), personalH.GetProfile)
+    api.PUT("/me/profile", middleware.Require(permission.MeRead), personalH.UpdateProfile)
+    api.POST("/me/2fa/setup", middleware.Require(permission.MeRead), personalH.Setup2fa)
+    api.POST("/me/2fa/enable", middleware.Require(permission.MeRead), personalH.Enable2fa)
+    api.POST("/me/2fa/disable", middleware.Require(permission.MeRead), personalH.Disable2fa)
+    api.GET("/me/2fa/trusted-devices", middleware.Require(permission.MeRead), personalH.ListTrustedDevices)
+    api.DELETE("/me/2fa/trusted-devices/:id", middleware.Require(permission.MeRead), personalH.RevokeTrustedDevice)
 
     // device scope list
     api.GET("/devices", middleware.Require(permission.DeviceRead), devH.ListDevices)

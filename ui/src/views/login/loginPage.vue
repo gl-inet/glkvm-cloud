@@ -11,60 +11,97 @@
         <LoginBox>
             <div style="display: flex; align-items: center; justify-content: center; margin: 24px 0 16px;">
                 <BaseText type="large-title-m">
-                    {{ $t('login.authorizationRequired') }}
+                    {{ state.step === 'totp' ? $t('login.twoFactorTitle') : $t('login.authorizationRequired') }}
                 </BaseText>
             </div>
 
-            <!-- 切换登录方式 -->
-            <BaseRadioButtonsCompact
-                v-if="isLdapEnabled"
-                v-model:value="state.formModel.authMethod"
-                :options="LoginTypeOptionsTranslated.value"
-                style="width: 100%; margin-bottom: 16px;"
-            />
+            <!-- 第一步：账号密码 -->
+            <template v-if="state.step === 'credentials'">
+                <!-- 切换登录方式 -->
+                <BaseRadioButtonsCompact
+                    v-if="isLdapEnabled"
+                    v-model:value="state.formModel.authMethod"
+                    :options="LoginTypeOptionsTranslated.value"
+                    style="width: 100%; margin-bottom: 16px;"
+                />
 
-            <AForm 
-                class="dense-form" 
-                ref="formRef"
-                :model="state.formModel"
-                :rules="formRules"
-                :validateTrigger="['blur', 'change']"
-                style="width: 100%;"
-                @validate="handleValidate"
-            >
-                <!-- 用户名字段 -->
-                <AFormItem name="username">
-                    <GlInput
-                        name="username"
-                        v-model:value="state.formModel.username"
-                        :placeholder="$t('login.username')"
-                        @pressEnter="handleLogin"
-                    />
-                </AFormItem>
+                <AForm
+                    class="dense-form"
+                    ref="formRef"
+                    :model="state.formModel"
+                    :rules="formRules"
+                    :validateTrigger="['blur', 'change']"
+                    style="width: 100%;"
+                    @validate="handleValidate"
+                >
+                    <!-- 用户名字段 -->
+                    <AFormItem name="username">
+                        <GlInput
+                            name="username"
+                            v-model:value="state.formModel.username"
+                            :placeholder="$t('login.username')"
+                            @pressEnter="handleLogin"
+                        />
+                    </AFormItem>
 
-                <AFormItem name="password">
-                    <GlPassword
-                        name="password"
-                        :useDefaultValidateRule="false"
-                        @pressEnter="handleLogin"
-                        v-model:value="state.formModel.password"
-                        :placeholder="$t('login.password')"
-                    />
-                </AFormItem>
-            </AForm>
-            <BaseButton medium type="primary" style="width: 100%;margin-top: 16px;" :loading="state.loading" @click="handleLogin">
-                {{ $t('login.signIn') }}
-            </BaseButton>
-
-            <div v-if="isOidcEnabled" class="google-login-box">
-                <a-divider style="border-color: var(--gl-color-line-divider1);color: var(--gl-color-text-level3);font-weight: normal;">
-                    {{ $t('login.or') }}
-                </a-divider>
-                <BaseButton medium class="google-login-btn" :loading="state.oidcLoading" @click="handleLoginWithOidc">
-                    <!-- <BaseSvg name="gl-icon-google" :size="20" style="margin-right: 10px;"/> -->
-                    {{ $t('login.loginWithOidc') }}
+                    <AFormItem name="password">
+                        <GlPassword
+                            name="password"
+                            :useDefaultValidateRule="false"
+                            @pressEnter="handleLogin"
+                            v-model:value="state.formModel.password"
+                            :placeholder="$t('login.password')"
+                        />
+                    </AFormItem>
+                </AForm>
+                <BaseButton medium type="primary" style="width: 100%;margin-top: 16px;" :loading="state.loading" @click="handleLogin">
+                    {{ $t('login.signIn') }}
                 </BaseButton>
-            </div>
+
+                <div v-if="isOidcEnabled" class="google-login-box">
+                    <a-divider style="border-color: var(--gl-color-line-divider1);color: var(--gl-color-text-level3);font-weight: normal;">
+                        {{ $t('login.or') }}
+                    </a-divider>
+                    <BaseButton medium class="google-login-btn" :loading="state.oidcLoading" @click="handleLoginWithOidc">
+                        <!-- <BaseSvg name="gl-icon-google" :size="20" style="margin-right: 10px;"/> -->
+                        {{ $t('login.loginWithOidc') }}
+                    </BaseButton>
+                </div>
+            </template>
+
+            <!-- 第二步：TOTP 验证 -->
+            <template v-else-if="state.step === 'totp'">
+                <div class="totp-helper">{{ $t('login.totpHelp') }}</div>
+                <AForm
+                    class="dense-form"
+                    ref="totpFormRef"
+                    :model="state.totpModel"
+                    :rules="totpFormRules"
+                    :validateTrigger="['blur', 'change']"
+                    style="width: 100%;"
+                >
+                    <AFormItem name="code">
+                        <GlInput
+                            name="totpCode"
+                            v-model:value="state.totpModel.code"
+                            :placeholder="$t('login.enterTotpCode')"
+                            :maxlength="6"
+                            @pressEnter="handleVerifyTotp"
+                        />
+                    </AFormItem>
+                </AForm>
+                <div class="remember-row">
+                    <ACheckbox v-model:checked="state.totpModel.rememberDevice">
+                        {{ $t('login.rememberThisDevice') }}
+                    </ACheckbox>
+                </div>
+                <BaseButton medium type="primary" style="width: 100%;margin-top: 16px;" :loading="state.loading" @click="handleVerifyTotp">
+                    {{ $t('login.verify') }}
+                </BaseButton>
+                <BaseButton medium style="width: 100%;margin-top: 8px;" :disabled="state.loading" @click="handleBackToCredentials">
+                    {{ $t('login.back') }}
+                </BaseButton>
+            </template>
         </LoginBox>
     </BaseWhitePage>
 </template>
@@ -92,6 +129,7 @@ const router = useRouter()
 const { handleValidate } = useValidateInfo<LoginParams>()
 
 const formRef = ref(null)
+const totpFormRef = ref(null)
 const authConfig = ref<AuthConfig | null>(null)
 
 // 计算属性来可靠地检查LDAP是否启用 (Computed property to reliably check if LDAP is enabled)
@@ -104,11 +142,27 @@ const isOidcEnabled = computed(() => {
     return authConfig.value?.oidcEnabled === true
 })
 
-const state = reactive<{formModel: LoginParams, loading: boolean, oidcLoading: boolean}>({
+interface TotpFormModel {
+    code: string;
+    rememberDevice?: boolean;
+}
+
+const state = reactive<{
+    step: 'credentials' | 'totp';
+    formModel: LoginParams;
+    totpModel: TotpFormModel;
+    loading: boolean;
+    oidcLoading: boolean;
+}>({
+    step: 'credentials',
     formModel: {
         username: '',
         password: '',
         authMethod: 'legacy',
+    },
+    totpModel: {
+        code: '',
+        rememberDevice: false,
     },
     loading: false,
     oidcLoading: false,
@@ -128,6 +182,13 @@ const formRules = computed<FormRules<LoginParams>>(() => {
     }
     return rules
 })
+
+const totpFormRules = computed<FormRules<TotpFormModel>>(() => ({
+    code: [
+        { required: true, message: 'login.enterTotpCode' },
+        { len: 6, message: 'login.enterTotpCode' },
+    ],
+}))
 
 // 加载认证配置 (Load authentication configuration)
 onMounted(async () => {
@@ -149,7 +210,13 @@ onMounted(async () => {
     }
 })
 
-// 登录按钮
+// 进入主页面
+const goToRedirect = () => {
+    const redirect = router.currentRoute.value.query.redirect as string || '/'
+    router.push(redirect)
+}
+
+// 登录按钮（第一步：账号密码）
 const handleLogin = () => {
     formRef.value.validate().then(async () => {
         state.loading = true
@@ -159,19 +226,53 @@ const handleLogin = () => {
                 password: state.formModel.password,
                 authMethod: state.formModel.authMethod,
             }
-            
-            await useUserStore().login(loginData)
-            // 登录成功后跳转到首页或之前尝试访问的页面
-            const redirect = router.currentRoute.value.query.redirect as string || '/' 
-            console.log(redirect)
-            
+
+            const result = await useUserStore().login(loginData)
             state.loading = false
-            router.push(redirect)
+
+            if (result?.twoFactorRequired) {
+                // 切换到 TOTP 验证步骤
+                state.totpModel.code = ''
+                state.totpModel.rememberDevice = false
+                state.step = 'totp'
+                return
+            }
+
+            goToRedirect()
         } catch (error) {
             console.log(error)
             state.loading = false
         }
     })
+}
+
+// 验证 TOTP（第二步）
+const handleVerifyTotp = () => {
+    totpFormRef.value.validate().then(async () => {
+        state.loading = true
+        try {
+            const loginData: LoginParams = {
+                username: state.formModel.username,
+                password: state.formModel.password,
+                authMethod: state.formModel.authMethod,
+                totpCode: state.totpModel.code.trim(),
+                rememberDevice: state.totpModel.rememberDevice,
+            }
+            await useUserStore().login(loginData)
+            state.loading = false
+            goToRedirect()
+        } catch (error) {
+            console.log(error)
+            state.loading = false
+        }
+    })
+}
+
+// 返回账号密码步骤
+const handleBackToCredentials = () => {
+    state.step = 'credentials'
+    state.totpModel.code = ''
+    state.totpModel.rememberDevice = false
 }
 
 // oidc登录按钮
@@ -183,6 +284,19 @@ const handleLoginWithOidc = () => {
 </script>
 
 <style scoped lang="scss">
+.totp-helper {
+    width: 100%;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: var(--gl-color-text-level3);
+}
+
+.remember-row {
+    width: 100%;
+    margin-top: 4px;
+    color: var(--gl-color-text-level2);
+}
+
 .google-login-box {
     width: 100%;
     

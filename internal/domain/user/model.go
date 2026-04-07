@@ -22,4 +22,8 @@ type User struct {
     IsSystem     bool
     AuthProvider string // "local", "oidc", "ldap"
     ExternalSub  string // OIDC sub claim / LDAP user DN
+    LastLoginAt  *int64 // unix seconds, nil if never
+    TotpSecret   string // base32 secret; "" when 2FA not enabled
+    TotpEnabled  bool
+    CreatedAt    int64 // unix seconds
 }
