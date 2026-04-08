@@ -15,7 +15,7 @@ IMAGE_TAG   ?= build
 GOARCH ?= $(shell go env GOARCH)
 
 # ---------------- Commands ----------------
-.PHONY: all ui debug-local debug-cn \
+.PHONY: all ui debug-local debug-dev-server \
         build-linux-amd64 build-linux-arm64 build-linux-all \
         docker-buildx docker-buildx-full
 
@@ -73,14 +73,18 @@ debug-local: build-linux-amd64 docker-buildx
 	ssh $(DEBUG_HOST) "docker load < $(DEBUG_PATH)"
 	ssh $(DEBUG_HOST) "cd /root/glkvm_cloud && docker-compose down && docker-compose up -d"
 
-# ---------------- China dev server debug ----------------
-# Target host: ubuntu@106.55.158.199, project at /home/ubuntu/glkvm_cloud
-DEBUG_CN_HOST ?= ubuntu@106.55.158.199
-DEBUG_CN_PATH ?= /home/ubuntu/glkvmcloudbuild.tar
-DEBUG_CN_DIR  ?= /home/ubuntu/glkvm_cloud
-debug-cn: build-linux-amd64 docker-buildx
+# ---------------- Dev server debug ----------------
+# Set DEBUG_DEV_SERVER_IP via environment variable, e.g.:
+#   export DEBUG_DEV_SERVER_IP=1.2.3.4
+#   make debug-dev-server
+DEBUG_DEV_SERVER_IP   ?= $(error DEBUG_DEV_SERVER_IP is not set)
+DEBUG_DEV_SERVER_USER ?= ubuntu
+DEBUG_DEV_SERVER_HOST  = $(DEBUG_DEV_SERVER_USER)@$(DEBUG_DEV_SERVER_IP)
+DEBUG_DEV_SERVER_PATH ?= /home/$(DEBUG_DEV_SERVER_USER)/glkvmcloudbuild.tar
+DEBUG_DEV_SERVER_DIR  ?= /home/$(DEBUG_DEV_SERVER_USER)/glkvm_cloud
+debug-dev-server: build-linux-amd64 docker-buildx
 	docker save $(IMAGE_NAME):$(IMAGE_TAG) -o glkvmcloudbuild.tar
-	ssh $(DEBUG_CN_HOST) "rm -f $(DEBUG_CN_PATH)"
-	scp glkvmcloudbuild.tar $(DEBUG_CN_HOST):$(DEBUG_CN_PATH)
-	ssh $(DEBUG_CN_HOST) "sudo docker load < $(DEBUG_CN_PATH)"
-	ssh $(DEBUG_CN_HOST) "cd $(DEBUG_CN_DIR) && sudo docker-compose down && sudo docker-compose up -d"
+	ssh $(DEBUG_DEV_SERVER_HOST) "rm -f $(DEBUG_DEV_SERVER_PATH)"
+	scp glkvmcloudbuild.tar $(DEBUG_DEV_SERVER_HOST):$(DEBUG_DEV_SERVER_PATH)
+	ssh $(DEBUG_DEV_SERVER_HOST) "sudo docker load < $(DEBUG_DEV_SERVER_PATH)"
+	ssh $(DEBUG_DEV_SERVER_HOST) "cd $(DEBUG_DEV_SERVER_DIR) && sudo docker-compose down && sudo docker-compose up -d"
