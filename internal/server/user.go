@@ -32,6 +32,7 @@ import (
     "sync/atomic"
     "time"
 
+    "rttys/internal/store/sqlite"
     "rttys/utils"
 
     "github.com/gin-gonic/gin"
@@ -120,6 +121,19 @@ func handleUserConnection(srv *RttyServer, c *gin.Context) {
     if !waitForLogin(user, dev, ctx, sid) {
         return
     }
+
+    var sshLogID int64
+    if cont := sqlite.TryContainer(); cont != nil && cont.DeviceLogSvc != nil {
+        actorID, actorName := principalFromCtx(c)
+        sshLogID = cont.DeviceLogSvc.StartRemoteSSHSession(c.Request.Context(), dev.id, dev.desc, actorID, actorName, c.ClientIP())
+    }
+    defer func() {
+        if sshLogID > 0 {
+            if cont := sqlite.TryContainer(); cont != nil && cont.DeviceLogSvc != nil {
+                cont.DeviceLogSvc.EndSession(context.Background(), sshLogID)
+            }
+        }
+    }()
 
     for {
         msgType, data, err := conn.ReadMessage()

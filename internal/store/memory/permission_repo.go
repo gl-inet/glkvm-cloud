@@ -24,6 +24,7 @@ func NewPermissionRepo() *PermissionRepo {
                 permission.UserGroupRead, permission.UserGroupWrite,
                 permission.UserRead, permission.UserWrite,
                 permission.RelationWrite,
+                permission.DeviceLogRead,
             },
             identity.RoleUser: {
                 permission.MeRead, permission.AuthWrite,

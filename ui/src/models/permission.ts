@@ -25,4 +25,6 @@ export enum PermissionEnum {
   USER_WRITE = 'user.write',
   /** 管理以下关系：• 用户 ↔ 用户组• 用户组 ↔ 设备组• 设备 ↔ 设备组 */
   RELATION_WRITE = 'relation.write',
+  /** 查看设备事件日志 (admin only) */
+  DEVICE_LOG_READ = 'device_log.read',
 }

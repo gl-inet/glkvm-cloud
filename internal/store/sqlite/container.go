@@ -1,13 +1,19 @@
 package sqlite
 
 import (
-    "gorm.io/gorm"
     "sync"
+
+    "gorm.io/gorm"
+
+    "rttys/internal/domain/devicelog"
+    "rttys/internal/domain/user"
 )
 
 type Container struct {
-    Gorm       *gorm.DB
-    DeviceMeta *DeviceMetaRepo
+    Gorm         *gorm.DB
+    DeviceMeta   *DeviceMetaRepo
+    DeviceLogSvc *devicelog.Service
+    UserSvc      *user.Service
 }
 
 var (
@@ -27,5 +33,15 @@ func MustContainer() *Container {
     if gContainer == nil {
         panic("sqlite container not initialized")
     }
+    return gContainer
+}
+
+// TryContainer returns the global container if it has been initialized,
+// or nil otherwise. Use this from code paths (e.g. device runtime) that
+// may execute before InitAppContainer has finished — calling MustContainer
+// there would panic on early connections.
+func TryContainer() *Container {
+    mu.RLock()
+    defer mu.RUnlock()
     return gContainer
 }

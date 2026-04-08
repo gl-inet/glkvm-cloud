@@ -21,6 +21,8 @@ const (
     UserWrite Key = "user.write"
 
     RelationWrite Key = "relation.write"
+
+    DeviceLogRead Key = "device_log.read"
 )
 
 func DefaultKeysForRole(role identity.Role) []Key {

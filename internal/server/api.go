@@ -33,6 +33,7 @@ import (
 	"net/http"
 	"path"
 	"rttys/internal/domain/device"
+	"rttys/internal/domain/devicelog"
 	"rttys/internal/domain/permission"
 	"rttys/internal/domain/user"
 	httpx "rttys/internal/http"
@@ -56,6 +57,7 @@ type AppContainer struct {
 	DB             *sqlite.AppDB
 	DeviceMetaRepo *sqlite.DeviceMetaRepo
 	UserSvc        *user.Service
+	DeviceLogSvc   *devicelog.Service
 }
 
 var sessionStore *memory.SessionStore
@@ -90,9 +92,11 @@ func InitAppContainer(r *gin.Engine) (*AppContainer, error) {
 	deviceRepo := sqlite.NewDeviceRepo(appDB.Gorm())
 	relationsRepo := sqlite.NewRelationsRepo(appDB.Gorm())
 	trustedDeviceRepo := sqlite.NewTrustedDeviceRepo(appDB.Gorm())
+	deviceLogRepo := sqlite.NewDeviceLogRepo(appDB.Gorm())
 
 	userSvc := user.NewService(userRepo)
 	devSvc := device.NewService(deviceRepo, groupRepo)
+	deviceLogSvc := devicelog.NewService(deviceLogRepo)
 
 	permRepo := memory.NewPermissionRepo() // permissions stay in-memory
 	permSvc := permission.NewService(permRepo)
@@ -107,6 +111,7 @@ func InitAppContainer(r *gin.Engine) (*AppContainer, error) {
 		SessionStore:      sessionStore,
 		RelationsRepo:     relationsRepo,
 		TrustedDeviceRepo: trustedDeviceRepo,
+		DeviceLogSvc:      deviceLogSvc,
 		Cfg:               cfg,
 		CloudVersion:      KVMCloudVersion,
 	})
@@ -115,6 +120,7 @@ func InitAppContainer(r *gin.Engine) (*AppContainer, error) {
 		DB:             appDB,
 		DeviceMetaRepo: deviceMetaRepo,
 		UserSvc:        userSvc,
+		DeviceLogSvc:   deviceLogSvc,
 	}
 	return c, nil
 }
@@ -255,8 +261,10 @@ func (srv *RttyServer) ListenAPI() error {
 	}
 	defer container.DB.Close()
 	sqlite.SetContainer(&sqlite.Container{
-		Gorm:       container.DB.Gorm(),
-		DeviceMeta: sqlite.NewDeviceMetaRepo(container.DB.Gorm()),
+		Gorm:         container.DB.Gorm(),
+		DeviceMeta:   sqlite.NewDeviceMetaRepo(container.DB.Gorm()),
+		DeviceLogSvc: container.DeviceLogSvc,
+		UserSvc:      container.UserSvc,
 	})
 
 	// ===== 添加OIDC路由 =====
@@ -406,4 +414,34 @@ func httpAuth(cfg *xconfig.Config, c *gin.Context) bool {
 	// New session-based auth
 	_, ok := sessionStore.Get(sid)
 	return ok
+}
+
+// principalFromCtx best-effort extracts the logged-in user (id + username)
+// from the request, used for tagging device-event logs. Returns (0, "")
+// when no session can be resolved. Never blocks the calling path.
+func principalFromCtx(c *gin.Context) (int64, string) {
+	if c == nil || c.Request == nil || sessionStore == nil {
+		return 0, ""
+	}
+	sid, err := c.Cookie("sid")
+	if err != nil {
+		return 0, ""
+	}
+	sid = strings.TrimSpace(sid)
+	if sid == "" {
+		return 0, ""
+	}
+	sess, ok := sessionStore.Get(sid)
+	if !ok {
+		return 0, ""
+	}
+	cont := sqlite.TryContainer()
+	if cont == nil || cont.UserSvc == nil {
+		return sess.UserID, ""
+	}
+	u, err := cont.UserSvc.FindByID(c.Request.Context(), sess.UserID)
+	if err != nil || u == nil {
+		return sess.UserID, ""
+	}
+	return sess.UserID, u.Username
 }

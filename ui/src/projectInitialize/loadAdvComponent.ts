@@ -6,7 +6,7 @@
  * @FilePath: \glkvm-cloud\ui\src\projectInitialize\loadAdvComponent.ts
  * @Description: 加载Ant 组件
  */
-import { 
+import {
     ConfigProvider,
     Button,
     Pagination,
@@ -26,6 +26,7 @@ import {
     Tabs,
     Radio,
     Popover,
+    DatePicker,
 } from 'ant-design-vue'
 
 export default function (app: any) {
@@ -48,4 +49,5 @@ export default function (app: any) {
     app.use(Tabs)
     app.use(Radio)
     app.use(Popover)
+    app.use(DatePicker)
 }

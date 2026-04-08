@@ -199,6 +199,32 @@
     "userRoleDesc": "管理员可以看到所有设备，普通用户只能看到用户组关联设备组的设备",
     "userType": "用户类型"
   },
+  "deviceLog": {
+    "title": "日志",
+    "mac": "设备 MAC",
+    "macPlaceholder": "按 MAC 搜索",
+    "eventType": "事件类型",
+    "actor": "操作用户",
+    "clientIp": "客户端 IP",
+    "detail": "详情",
+    "createTime": "开始时间",
+    "endTime": "结束时间",
+    "duration": "持续时长",
+    "noData": "暂无数据",
+    "refresh": "刷新",
+    "inProgress": "进行中",
+    "tabs": {
+      "device": "设备上下线",
+      "access": "远程访问"
+    },
+    "event": {
+      "deviceOnline": "设备上线",
+      "deviceOffline": "设备下线",
+      "remoteSsh": "远程 SSH",
+      "remoteWeb": "远程 Web",
+      "remoteControl": "远程控制"
+    }
+  },
   "rtty": {
     "requestingDeviceToCreateTerminal": "正在请求设备创建终端...",
     "uploadFileToDevice": "上传文件到设备",

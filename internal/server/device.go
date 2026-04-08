@@ -35,6 +35,7 @@ import (
 	"net"
 	"net/http"
 	"rttys/internal/legacy"
+	"rttys/internal/store/sqlite"
 	"strings"
 	"sync"
 	"time"
@@ -378,6 +379,9 @@ func (dev *Device) Close(srv *RttyServer) {
 		srv.DelDevice(dev)
 		if dev.id != "" {
 			_ = legacy.MarkDeviceOffline(dev.id)
+			if c := sqlite.TryContainer(); c != nil && c.DeviceLogSvc != nil {
+				c.DeviceLogSvc.RecordDeviceOffline(context.Background(), dev.id, dev.desc, "")
+			}
 		}
 		dev.cancel()
 		dev.conn.Close()
@@ -469,6 +473,10 @@ func (dev *Device) Register(srv *RttyServer) byte {
 		return devRegErrIdConflicting
 	}
 
+	if c := sqlite.TryContainer(); c != nil && c.DeviceLogSvc != nil {
+		c.DeviceLogSvc.RecordDeviceOnline(context.Background(), dev.id, dev.desc, "")
+	}
+
 	return 0
 }
 
@@ -476,6 +484,25 @@ func (dev *Device) setClientInfo(data []byte) {
 	dev.clientInfoMu.Lock()
 	dev.clientInfo = append(dev.clientInfo[:0], data...)
 	dev.clientInfoMu.Unlock()
+}
+
+// ClientType returns the "client" value from the device's client info JSON
+// (e.g. "rtty-go"). Returns "" if not available or not parseable.
+func (dev *Device) ClientType() string {
+	dev.clientInfoMu.RLock()
+	raw := make([]byte, len(dev.clientInfo))
+	copy(raw, dev.clientInfo)
+	dev.clientInfoMu.RUnlock()
+	if len(raw) == 0 {
+		return ""
+	}
+	var info struct {
+		Client string `json:"client"`
+	}
+	if err := jsoniter.Unmarshal(raw, &info); err != nil {
+		return ""
+	}
+	return info.Client
 }
 
 func handleDeviceInfoMsg(dev *Device, data []byte) error {

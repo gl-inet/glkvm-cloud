@@ -199,6 +199,32 @@
     "userRoleDesc": "Administrators can view all devices, while ordinary users can only see the devices in the device group associated with the user group",
     "userType": "User Type"
   },
+  "deviceLog": {
+    "title": "Logs",
+    "mac": "Device MAC",
+    "macPlaceholder": "Search by MAC",
+    "eventType": "Event Type",
+    "actor": "Actor",
+    "clientIp": "Client IP",
+    "detail": "Detail",
+    "createTime": "Create Time",
+    "endTime": "End Time",
+    "duration": "Duration",
+    "noData": "No Data",
+    "refresh": "Refresh",
+    "inProgress": "In progress",
+    "tabs": {
+      "device": "Device Up/Down",
+      "access": "Remote Access"
+    },
+    "event": {
+      "deviceOnline": "Device Online",
+      "deviceOffline": "Device Offline",
+      "remoteSsh": "Remote SSH",
+      "remoteWeb": "Remote Web",
+      "remoteControl": "Remote Control"
+    }
+  },
   "rtty": {
     "requestingDeviceToCreateTerminal": "Requesting device to create terminal...",
     "uploadFileToDevice": "Upload file to device",

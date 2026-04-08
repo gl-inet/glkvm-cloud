@@ -41,6 +41,7 @@ import (
 	"time"
 
 	"rttys/internal/proxy"
+	"rttys/internal/store/sqlite"
 	"rttys/utils"
 
 	"github.com/gin-gonic/gin"
@@ -56,6 +57,7 @@ type HttpProxySession struct {
 	group    string
 	destaddr string
 	https    bool
+	logID    int64 // device-event-log row id (0 if not recorded)
 }
 
 var httpProxySessions = sync.Map{}
@@ -69,6 +71,19 @@ func (ses *HttpProxySession) Expire() {
 func (ses *HttpProxySession) String() string {
 	return fmt.Sprintf("{devid: %s, group: %s, destaddr: %s, https: %v}",
 		ses.devid, ses.group, ses.destaddr, ses.https)
+}
+
+// endWebSessionLog stamps ended_at on the web-session log row, if any.
+// Safe to call on a session whose log was never recorded (logID == 0).
+func endWebSessionLog(ses *HttpProxySession) {
+	if ses == nil || ses.logID == 0 {
+		return
+	}
+	cont := sqlite.TryContainer()
+	if cont == nil || cont.DeviceLogSvc == nil {
+		return
+	}
+	cont.DeviceLogSvc.EndSession(context.Background(), ses.logID)
 }
 
 func (srv *RttyServer) ListenHttpProxy() {
@@ -127,6 +142,7 @@ func httpProxySessionsClean() {
 			ses := value.(*HttpProxySession)
 			if time.Now().Unix() > ses.expire.Load() {
 				log.Debug().Msgf("Http proxy session '%s' expired", key)
+				endWebSessionLog(ses)
 				ses.cancel()
 				httpProxySessions.Delete(key)
 			}
@@ -329,6 +345,7 @@ func httpProxyRedirect(srv *RttyServer, c *gin.Context, group string) {
 	if err == nil {
 		if v, loaded := httpProxySessions.LoadAndDelete(sid); loaded {
 			s := v.(*HttpProxySession)
+			endWebSessionLog(s)
 			s.cancel()
 			log.Debug().Msgf(`del old httpProxySession "%s" for device "%s"`, sid, devid)
 		}
@@ -345,6 +362,17 @@ func httpProxyRedirect(srv *RttyServer, c *gin.Context, group string) {
 		group:    group,
 		destaddr: addr,
 		https:    proto == "https",
+	}
+	if cont := sqlite.TryContainer(); cont != nil && cont.DeviceLogSvc != nil {
+		actorID, actorName := principalFromCtx(c)
+		if dev.ClientType() != "rtty-go" {
+			// Non-rtty-go clients use the KVM control UI → remote_control
+			ses.logID = cont.DeviceLogSvc.StartRemoteControlSession(
+				c.Request.Context(), devid, dev.desc, actorID, actorName, c.ClientIP())
+		} else {
+			ses.logID = cont.DeviceLogSvc.StartRemoteWebSession(
+				c.Request.Context(), devid, dev.desc, actorID, actorName, c.ClientIP(), addr, proto)
+		}
 	}
 	ses.Expire()
 	httpProxySessions.Store(sid, ses)

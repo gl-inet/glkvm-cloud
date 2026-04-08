@@ -136,6 +136,7 @@ import { computed, onBeforeMount, onBeforeUnmount, reactive, ref, watch } from '
 import { RouteRecordRaw, useRoute, useRouter } from 'vue-router'
 import routerInstance from '@/router'
 import LaySidePopover from './components/laySidePopover.vue'
+import { hasPermission } from '@/utils/permission'
 
 const route = useRoute()
 const router = useRouter()
@@ -246,7 +247,10 @@ const organizeRoutes = (routes: RouteRecordRaw[]) => {
     // 辅助函数：判断路由是否应该显示
     const shouldShowRoute = (route: RouteRecordRaw) => {
     // 没有 meta 字段，或者有 meta 但没有 menu 字段，都视为 false
-        return route.meta?.menu === true // 必须明确指定 menu: true 才显示
+        if (route.meta?.menu !== true) return false // 必须明确指定 menu: true 才显示
+        // 如果声明了所需权限，当前用户必须具备该权限
+        if (route.meta?.permission && !hasPermission(route.meta.permission)) return false
+        return true
     }
 
     // 1. 预处理所有路由

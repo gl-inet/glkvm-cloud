@@ -4,6 +4,7 @@ import (
     "net"
 
     "rttys/internal/domain/device"
+    "rttys/internal/domain/devicelog"
     "rttys/internal/domain/permission"
     "rttys/internal/domain/user"
     "rttys/internal/http/dto"
@@ -25,6 +26,7 @@ type Deps struct {
     SessionStore      *memory.SessionStore
     RelationsRepo     *sqlite.RelationsRepo
     TrustedDeviceRepo *sqlite.TrustedDeviceRepo
+    DeviceLogSvc      *devicelog.Service
     Cfg               *xconfig.Config
     CloudVersion      string
 }
@@ -44,6 +46,7 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
 
     userH := handler.NewUserHandler(d.UserSvc, d.GroupRepo, d.RelationsRepo, d.SessionStore)
     personalH := handler.NewPersonalHandler(d.UserSvc, d.TrustedDeviceRepo, "GLKVM Cloud")
+    devLogH := handler.NewDeviceLogHandler(d.DeviceLogSvc)
 
     // public
     r.GET("/auth-config", func(c *gin.Context) {
@@ -161,6 +164,9 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
     api.DELETE("/device-groups/:id", middleware.Require(permission.DeviceGroupWrite), dgH.Delete)
     api.POST("/device-groups/:id/devices", middleware.Require(permission.DeviceGroupWrite), dgH.AddDevices)
     api.DELETE("/device-groups/:id/devices", middleware.Require(permission.DeviceGroupWrite), dgH.RemoveDevices)
+
+    // device event logs (admin only)
+    api.GET("/device-event-logs", middleware.Require(permission.DeviceLogRead), devLogH.List)
 
     // Relations (cover / set)
     api.PUT("/users/:id/user-groups", middleware.Require(permission.UserWrite), relH.SetUserGroups)

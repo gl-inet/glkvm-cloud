@@ -102,7 +102,10 @@ func InitSchema(ctx context.Context, db *sql.DB, schemaPath string) error {
     if err := ensureUserTotpEnabledColumn(ctx, db); err != nil {
         return err
     }
-    return ensureTrustedDevicesTable(ctx, db)
+    if err := ensureTrustedDevicesTable(ctx, db); err != nil {
+        return err
+    }
+    return ensureDeviceEventLogsTable(ctx, db)
 }
 
 func ensureDeviceClientColumn(ctx context.Context, db *sql.DB) error {
@@ -235,6 +238,36 @@ func ensureTrustedDevicesTable(ctx context.Context, db *sql.DB) error {
         return err
     }
     if _, err := db.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_trusted_devices_token ON user_trusted_devices(token)`); err != nil {
+        return err
+    }
+    return nil
+}
+
+func ensureDeviceEventLogsTable(ctx context.Context, db *sql.DB) error {
+    if db == nil {
+        return nil
+    }
+    if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS device_event_logs (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  device_id     TEXT    NOT NULL DEFAULT '',
+  device_mac    TEXT    NOT NULL DEFAULT '',
+  event_type    TEXT    NOT NULL,
+  actor_user_id INTEGER NOT NULL DEFAULT 0,
+  actor_name    TEXT    NOT NULL DEFAULT '',
+  client_ip     TEXT    NOT NULL DEFAULT '',
+  detail        TEXT    NOT NULL DEFAULT '',
+  created_at    INTEGER NOT NULL DEFAULT (unixepoch()),
+  ended_at      INTEGER NOT NULL DEFAULT 0
+)`); err != nil {
+        return err
+    }
+    if _, err := db.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_device_event_logs_mac ON device_event_logs(device_mac)`); err != nil {
+        return err
+    }
+    if _, err := db.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_device_event_logs_type ON device_event_logs(event_type)`); err != nil {
+        return err
+    }
+    if _, err := db.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_device_event_logs_created_at ON device_event_logs(created_at)`); err != nil {
         return err
     }
     return nil

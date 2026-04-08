@@ -22,10 +22,12 @@ declare module 'vue-router' {
         menu?: boolean
         /** 联动父元素的path(例如添加设备页，若不展示在侧边栏内，但是在添加设备页，需要选中左侧的menu，则传入需要选中menu的path)，仅支持设置顶级path且menu不能为true */
         linkageParentLevelPath?: string
-        /** 如果需要展示到侧边栏，则title和icon必填 */ 
+        /** 如果需要展示到侧边栏，则title和icon必填 */
         title?: string
-        /** 如果需要展示到侧边栏，则title和icon必填 */ 
+        /** 如果需要展示到侧边栏，则title和icon必填 */
         icon?: string
+        /** 仅当用户具备此权限时，才在侧边栏中显示 */
+        permission?: PermissionEnum
         /** 不需要在路由表的meta中添加， 仅用于侧边栏判断*/
         whetherToExpandChildElements?: boolean
     }
@@ -86,6 +88,18 @@ const router = createRouter({
                         menu: true,
                         title: 'user.userManager',
                         icon: 'gl-icon-user-manage',
+                    },
+                },
+                /** 设备事件日志 (admin only) */
+                {
+                    path: '/log',
+                    component: () => import('@/views/log/logPage.vue'),
+                    name: 'log',
+                    meta: {
+                        menu: true,
+                        title: 'deviceLog.title',
+                        icon: 'gl-npm-list',
+                        permission: PermissionEnum.DEVICE_LOG_READ,
                     },
                 },
                 /** 个人中心 */
