@@ -218,6 +218,11 @@ router.beforeEach(async (to) => {
             })
         }
 
+        // Block access to routes the user has no permission for
+        if (to.meta?.permission && !hasPermission(to.meta.permission as PermissionEnum)) {
+            return { path: '/' }
+        }
+
     }
 
     return true

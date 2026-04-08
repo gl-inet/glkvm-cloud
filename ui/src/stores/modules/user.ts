@@ -67,7 +67,7 @@ export const useUserStore = defineStore('user', () => {
             return { twoFactorRequired: true }
         }
         setToken(data.data.token)
-        fetchUserInfo()
+        await fetchUserInfo()
         return { twoFactorRequired: false }
     }
 
