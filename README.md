@@ -18,7 +18,7 @@ Self-Deployed Lightweight Cloud is a lightweight KVM remote cloud platform tailo
 -  **Enterprise Authentication** -  Supports both **LDAP** and **OIDC** login methods for enterprise users. 
 
 -  **Deployment & Platform Compatibility** - Supports both **internal network** and **public internet** deployments on **x86_64** and **arm64** platforms
--  **HTTP/HTTPS Web Proxy Support** - Supports onboarding OpenWrt, ImmortalWrt, Raspberry Pi, Linux VPS, macOS, and Windows hosts into self-hosted GLKVM Cloud for centralized management, and using them as HTTP/HTTPS web proxy nodes for NAT traversal access
+-  **HTTP/HTTPS Web Proxy Support** - Supports onboarding embedded devices such as OpenWrt, Raspberry Pi, and other Linux-based hosts into self-hosted GLKVM Cloud for centralized management and NAT traversal access
 
 ## Self-Hosting Guide
 
@@ -45,7 +45,7 @@ The following mainstream operating systems have been tested and verified
 | Network Bandwidth   | ≥ 3 Mbps      |
 | KVM Device Firmware |      ≥ v1.5.0       |
 
-#### 🔐 Cloud Security Group Settings
+#### Cloud Security Group Settings
 
 If your server provider uses a **cloud security group** (e.g., AWS, Aliyun, etc.), please make sure the following ports are **open**:
 
@@ -60,7 +60,7 @@ If your server provider uses a **cloud security group** (e.g., AWS, Aliyun, etc.
  These ports will be **used by GLKVM Cloud**. Please ensure **no other applications or services** on your server are binding to these ports, otherwise the lightweight cloud platform may fail to start properly.
 
 ------
-### 📦 Installation
+### Installation
 
 We provide **two** ways to install GLKVM Cloud: 
 
@@ -82,7 +82,7 @@ Run **as root**:
 >
 > **Platform:** supports both **x86_64 (amd64)** and **arm64 (AArch64)**. 
 
-### 🌐 Platform Access
+### Platform Access
 
 Once the installation is complete, the installer will print the platform URL and admin login credentials in the console. You can access the platform via:
 
@@ -93,7 +93,7 @@ https://<your_server_public_ip>
 ⚠️ **Note**: Accessing via an IP address will trigger a **browser certificate warning**.
 To remove the warning, configure your own domain and a valid SSL certificate.
 
-### 🔑 Web UI Login Credentials
+### Web UI Login Credentials
 
 At the end of the installation script, the console will display the Web UI administrator username and password (for example):
 
@@ -144,7 +144,7 @@ you can **skip** configuring a custom domain and SSL certificate, and still acce
 
 For production use, or if you need to **access multiple KVM devices via subdomains**, it is **strongly recommended** to configure your own **wildcard SSL certificate** (see below).
 
-#### 🌐 Add DNS Records
+#### Add DNS Records
 
 To enable full domain-based access, configure the following DNS records for your domain:
 
@@ -157,7 +157,7 @@ To enable full domain-based access, configure the following DNS records for your
 └────────────┴──────┴────────────────────┴─────────────────────────────┘
 ```
 
-#### 🔧 Using a Custom SSL Certificate
+#### Using a Custom SSL Certificate
 
 To avoid browser warnings, replace the default certificates with your own **wildcard SSL certificate**
  that supports both:
@@ -176,51 +176,9 @@ Replace the following files in:
 
 ⚠️ **Make sure the filenames remain unchanged.**
 
-#### 🔐 LDAP Authentication Configuration (Optional)
+#### Restart Services After Configuration Changes
 
-GLKVM Cloud supports LDAP authentication for enterprise environments, allowing you to integrate with existing directory services like Active Directory, OpenLDAP, or FreeIPA.
-
-**Key Features:**
-- **Dual Authentication Mode**: Support both LDAP and traditional password authentication simultaneously
-- **Group-based Authorization**: Restrict access to specific LDAP groups
-- **User-based Authorization**: Allow access for specific users only
-- **TLS/SSL Support**: Secure LDAP connections with encryption
-- **Multiple LDAP Systems**: Compatible with Active Directory, OpenLDAP, FreeIPA, and generic LDAP servers
-
-**Configuration:**
-For detailed LDAP configuration options and setup instructions, see the [Docker Compose README](docker-compose/README.md).
-
-**Note**: When LDAP is enabled, users can choose between:
-- **LDAP Authentication**: Enter username and password for directory service authentication
-- **Legacy Authentication**: Leave username empty and use the web management password
-
-#### 🔐 OIDC Authentication Configuration (Optional)
-
-GLKVM Cloud provides full support for **OIDC (OpenID Connect)** authentication, allowing seamless integration with modern identity providers such as **Google, Auth0, Authing** and any other standard-compliant OIDC provider.
-
- **Key Features**
-
-- **Modern Authentication**
-   Secure sign-in through any OIDC provider supporting Authorization Code Flow.
-- **Email / Username / Group Whitelisting**
-   Restrict access based on:
-  - Email or domain (e.g. *@example.com*)
-  - Stable user ID (*sub*)
-  - Username (*preferred_username* or *name*)
-  - Groups attribute
-- **Full OpenID Connect Compliance**
-   Supports issuer validation, token signature verification, and nonce protection.
-- **Flexible Provider Support**
-   Works with public clouds (Google, Azure AD, Auth0, Okta) and self-hosted solutions.
-
- **Configuration**
-
-For detailed OIDC configuration options and setup instructions, see the
- **[Docker Compose README](docker-compose/README.md)**.
-
-#### 🔄 Restart Services After Configuration Changes
-
-After replacing certificates or updating LDAP configuration, restart the GLKVM Cloud services to apply the changes:
+After replacing certificates, restart the GLKVM Cloud services to apply the changes:
 
 ```bash
 cd ~/glkvm_cloud
@@ -233,7 +191,7 @@ Or, on systems with the Docker CLI plugin:
 docker compose down && docker compose up -d
 ```
 
-###  Domain-Based Access Example
+### Domain-Based Access Example
 
 Once everything is configured, you can access the platform via your domain:
 
