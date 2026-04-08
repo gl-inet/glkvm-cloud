@@ -10,12 +10,22 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// startupGraceWindow mirrors the device-log grace period: device online/
+// offline emails are suppressed during this window to avoid a reconnect
+// storm flooding inboxes after a server restart.
+const startupGraceWindow = 60 * time.Second
+
 type Service struct {
-	repo Repository
+	repo        Repository
+	startupTime time.Time
 }
 
 func NewService(repo Repository) *Service {
-	return &Service{repo: repo}
+	return &Service{repo: repo, startupTime: time.Now()}
+}
+
+func (s *Service) inGracePeriod() bool {
+	return time.Since(s.startupTime) < startupGraceWindow
 }
 
 // ─── SMTP config ────────────────────────────────────────────────
@@ -69,7 +79,11 @@ func (s *Service) RemoveRecipient(ctx context.Context, id int64) error {
 // ─── Event triggers (called from device runtime) ────────────────
 
 // NotifyDeviceOnline sends a device-online notification if enabled.
+// Suppressed during the startup grace window.
 func (s *Service) NotifyDeviceOnline(deviceID, mac string) {
+	if s.inGracePeriod() {
+		return
+	}
 	s.sendEventNotification("deviceOnline", "[GLKVM Cloud] Device Online", "Device Online", []EmailField{
 		{Label: "Event", Value: "Device Online"},
 		{Label: "Device ID", Value: deviceID},
@@ -79,7 +93,11 @@ func (s *Service) NotifyDeviceOnline(deviceID, mac string) {
 }
 
 // NotifyDeviceOffline sends a device-offline notification if enabled.
+// Suppressed during the startup grace window.
 func (s *Service) NotifyDeviceOffline(deviceID, mac string) {
+	if s.inGracePeriod() {
+		return
+	}
 	s.sendEventNotification("deviceOffline", "[GLKVM Cloud] Device Offline", "Device Offline", []EmailField{
 		{Label: "Event", Value: "Device Offline"},
 		{Label: "Device ID", Value: deviceID},
