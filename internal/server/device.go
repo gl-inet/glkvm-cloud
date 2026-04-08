@@ -381,6 +381,9 @@ func (dev *Device) Close(srv *RttyServer) {
 			_ = legacy.MarkDeviceOffline(dev.id)
 			if c := sqlite.TryContainer(); c != nil && c.DeviceLogSvc != nil {
 				c.DeviceLogSvc.RecordDeviceOffline(context.Background(), dev.id, dev.desc, "")
+				if c.NotificationSvc != nil {
+					c.NotificationSvc.NotifyDeviceOffline(dev.id, dev.desc)
+				}
 			}
 		}
 		dev.cancel()
@@ -475,6 +478,9 @@ func (dev *Device) Register(srv *RttyServer) byte {
 
 	if c := sqlite.TryContainer(); c != nil && c.DeviceLogSvc != nil {
 		c.DeviceLogSvc.RecordDeviceOnline(context.Background(), dev.id, dev.desc, "")
+		if c.NotificationSvc != nil {
+			c.NotificationSvc.NotifyDeviceOnline(dev.id, dev.desc)
+		}
 	}
 
 	return 0

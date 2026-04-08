@@ -344,5 +344,32 @@
     "ACCOUNT_CANCELLATION_LINK_EXPIRED": "This link has expired. Please request account deletion again.",
     "CLOUD_EMAIL_NOT_MATCH_USER": "The email not match the user.",
     "CLOUD_USER_NOT_EXIST": "The user does not exist."
+  },
+  "notification": {
+    "title": "Notifications",
+    "smtpConfig": "Email Server (SMTP)",
+    "smtpHost": "SMTP Host",
+    "smtpPort": "Port",
+    "smtpUsername": "Username",
+    "smtpPassword": "Password",
+    "fromEmail": "From Email",
+    "encryption": "Encryption",
+    "enableNotification": "Enable",
+    "testEmail": "Send Test Email",
+    "testEmailSent": "Test email sent to",
+    "noRecipientForTest": "Please add a recipient email first",
+    "notifyRules": "Notification Rules",
+    "ruleDeviceOnline": "Device Online",
+    "ruleDeviceOnlineDesc": "Send notification when a device comes online.",
+    "ruleDeviceOffline": "Device Offline",
+    "ruleDeviceOfflineDesc": "Send notification when a device goes offline.",
+    "ruleRemoteAccess": "Remote Access",
+    "ruleRemoteAccessDesc": "Send notification on remote SSH, Web, or Control access.",
+    "recipients": "Recipient Emails",
+    "recipientPlaceholder": "Enter email address",
+    "addRecipient": "Add",
+    "removeRecipientConfirm": "Remove this recipient?",
+    "noRecipients": "No recipients added yet.",
+    "invalidEmail": "Invalid email address."
   }
 }

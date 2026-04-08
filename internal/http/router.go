@@ -5,6 +5,7 @@ import (
 
     "rttys/internal/domain/device"
     "rttys/internal/domain/devicelog"
+    "rttys/internal/domain/notification"
     "rttys/internal/domain/permission"
     "rttys/internal/domain/user"
     "rttys/internal/http/dto"
@@ -27,6 +28,7 @@ type Deps struct {
     RelationsRepo     *sqlite.RelationsRepo
     TrustedDeviceRepo *sqlite.TrustedDeviceRepo
     DeviceLogSvc      *devicelog.Service
+    NotificationSvc   *notification.Service
     Cfg               *xconfig.Config
     CloudVersion      string
 }
@@ -47,6 +49,7 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
     userH := handler.NewUserHandler(d.UserSvc, d.GroupRepo, d.RelationsRepo, d.SessionStore)
     personalH := handler.NewPersonalHandler(d.UserSvc, d.TrustedDeviceRepo, "GLKVM Cloud")
     devLogH := handler.NewDeviceLogHandler(d.DeviceLogSvc)
+    notifH := handler.NewNotificationHandler(d.NotificationSvc)
 
     // public
     r.GET("/auth-config", func(c *gin.Context) {
@@ -167,6 +170,17 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
 
     // device event logs (admin only)
     api.GET("/device-event-logs", middleware.Require(permission.DeviceLogRead), devLogH.List)
+
+    // notification settings (admin only)
+    notifGroup := api.Group("/notification")
+    notifGroup.GET("/smtp", middleware.Require(permission.NotificationRead), notifH.GetSMTPConfig)
+    notifGroup.PUT("/smtp", middleware.Require(permission.NotificationWrite), notifH.SaveSMTPConfig)
+    notifGroup.POST("/smtp/test", middleware.Require(permission.NotificationWrite), notifH.TestSMTP)
+    notifGroup.GET("/rules", middleware.Require(permission.NotificationRead), notifH.GetNotifyRules)
+    notifGroup.PUT("/rules", middleware.Require(permission.NotificationWrite), notifH.SaveNotifyRules)
+    notifGroup.GET("/recipients", middleware.Require(permission.NotificationRead), notifH.ListRecipients)
+    notifGroup.POST("/recipients", middleware.Require(permission.NotificationWrite), notifH.AddRecipient)
+    notifGroup.DELETE("/recipients/:id", middleware.Require(permission.NotificationWrite), notifH.RemoveRecipient)
 
     // Relations (cover / set)
     api.PUT("/users/:id/user-groups", middleware.Require(permission.UserWrite), relH.SetUserGroups)

@@ -344,5 +344,32 @@
     "ACCOUNT_CANCELLATION_LINK_EXPIRED": "このリンクの有効期限が切れました。アカウント削除を再度リクエストしてください。",
     "CLOUD_EMAIL_NOT_MATCH_USER": "メールアドレスがユーザーと一致しません。",
     "CLOUD_USER_NOT_EXIST": "ユーザーが存在しません。"
+  },
+  "notification": {
+    "title": "通知",
+    "smtpConfig": "メールサーバー (SMTP)",
+    "smtpHost": "SMTP ホスト",
+    "smtpPort": "ポート",
+    "smtpUsername": "ユーザー名",
+    "smtpPassword": "パスワード",
+    "fromEmail": "送信元メール",
+    "encryption": "暗号化",
+    "enableNotification": "有効化",
+    "testEmail": "テストメール送信",
+    "testEmailSent": "テストメール送信先",
+    "noRecipientForTest": "最初に受信者のメールアドレスを追加してください",
+    "notifyRules": "通知ルール",
+    "ruleDeviceOnline": "デバイスオンライン",
+    "ruleDeviceOnlineDesc": "デバイスがオンラインになった際に通知を送信します。",
+    "ruleDeviceOffline": "デバイスオフライン",
+    "ruleDeviceOfflineDesc": "デバイスがオフラインになった際に通知を送信します。",
+    "ruleRemoteAccess": "リモートアクセス",
+    "ruleRemoteAccessDesc": "リモートSSH、Web、またはコントロールアクセス時に通知を送信します。",
+    "recipients": "受信者メール",
+    "recipientPlaceholder": "メールアドレスを入力",
+    "addRecipient": "追加",
+    "removeRecipientConfirm": "この受信者を削除しますか？",
+    "noRecipients": "受信者が追加されていません。",
+    "invalidEmail": "メールアドレスが無効です。"
   }
 }

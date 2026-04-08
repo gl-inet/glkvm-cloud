@@ -126,6 +126,9 @@ func handleUserConnection(srv *RttyServer, c *gin.Context) {
     if cont := sqlite.TryContainer(); cont != nil && cont.DeviceLogSvc != nil {
         actorID, actorName := principalFromCtx(c)
         sshLogID = cont.DeviceLogSvc.StartRemoteSSHSession(c.Request.Context(), dev.id, dev.desc, actorID, actorName, c.ClientIP())
+        if cont.NotificationSvc != nil {
+            cont.NotificationSvc.NotifyRemoteAccess("SSH", dev.id, dev.desc, actorName, c.ClientIP())
+        }
     }
     defer func() {
         if sshLogID > 0 {

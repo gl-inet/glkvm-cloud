@@ -344,5 +344,32 @@
     "ACCOUNT_CANCELLATION_LINK_EXPIRED": "이 링크가 만료되었습니다. 계정 삭제를 다시 요청하세요.",
     "CLOUD_EMAIL_NOT_MATCH_USER": "이메일이 사용자와 일치하지 않습니다.",
     "CLOUD_USER_NOT_EXIST": "사용자가 존재하지 않습니다."
+  },
+  "notification": {
+    "title": "알림",
+    "smtpConfig": "메일 서버 (SMTP)",
+    "smtpHost": "SMTP 호스트",
+    "smtpPort": "포트",
+    "smtpUsername": "사용자 이름",
+    "smtpPassword": "비밀번호",
+    "fromEmail": "발신자 이메일",
+    "encryption": "암호화",
+    "enableNotification": "활성화",
+    "testEmail": "테스트 이메일 보내기",
+    "testEmailSent": "테스트 이메일 발송 완료",
+    "noRecipientForTest": "먼저 수신자 이메일을 추가하세요",
+    "notifyRules": "알림 규칙",
+    "ruleDeviceOnline": "장치 온라인",
+    "ruleDeviceOnlineDesc": "장치가 온라인 상태가 되면 알림을 보냅니다.",
+    "ruleDeviceOffline": "장치 오프라인",
+    "ruleDeviceOfflineDesc": "장치가 오프라인 상태가 되면 알림을 보냅니다.",
+    "ruleRemoteAccess": "원격 접속",
+    "ruleRemoteAccessDesc": "원격 SSH, 웹 또는 제어 접속 시 알림을 보냅니다.",
+    "recipients": "수신자 이메일",
+    "recipientPlaceholder": "이메일 주소 입력",
+    "addRecipient": "추가",
+    "removeRecipientConfirm": "이 수신자를 삭제하시겠습니까?",
+    "noRecipients": "추가된 수신자가 없습니다.",
+    "invalidEmail": "유효하지 않은 이메일 주소입니다."
   }
 }

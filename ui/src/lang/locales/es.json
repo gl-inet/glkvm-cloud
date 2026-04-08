@@ -344,5 +344,32 @@
     "ACCOUNT_CANCELLATION_LINK_EXPIRED": "Este enlace ha expirado. Solicite la eliminación de la cuenta de nuevo.",
     "CLOUD_EMAIL_NOT_MATCH_USER": "El correo electrónico no coincide con el usuario.",
     "CLOUD_USER_NOT_EXIST": "El usuario no existe."
+  },
+  "notification": {
+    "title": "Notificaciones",
+    "smtpConfig": "Servidor de correo (SMTP)",
+    "smtpHost": "Host SMTP",
+    "smtpPort": "Puerto",
+    "smtpUsername": "Usuario",
+    "smtpPassword": "Contraseña",
+    "fromEmail": "Correo remitente",
+    "encryption": "Cifrado",
+    "enableNotification": "Activar",
+    "testEmail": "Enviar correo de prueba",
+    "testEmailSent": "Correo de prueba enviado a",
+    "noRecipientForTest": "Agregue primero un correo destinatario",
+    "notifyRules": "Reglas de notificación",
+    "ruleDeviceOnline": "Dispositivo en línea",
+    "ruleDeviceOnlineDesc": "Enviar notificación cuando un dispositivo se conecta.",
+    "ruleDeviceOffline": "Dispositivo fuera de línea",
+    "ruleDeviceOfflineDesc": "Enviar notificación cuando un dispositivo se desconecta.",
+    "ruleRemoteAccess": "Acceso remoto",
+    "ruleRemoteAccessDesc": "Enviar notificación en acceso remoto SSH, Web o Control.",
+    "recipients": "Correos destinatarios",
+    "recipientPlaceholder": "Ingrese dirección de correo",
+    "addRecipient": "Agregar",
+    "removeRecipientConfirm": "¿Eliminar este destinatario?",
+    "noRecipients": "No se han agregado destinatarios.",
+    "invalidEmail": "Dirección de correo inválida."
   }
 }

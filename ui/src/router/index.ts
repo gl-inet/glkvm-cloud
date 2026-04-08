@@ -102,6 +102,18 @@ const router = createRouter({
                         permission: PermissionEnum.DEVICE_LOG_READ,
                     },
                 },
+                /** 通知设置 (admin only) */
+                {
+                    path: '/notification',
+                    component: () => import('@/views/notification/notificationSettingsPage.vue'),
+                    name: 'notification',
+                    meta: {
+                        menu: true,
+                        title: 'notification.title',
+                        icon: 'gl-icon-bell',
+                        permission: PermissionEnum.NOTIFICATION_READ,
+                    },
+                },
                 /** 个人中心 */
                 {
                     path: '/personal-center',

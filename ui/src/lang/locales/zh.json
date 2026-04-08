@@ -344,5 +344,32 @@
     "ACCOUNT_CANCELLATION_LINK_EXPIRED": "该链接已过期，请重新申请注销。",
     "CLOUD_EMAIL_NOT_MATCH_USER": "邮箱地址跟用户不匹配。",
     "CLOUD_USER_NOT_EXIST": "该用户不存在。"
+  },
+  "notification": {
+    "title": "通知",
+    "smtpConfig": "邮件服务器 (SMTP)",
+    "smtpHost": "SMTP 主机",
+    "smtpPort": "端口",
+    "smtpUsername": "用户名",
+    "smtpPassword": "密码",
+    "fromEmail": "发件人邮箱",
+    "encryption": "加密方式",
+    "enableNotification": "启用",
+    "testEmail": "发送测试邮件",
+    "testEmailSent": "测试邮件已发送至",
+    "noRecipientForTest": "请先添加收件人邮箱",
+    "notifyRules": "通知规则",
+    "ruleDeviceOnline": "设备上线",
+    "ruleDeviceOnlineDesc": "设备上线时发送通知。",
+    "ruleDeviceOffline": "设备下线",
+    "ruleDeviceOfflineDesc": "设备下线时发送通知。",
+    "ruleRemoteAccess": "远程访问",
+    "ruleRemoteAccessDesc": "远程 SSH、Web 或控制访问时发送通知。",
+    "recipients": "收件人邮箱",
+    "recipientPlaceholder": "输入邮箱地址",
+    "addRecipient": "添加",
+    "removeRecipientConfirm": "确认移除该收件人？",
+    "noRecipients": "暂无收件人。",
+    "invalidEmail": "邮箱地址格式不正确。"
   }
 }

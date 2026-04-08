@@ -34,6 +34,7 @@ import (
 	"path"
 	"rttys/internal/domain/device"
 	"rttys/internal/domain/devicelog"
+	"rttys/internal/domain/notification"
 	"rttys/internal/domain/permission"
 	"rttys/internal/domain/user"
 	httpx "rttys/internal/http"
@@ -54,10 +55,11 @@ import (
 )
 
 type AppContainer struct {
-	DB             *sqlite.AppDB
-	DeviceMetaRepo *sqlite.DeviceMetaRepo
-	UserSvc        *user.Service
-	DeviceLogSvc   *devicelog.Service
+	DB              *sqlite.AppDB
+	DeviceMetaRepo  *sqlite.DeviceMetaRepo
+	UserSvc         *user.Service
+	DeviceLogSvc    *devicelog.Service
+	NotificationSvc *notification.Service
 }
 
 var sessionStore *memory.SessionStore
@@ -93,10 +95,12 @@ func InitAppContainer(r *gin.Engine) (*AppContainer, error) {
 	relationsRepo := sqlite.NewRelationsRepo(appDB.Gorm())
 	trustedDeviceRepo := sqlite.NewTrustedDeviceRepo(appDB.Gorm())
 	deviceLogRepo := sqlite.NewDeviceLogRepo(appDB.Gorm())
+	notificationRepo := sqlite.NewNotificationRepo(appDB.Gorm())
 
 	userSvc := user.NewService(userRepo)
 	devSvc := device.NewService(deviceRepo, groupRepo)
 	deviceLogSvc := devicelog.NewService(deviceLogRepo)
+	notificationSvc := notification.NewService(notificationRepo)
 
 	permRepo := memory.NewPermissionRepo() // permissions stay in-memory
 	permSvc := permission.NewService(permRepo)
@@ -112,15 +116,17 @@ func InitAppContainer(r *gin.Engine) (*AppContainer, error) {
 		RelationsRepo:     relationsRepo,
 		TrustedDeviceRepo: trustedDeviceRepo,
 		DeviceLogSvc:      deviceLogSvc,
+		NotificationSvc:   notificationSvc,
 		Cfg:               cfg,
 		CloudVersion:      KVMCloudVersion,
 	})
 
 	c := &AppContainer{
-		DB:             appDB,
-		DeviceMetaRepo: deviceMetaRepo,
-		UserSvc:        userSvc,
-		DeviceLogSvc:   deviceLogSvc,
+		DB:              appDB,
+		DeviceMetaRepo:  deviceMetaRepo,
+		UserSvc:         userSvc,
+		DeviceLogSvc:    deviceLogSvc,
+		NotificationSvc: notificationSvc,
 	}
 	return c, nil
 }
@@ -261,10 +267,11 @@ func (srv *RttyServer) ListenAPI() error {
 	}
 	defer container.DB.Close()
 	sqlite.SetContainer(&sqlite.Container{
-		Gorm:         container.DB.Gorm(),
-		DeviceMeta:   sqlite.NewDeviceMetaRepo(container.DB.Gorm()),
-		DeviceLogSvc: container.DeviceLogSvc,
-		UserSvc:      container.UserSvc,
+		Gorm:            container.DB.Gorm(),
+		DeviceMeta:      sqlite.NewDeviceMetaRepo(container.DB.Gorm()),
+		DeviceLogSvc:    container.DeviceLogSvc,
+		UserSvc:         container.UserSvc,
+		NotificationSvc: container.NotificationSvc,
 	})
 
 	// ===== 添加OIDC路由 =====

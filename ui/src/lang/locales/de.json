@@ -344,5 +344,32 @@
     "ACCOUNT_CANCELLATION_LINK_EXPIRED": "Dieser Link ist abgelaufen. Bitte fordern Sie die Kontolöschung erneut an.",
     "CLOUD_EMAIL_NOT_MATCH_USER": "Die E-Mail-Adresse stimmt nicht mit dem Benutzer überein.",
     "CLOUD_USER_NOT_EXIST": "Der Benutzer existiert nicht."
+  },
+  "notification": {
+    "title": "Benachrichtigungen",
+    "smtpConfig": "E-Mail-Server (SMTP)",
+    "smtpHost": "SMTP-Host",
+    "smtpPort": "Port",
+    "smtpUsername": "Benutzername",
+    "smtpPassword": "Passwort",
+    "fromEmail": "Absender-E-Mail",
+    "encryption": "Verschlüsselung",
+    "enableNotification": "Aktivieren",
+    "testEmail": "Test-E-Mail senden",
+    "testEmailSent": "Test-E-Mail gesendet an",
+    "noRecipientForTest": "Bitte fügen Sie zuerst eine Empfänger-E-Mail hinzu",
+    "notifyRules": "Benachrichtigungsregeln",
+    "ruleDeviceOnline": "Gerät online",
+    "ruleDeviceOnlineDesc": "Benachrichtigung senden, wenn ein Gerät online geht.",
+    "ruleDeviceOffline": "Gerät offline",
+    "ruleDeviceOfflineDesc": "Benachrichtigung senden, wenn ein Gerät offline geht.",
+    "ruleRemoteAccess": "Fernzugriff",
+    "ruleRemoteAccessDesc": "Benachrichtigung bei Remote-SSH-, Web- oder Steuerungszugriff senden.",
+    "recipients": "Empfänger-E-Mails",
+    "recipientPlaceholder": "E-Mail-Adresse eingeben",
+    "addRecipient": "Hinzufügen",
+    "removeRecipientConfirm": "Diesen Empfänger entfernen?",
+    "noRecipients": "Noch keine Empfänger hinzugefügt.",
+    "invalidEmail": "Ungültige E-Mail-Adresse."
   }
 }

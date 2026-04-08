@@ -369,9 +369,15 @@ func httpProxyRedirect(srv *RttyServer, c *gin.Context, group string) {
 			// Non-rtty-go clients use the KVM control UI → remote_control
 			ses.logID = cont.DeviceLogSvc.StartRemoteControlSession(
 				c.Request.Context(), devid, dev.desc, actorID, actorName, c.ClientIP())
+			if cont.NotificationSvc != nil {
+				cont.NotificationSvc.NotifyRemoteAccess("Remote Control", devid, dev.desc, actorName, c.ClientIP())
+			}
 		} else {
 			ses.logID = cont.DeviceLogSvc.StartRemoteWebSession(
 				c.Request.Context(), devid, dev.desc, actorID, actorName, c.ClientIP(), addr, proto)
+			if cont.NotificationSvc != nil {
+				cont.NotificationSvc.NotifyRemoteAccess("Remote Web", devid, dev.desc, actorName, c.ClientIP())
+			}
 		}
 	}
 	ses.Expire()

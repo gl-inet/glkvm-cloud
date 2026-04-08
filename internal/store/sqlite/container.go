@@ -6,14 +6,16 @@ import (
     "gorm.io/gorm"
 
     "rttys/internal/domain/devicelog"
+    "rttys/internal/domain/notification"
     "rttys/internal/domain/user"
 )
 
 type Container struct {
-    Gorm         *gorm.DB
-    DeviceMeta   *DeviceMetaRepo
-    DeviceLogSvc *devicelog.Service
-    UserSvc      *user.Service
+    Gorm            *gorm.DB
+    DeviceMeta      *DeviceMetaRepo
+    DeviceLogSvc    *devicelog.Service
+    UserSvc         *user.Service
+    NotificationSvc *notification.Service
 }
 
 var (

@@ -27,4 +27,8 @@ export enum PermissionEnum {
   RELATION_WRITE = 'relation.write',
   /** 查看设备事件日志 (admin only) */
   DEVICE_LOG_READ = 'device_log.read',
+  /** 查看通知设置 (admin only) */
+  NOTIFICATION_READ = 'notification.read',
+  /** 编辑通知设置 (admin only) */
+  NOTIFICATION_WRITE = 'notification.write',
 }

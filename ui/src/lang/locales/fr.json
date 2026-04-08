@@ -344,5 +344,32 @@
     "ACCOUNT_CANCELLATION_LINK_EXPIRED": "Ce lien a expiré. Veuillez demander à nouveau la suppression du compte.",
     "CLOUD_EMAIL_NOT_MATCH_USER": "L'adresse e-mail ne correspond pas à l'utilisateur.",
     "CLOUD_USER_NOT_EXIST": "L'utilisateur n'existe pas."
+  },
+  "notification": {
+    "title": "Notifications",
+    "smtpConfig": "Serveur de messagerie (SMTP)",
+    "smtpHost": "Hôte SMTP",
+    "smtpPort": "Port",
+    "smtpUsername": "Nom d'utilisateur",
+    "smtpPassword": "Mot de passe",
+    "fromEmail": "E-mail expéditeur",
+    "encryption": "Chiffrement",
+    "enableNotification": "Activer",
+    "testEmail": "Envoyer un e-mail de test",
+    "testEmailSent": "E-mail de test envoyé à",
+    "noRecipientForTest": "Veuillez d'abord ajouter un e-mail destinataire",
+    "notifyRules": "Règles de notification",
+    "ruleDeviceOnline": "Appareil en ligne",
+    "ruleDeviceOnlineDesc": "Envoyer une notification lorsqu'un appareil se connecte.",
+    "ruleDeviceOffline": "Appareil hors ligne",
+    "ruleDeviceOfflineDesc": "Envoyer une notification lorsqu'un appareil se déconnecte.",
+    "ruleRemoteAccess": "Accès distant",
+    "ruleRemoteAccessDesc": "Envoyer une notification lors d'un accès SSH, Web ou contrôle distant.",
+    "recipients": "E-mails destinataires",
+    "recipientPlaceholder": "Entrez l'adresse e-mail",
+    "addRecipient": "Ajouter",
+    "removeRecipientConfirm": "Supprimer ce destinataire ?",
+    "noRecipients": "Aucun destinataire ajouté.",
+    "invalidEmail": "Adresse e-mail invalide."
   }
 }

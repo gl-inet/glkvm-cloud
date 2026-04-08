@@ -105,7 +105,46 @@ func InitSchema(ctx context.Context, db *sql.DB, schemaPath string) error {
     if err := ensureTrustedDevicesTable(ctx, db); err != nil {
         return err
     }
-    return ensureDeviceEventLogsTable(ctx, db)
+    if err := ensureDeviceEventLogsTable(ctx, db); err != nil {
+        return err
+    }
+    return ensureNotificationTables(ctx, db)
+}
+
+func ensureNotificationTables(ctx context.Context, db *sql.DB) error {
+    if db == nil {
+        return nil
+    }
+    if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS notification_smtp_config (
+  id         INTEGER PRIMARY KEY CHECK (id = 1),
+  host       TEXT    NOT NULL DEFAULT '',
+  port       INTEGER NOT NULL DEFAULT 587,
+  username   TEXT    NOT NULL DEFAULT '',
+  password   TEXT    NOT NULL DEFAULT '',
+  from_email TEXT    NOT NULL DEFAULT '',
+  encryption TEXT    NOT NULL DEFAULT 'starttls',
+  enabled    INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL DEFAULT 0
+)`); err != nil {
+        return err
+    }
+    if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS notification_rules (
+  id             INTEGER PRIMARY KEY CHECK (id = 1),
+  device_online  INTEGER NOT NULL DEFAULT 0,
+  device_offline INTEGER NOT NULL DEFAULT 0,
+  remote_access  INTEGER NOT NULL DEFAULT 0,
+  updated_at     INTEGER NOT NULL DEFAULT 0
+)`); err != nil {
+        return err
+    }
+    if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS notification_recipients (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  email      TEXT    NOT NULL UNIQUE,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`); err != nil {
+        return err
+    }
+    return nil
 }
 
 func ensureDeviceClientColumn(ctx context.Context, db *sql.DB) error {
