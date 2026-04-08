@@ -23,12 +23,18 @@
 import useLanguage from './hooks/useLanguage'
 import enUS from 'ant-design-vue/es/locale/en_US'
 import zhCN from 'ant-design-vue/es/locale/zh_CN'
+import jaJP from 'ant-design-vue/es/locale/ja_JP'
+import koKR from 'ant-design-vue/es/locale/ko_KR'
+import deDE from 'ant-design-vue/es/locale/de_DE'
+import frFR from 'ant-design-vue/es/locale/fr_FR'
+import esES from 'ant-design-vue/es/locale/es_ES'
 import { computed } from 'vue'
 import { useAppStore } from './stores/modules/app'
 import { RouterView } from 'vue-router'
 import type { ThemeConfig } from 'ant-design-vue/es/config-provider/context'
 import { ConfigProvider as GlConfigProvider } from 'gl-web-main/components'
 import { Languages } from 'gl-web-main'
+import { AppLanguages } from './models/setting'
 
 const appStore = useAppStore()
 
@@ -39,6 +45,11 @@ const { currentLang } = useLanguage()
 const localeMap = new Map([
     [Languages.ZH, zhCN],
     [Languages.EN, enUS],
+    [AppLanguages.JA, jaJP],
+    [AppLanguages.KO, koKR],
+    [AppLanguages.DE, deDE],
+    [AppLanguages.FR, frFR],
+    [AppLanguages.ES, esES],
 ])
 
 // ant d的语言包

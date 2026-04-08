@@ -54,7 +54,8 @@
 
 <script setup lang="ts">
 import useLanguage from '@/hooks/useLanguage'
-import { languageOptions, Languages } from 'gl-web-main'
+import { languageOptions } from '@/models/setting'
+import { Languages } from 'gl-web-main'
 import { BaseDropdownSelect } from 'gl-web-main/components'
 import { isForeignEnv } from '@/utils'
 import { useAppStore } from '@/stores/modules/app'

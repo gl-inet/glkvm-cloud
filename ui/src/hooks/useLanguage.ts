@@ -8,7 +8,7 @@
  */
 
 import i18n from '@/lang'
-import { languageLabelMap } from '@/models/setting'
+import { languageLabelMap, AppLanguages } from '@/models/setting'
 import { computed } from 'vue'
 import { LocalStorageKeys, useLocalStorage } from './useLocalStorage'
 import { Languages } from 'gl-web-main'
@@ -16,10 +16,13 @@ import { Languages } from 'gl-web-main'
 export default function useLanguage () {
     // @ts-ignore
     const browserLanguage = navigator.language || navigator.userLanguage || navigator.browserLanguage || ''
-    // 判断是否为中文
-    const isZhBrowser = browserLanguage.startsWith('zh') || browserLanguage.startsWith('ZH')
+    const langPrefix = browserLanguage.split('-')[0].toLowerCase()
 
-    const {getValue, setValue} = useLocalStorage(LocalStorageKeys.STORAGE_LANGUAGE_KEY, isZhBrowser ? Languages.ZH : Languages.EN)
+    // 根据浏览器语言推断默认语言
+    const allLangs = Object.values(AppLanguages) as string[]
+    const defaultLang = allLangs.includes(langPrefix) ? langPrefix as Languages : Languages.EN
+
+    const {getValue, setValue} = useLocalStorage(LocalStorageKeys.STORAGE_LANGUAGE_KEY, defaultLang)
 
     const currentLang = computed(() => i18n.global.locale.value as Languages)
 

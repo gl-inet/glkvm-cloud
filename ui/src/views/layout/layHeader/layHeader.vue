@@ -28,6 +28,12 @@
                     <BaseSvg name="gl-icon-help" :size="24" />
                 </a>
             </ATooltip>
+            <!-- 语言切换 -->
+            <BaseDropdownSelect :value="currentLang" :options="languageOptions" @update:value="changeLang">
+                <div class="language-box icon-area">
+                    <BaseSvg name="gl-icon-language-regular" :size="20" />
+                </div>
+            </BaseDropdownSelect>
             <!-- 竖线 -->
             <div class="vertical-line" />
 
@@ -86,10 +92,19 @@ import { useUserStore } from '@/stores/modules/user'
 import { getUserAvatarInitials } from '@/utils/user'
 import { BaseTag } from 'gl-web-main/components'
 import { useRouter } from 'vue-router'
+import useLanguage from '@/hooks/useLanguage'
+import { languageOptions } from '@/models/setting'
+import { Languages } from 'gl-web-main'
+import { BaseDropdownSelect } from 'gl-web-main/components'
 
 const userStore = useUserStore()
 const appStore = useAppStore()
 const router = useRouter()
+const { currentLang } = useLanguage()
+
+const changeLang = (key: Languages) => {
+    useLanguage().setLanguage(key)
+}
 
 const goPersonalCenter = () => {
     router.push({ path: '/personal-center' })
