@@ -104,7 +104,7 @@ const state = reactive({
 const isLocalUser = computed(() => props.profile?.authProvider === AuthProviderEnum.LOCAL)
 
 const trustedColumns = computed(() => [
-    { title: t('personalCenter.deviceName'), dataIndex: 'deviceName', ellipsis: true },
+    { title: t('personalCenter.deviceName'), dataIndex: 'deviceName', width: 200, ellipsis: true },
     { title: t('personalCenter.ipAddress'), dataIndex: 'ip', width: 160 },
     { title: t('personalCenter.lastUsed'), dataIndex: 'lastUsedAt', width: 180 },
     { title: t('personalCenter.expiresAt'), dataIndex: 'expiresAt', width: 180 },

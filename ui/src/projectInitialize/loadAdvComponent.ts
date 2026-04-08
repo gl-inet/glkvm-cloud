@@ -26,6 +26,7 @@ import {
     Tabs,
     Radio,
     Popover,
+    Popconfirm,
     DatePicker,
 } from 'ant-design-vue'
 
@@ -49,5 +50,6 @@ export default function (app: any) {
     app.use(Tabs)
     app.use(Radio)
     app.use(Popover)
+    app.use(Popconfirm)
     app.use(DatePicker)
 }
