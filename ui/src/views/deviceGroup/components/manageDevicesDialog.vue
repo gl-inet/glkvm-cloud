@@ -66,7 +66,8 @@
 
 <script setup lang="ts">
 import { computed, h, reactive, watch } from 'vue'
-import { BaseInfo, BaseModal } from 'gl-web-main/components'
+import { BaseInfo } from 'gl-web-main/components'
+import BaseModal from '@/components/base/baseModalI18n.vue'
 import { baseCustomModal, macAddressFormatter, PageLink } from 'gl-web-main'
 import { t } from '@/hooks/useLanguage'
 import { message, TableColumnType } from 'ant-design-vue'

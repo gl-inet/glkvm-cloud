@@ -44,7 +44,7 @@ import '@xterm/xterm/css/xterm.css'
 import OverlayAddon from './components/xterm-addon-overlay'
 import ContextMenu from './components/contextMenu.vue'
 import RttyKeyboard from './components/rttyKeyboard.vue'
-import { BaseModal } from 'gl-web-main/components'
+import BaseModal from '@/components/base/baseModalI18n.vue'
 import { message, Modal } from 'ant-design-vue'
 import { t } from '@/hooks/useLanguage'
 

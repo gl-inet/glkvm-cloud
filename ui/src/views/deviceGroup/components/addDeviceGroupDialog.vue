@@ -96,7 +96,8 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import { BaseInfo, BaseModal } from 'gl-web-main/components'
+import { BaseInfo } from 'gl-web-main/components'
+import BaseModal from '@/components/base/baseModalI18n.vue'
 import { FormRules, macAddressFormatter, OnBeforeOk } from 'gl-web-main'
 import { t } from '@/hooks/useLanguage'
 import { FormInstance, TableColumnType } from 'ant-design-vue'

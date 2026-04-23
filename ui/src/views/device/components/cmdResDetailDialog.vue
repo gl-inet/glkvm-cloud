@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { BaseModal } from 'gl-web-main/components'
+import BaseModal from '@/components/base/baseModalI18n.vue'
 
 const props = defineProps<{ open: boolean, type: string, res: any }>()
 

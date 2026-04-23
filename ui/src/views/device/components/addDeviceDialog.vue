@@ -41,7 +41,8 @@
 
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue'
-import { BaseInfo, BaseModal, BaseRadioButtonsCompact } from 'gl-web-main/components'
+import { BaseInfo, BaseRadioButtonsCompact } from 'gl-web-main/components'
+import BaseModal from '@/components/base/baseModalI18n.vue'
 import { getAddDeviceScriptInfoApi } from '@/api/device'
 import { copyText } from 'gl-web-main'
 import { message } from 'ant-design-vue'
@@ -191,10 +192,10 @@ esac
 exit 0
 EOF
 
-# 4. Add execution permissions
+# 5. Add execution permissions
 chmod +x "$SCRIPT_FILE"
 
-# 5. Execute restart once
+# 6. Execute restart once
 "$SCRIPT_FILE" restart
 
 `

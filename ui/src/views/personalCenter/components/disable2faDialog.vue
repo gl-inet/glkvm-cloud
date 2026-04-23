@@ -33,7 +33,7 @@
 
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue'
-import { BaseModal } from 'gl-web-main/components'
+import BaseModal from '@/components/base/baseModalI18n.vue'
 import { FormRules, OnBeforeOk } from 'gl-web-main'
 import { FormInstance } from 'ant-design-vue'
 import { reqDisable2fa } from '@/api/personal'

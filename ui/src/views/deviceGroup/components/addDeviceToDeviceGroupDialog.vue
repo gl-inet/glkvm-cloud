@@ -69,7 +69,8 @@
 
 <script setup lang="ts">
 import { computed, h, reactive, watch } from 'vue'
-import { BaseInfo, BaseModal } from 'gl-web-main/components'
+import { BaseInfo } from 'gl-web-main/components'
+import BaseModal from '@/components/base/baseModalI18n.vue'
 import { baseCustomModal, macAddressFormatter, OnBeforeOk } from 'gl-web-main'
 import BaseLoadingContainer from '@/components/base/baseLoadingContainer.vue'
 import { useDeviceStore } from '@/stores/modules/device'
