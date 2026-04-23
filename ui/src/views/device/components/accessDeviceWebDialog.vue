@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import BaseModal from '@/components/base/baseModalI18n.vue'
 import { FormRules, OnBeforeOk } from 'gl-web-main'
 import { t } from '@/hooks/useLanguage'
@@ -65,7 +65,7 @@ const state = reactive({
 })
 
 /** 表单验证 */
-const formRules: FormRules = {
+const formRules = computed<FormRules>(() => ({
     ip: [{
         trigger: 'blur',
         validator: async (_: any, value: string) =>  {
@@ -86,7 +86,7 @@ const formRules: FormRules = {
             return Promise.reject(t('device.portNotCorrect'))
         },
     }],
-}
+}))
 /** 提交 */
 const handleApply: OnBeforeOk = (done) => {
     formRef.value.validate().then(() => {

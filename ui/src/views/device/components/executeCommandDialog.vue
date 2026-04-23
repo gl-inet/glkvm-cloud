@@ -63,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import BaseModal from '@/components/base/baseModalI18n.vue'
 import { FormRules, OnBeforeOk, useValidateInfo } from 'gl-web-main'
 import { t } from '@/hooks/useLanguage'
@@ -91,10 +91,10 @@ const state = reactive<{formData: ExecuteCommandFormData}>({
 })
 
 /** 表单验证 */
-const formRules: FormRules = {
+const formRules = computed<FormRules>(() => ({
     username: [{ required: true, message: t('device.requiredUsername'), trigger: 'change' }],
     cmd: [{ required: true, message: t('device.requiredCommand'), trigger: 'change' }],
-}
+}))
 
 /** 提交 */
 const handleApply: OnBeforeOk = (done) => {

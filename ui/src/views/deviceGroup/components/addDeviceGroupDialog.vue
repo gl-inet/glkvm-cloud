@@ -132,11 +132,11 @@ const state = reactive({
 })
 
 /** 表单验证 */
-const formRules: FormRules = {
+const formRules = computed<FormRules>(() => ({
     name: [
         { required: true, message: t('device.requiredDeviceGroupName'), trigger: 'change' },
     ],
-}
+}))
 
 /** 获取用户组下拉选项 */
 const getUserGroupListOptions = async () => {

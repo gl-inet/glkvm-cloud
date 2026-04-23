@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import BaseModal from '@/components/base/baseModalI18n.vue'
 import { FormRules, OnBeforeOk } from 'gl-web-main'
 import { FormInstance } from 'ant-design-vue'
@@ -54,12 +54,12 @@ const state = reactive({
     },
 })
 
-const formRules: FormRules = {
+const formRules = computed<FormRules>(() => ({
     code: [
         { required: true, message: t('personalCenter.enterVerifyCode'), trigger: 'change' },
         { len: 6, message: t('personalCenter.enterVerifyCode'), trigger: 'change' },
     ],
-}
+}))
 
 watch(() => props.open, (open) => {
     if (open) state.formData.code = ''

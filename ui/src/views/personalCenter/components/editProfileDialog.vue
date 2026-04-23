@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import BaseModal from '@/components/base/baseModalI18n.vue'
 import { FormRules, OnBeforeOk } from 'gl-web-main'
 import { FormInstance, message } from 'ant-design-vue'
@@ -54,11 +54,11 @@ const state = reactive({
     },
 })
 
-const formRules: FormRules = {
+const formRules = computed<FormRules>(() => ({
     displayName: [
         { max: 200, message: t('common.maxLength', { length: 200 }), trigger: 'change' },
     ],
-}
+}))
 
 watch(() => props.open, (open) => {
     if (open) {

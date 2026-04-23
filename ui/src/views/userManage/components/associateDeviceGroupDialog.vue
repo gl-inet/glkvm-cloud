@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { BaseInfo } from 'gl-web-main/components'
 import BaseModal from '@/components/base/baseModalI18n.vue'
 import { FormRules, OnBeforeOk } from 'gl-web-main'
@@ -67,11 +67,11 @@ const state = reactive({
 })
 
 /** 表单验证 */
-const formRules: FormRules = {
+const formRules = computed<FormRules>(() => ({
     deviceGroupIds: [
         { required: true, message: t('device.requiredDeviceGroup'), trigger: 'change' },
     ],
-}
+}))
 
 const getDeviceGroupListOptions = async () => {
     const res = await reqDeviceGroupListOptions()

@@ -38,4 +38,5 @@ export default function useLanguage () {
     return {currentLang, setLanguage, isZh, t: i18n.global.t, currentLangLabel}
 }
 
-export const t = i18n.global.t
+export const t = ((...args: any[]) =>
+    (i18n.global.t as any)(...args)) as typeof i18n.global.t
