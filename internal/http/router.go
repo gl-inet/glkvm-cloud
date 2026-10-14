@@ -71,8 +71,8 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
     api := r.Group("/api")
     api.Use(middleware.Auth(d.SessionStore, d.UserSvc, d.PermSvc))
 
-    // device script info (requires login)
-    api.GET("/script-info", func(c *gin.Context) {
+    // device script info (admin only: it returns the device token and TURN credentials)
+    api.GET("/script-info", middleware.Require(permission.DeviceWrite), func(c *gin.Context) {
         traceID := middleware.GetTraceID(c)
 
         // Get domain info
