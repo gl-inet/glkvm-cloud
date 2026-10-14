@@ -201,11 +201,8 @@ func (srv *RttyServer) ListenAPI() error {
 		r.Use(cors.Default())
 	}
 
-	// The device control plane below always requires a login session. These two
-	// settings used to open it without one; they no longer do.
-	if cfg.Password == "" {
-		log.Warn().Msg("password is empty: the built-in admin cannot log in; set 'password' (RTTYS_PASS)")
-	}
+	// The device control plane below always requires a login session; local-auth
+	// used to open it without one for loopback callers, and no longer does.
 	if !cfg.LocalAuth {
 		log.Warn().Msg("local-auth=false is ignored: local requests also require a login session")
 	}

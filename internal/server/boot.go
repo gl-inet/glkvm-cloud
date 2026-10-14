@@ -2,6 +2,7 @@ package server
 
 import (
     "encoding/json"
+    "fmt"
     "os"
     "runtime"
 
@@ -40,6 +41,12 @@ func RunFromEnv() error {
     }
 
     xlog.SetPath(cfg.LogPath)
+
+    // Logging is set up first: the file hook has no path before SetPath, so an
+    // earlier Fatal would be reported as a failed log write instead of this.
+    if cfg.Password == "" {
+        return fmt.Errorf("password is not set: set 'password' in the config file or RTTYS_PASS")
+    }
 
     switch cfg.LogLevel {
     case "debug":
