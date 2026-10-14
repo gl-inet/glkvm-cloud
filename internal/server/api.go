@@ -34,6 +34,7 @@ import (
 	"path"
 	"rttys/internal/domain/device"
 	"rttys/internal/domain/devicelog"
+	"rttys/internal/domain/identity"
 	"rttys/internal/domain/notification"
 	"rttys/internal/domain/permission"
 	"rttys/internal/domain/user"
@@ -200,11 +201,16 @@ func (srv *RttyServer) ListenAPI() error {
 		r.Use(cors.Default())
 	}
 
-	authorized := r.Group("/", func(c *gin.Context) {
-		if !cfg.LocalAuth && isLocalRequest(c) {
-			return
-		}
+	// The device control plane below always requires a login session. These two
+	// settings used to open it without one; they no longer do.
+	if cfg.Password == "" {
+		log.Warn().Msg("password is empty: the built-in admin cannot log in; set 'password' (RTTYS_PASS)")
+	}
+	if !cfg.LocalAuth {
+		log.Warn().Msg("local-auth=false is ignored: local requests also require a login session")
+	}
 
+	authorized := r.Group("/", func(c *gin.Context) {
 		if !httpAuth(cfg, c) {
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
@@ -212,6 +218,11 @@ func (srv *RttyServer) ListenAPI() error {
 	})
 
 	authorized.GET("/connect/:devid", func(c *gin.Context) {
+		if !canAccessDevice(c, c.Param("devid")) {
+			forbidDeviceAccess(c)
+			return
+		}
+
 		if !callUserHookUrl(cfg, c) {
 			c.Status(http.StatusForbidden)
 			return
@@ -238,6 +249,14 @@ func (srv *RttyServer) ListenAPI() error {
 	})
 
 	authorized.POST("/cmd/:devid", func(c *gin.Context) {
+		if !canAccessDevice(c, c.Param("devid")) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"err": rttyCmdErrForbidden,
+				"msg": cmdErrMsg[rttyCmdErrForbidden],
+			})
+			return
+		}
+
 		if !callUserHookUrl(cfg, c) {
 			c.Status(http.StatusForbidden)
 			return
@@ -261,6 +280,11 @@ func (srv *RttyServer) ListenAPI() error {
 	})
 
 	authorized.Any("/web/:devid/:proto/:addr/*path", func(c *gin.Context) {
+		if !canAccessDevice(c, c.Param("devid")) {
+			forbidDeviceAccess(c)
+			return
+		}
+
 		httpProxyRedirect(srv, c, "")
 	})
 
@@ -400,21 +424,10 @@ func callUserHookUrl(cfg *xconfig.Config, c *gin.Context) bool {
 	return true
 }
 
-func isLocalRequest(c *gin.Context) bool {
-	addr, _ := net.ResolveTCPAddr("tcp", c.Request.RemoteAddr)
-	return addr.IP.IsLoopback()
-}
-
-func httpAuth(cfg *xconfig.Config, c *gin.Context) bool {
-	if !cfg.LocalAuth && isLocalRequest(c) {
-		return true
-	}
-
-	// Keep legacy behavior: if password is not set, no auth required
-	if cfg.Password == "" {
-		return true
-	}
-
+// httpAuth gates the device control plane (/connect, /cmd, /web): a valid login
+// session is always required. The legacy "empty password" and "local-auth off +
+// loopback" shortcuts were removed -- they skipped authentication entirely.
+func httpAuth(_ *xconfig.Config, c *gin.Context) bool {
 	sid, err := c.Cookie("sid")
 	if err != nil || strings.TrimSpace(sid) == "" {
 		return false
@@ -426,32 +439,98 @@ func httpAuth(cfg *xconfig.Config, c *gin.Context) bool {
 	return ok
 }
 
+// userIDFromCtx returns the logged-in user's id from the session cookie, or 0
+// when no session can be resolved. Session state is in memory, so no DB lookup.
+func userIDFromCtx(c *gin.Context) int64 {
+	if c == nil || c.Request == nil || sessionStore == nil {
+		return 0
+	}
+	sid, err := c.Cookie("sid")
+	if err != nil {
+		return 0
+	}
+	sid = strings.TrimSpace(sid)
+	if sid == "" {
+		return 0
+	}
+	sess, ok := sessionStore.Get(sid)
+	if !ok {
+		return 0
+	}
+	return sess.UserID
+}
+
 // principalFromCtx best-effort extracts the logged-in user (id + username)
 // from the request, used for tagging device-event logs. Returns (0, "")
 // when no session can be resolved. Never blocks the calling path.
 func principalFromCtx(c *gin.Context) (int64, string) {
-	if c == nil || c.Request == nil || sessionStore == nil {
-		return 0, ""
-	}
-	sid, err := c.Cookie("sid")
-	if err != nil {
-		return 0, ""
-	}
-	sid = strings.TrimSpace(sid)
-	if sid == "" {
-		return 0, ""
-	}
-	sess, ok := sessionStore.Get(sid)
-	if !ok {
+	uid := userIDFromCtx(c)
+	if uid == 0 {
 		return 0, ""
 	}
 	cont := sqlite.TryContainer()
 	if cont == nil || cont.UserSvc == nil {
-		return sess.UserID, ""
+		return uid, ""
 	}
-	u, err := cont.UserSvc.FindByID(c.Request.Context(), sess.UserID)
+	u, err := cont.UserSvc.FindByID(c.Request.Context(), uid)
 	if err != nil || u == nil {
-		return sess.UserID, ""
+		return uid, ""
 	}
-	return sess.UserID, u.Username
+	return uid, u.Username
+}
+
+// canAccessDevice reports whether the logged-in user may use the device control
+// endpoints (/connect, /cmd, /web) on devid. httpAuth only proves a session
+// exists; this applies the same visibility rule as the device list:
+//   - admin        -> every device
+//   - regular user -> only devices in a device group linked to one of its user
+//     groups (user_group_members -> user_group_device_group_links -> devices)
+//
+// Ungrouped devices therefore stay admin-only. Fails closed on any error.
+func canAccessDevice(c *gin.Context, devid string) bool {
+	devid = strings.TrimSpace(devid)
+	if devid == "" {
+		return false
+	}
+
+	uid := userIDFromCtx(c)
+	if uid == 0 {
+		return false
+	}
+
+	cont := sqlite.TryContainer()
+	if cont == nil || cont.Gorm == nil || cont.UserSvc == nil {
+		return false
+	}
+
+	// GetByID rejects disabled accounts, same as the /api auth middleware.
+	u, err := cont.UserSvc.GetByID(c.Request.Context(), uid)
+	if err != nil || u == nil {
+		return false
+	}
+	if u.Role == identity.RoleAdmin {
+		return true
+	}
+
+	var n int64
+	err = cont.Gorm.WithContext(c.Request.Context()).Raw(
+		`SELECT COUNT(1)
+		   FROM devices d
+		   JOIN user_group_device_group_links l ON l.device_group_id = d.device_group_id
+		   JOIN user_group_members m ON m.group_id = l.user_group_id
+		  WHERE d.ddns = ? AND m.user_id = ?`,
+		devid, uid,
+	).Scan(&n).Error
+	return err == nil && n > 0
+}
+
+// forbidDeviceAccess rejects a control request for a device the caller may not
+// access: browser navigations get the HTML error page, WebSocket upgrades a bare 403.
+func forbidDeviceAccess(c *gin.Context) {
+	if c.GetHeader("Upgrade") == "websocket" {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+	c.Data(http.StatusForbidden, "text/html; charset=utf-8", []byte(generateErrorHTML("unauthorized")))
+	c.Abort()
 }

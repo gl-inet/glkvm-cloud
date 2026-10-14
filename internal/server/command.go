@@ -61,15 +61,17 @@ type CommandRespInfo struct {
 }
 
 const (
-	rttyCmdErrInvalid = 1001
-	rttyCmdErrOffline = 1002
-	rttyCmdErrTimeout = 1003
+	rttyCmdErrInvalid   = 1001
+	rttyCmdErrOffline   = 1002
+	rttyCmdErrTimeout   = 1003
+	rttyCmdErrForbidden = 1004
 )
 
 var cmdErrMsg = map[int]string{
-	rttyCmdErrInvalid: "invalid format",
-	rttyCmdErrOffline: "device offline",
-	rttyCmdErrTimeout: "timeout",
+	rttyCmdErrInvalid:   "invalid format",
+	rttyCmdErrOffline:   "device offline",
+	rttyCmdErrTimeout:   "timeout",
+	rttyCmdErrForbidden: "permission denied",
 }
 
 func (dev *Device) handleCmdReq(c *gin.Context, info *CommandReqInfo) {
