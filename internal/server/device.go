@@ -418,12 +418,14 @@ func (dev *Device) WriteFileMsg(typ byte, sid string, fileType byte, data []byte
 func (dev *Device) Close(srv *RttyServer) {
 	dev.close.Do(func() {
 		log.Error().Msgf("device '%s' disconnected", dev.id)
-		srv.DelDevice(dev)
+		removed := srv.DelDevice(dev)
 		// Only emit an offline event for devices that actually came online.
 		// A connection that failed registration (bad token, empty MAC, proto
 		// too low, hook failure, id conflict) never recorded an online event,
 		// so recording offline here would produce orphan rows on every retry.
-		if dev.id != "" && dev.registered.Load() {
+		// A connection taken over by a newer one of the same device is no
+		// longer registered, and the device stays online.
+		if removed && dev.id != "" && dev.registered.Load() {
 			_ = legacy.MarkDeviceOffline(dev.id)
 			if c := sqlite.TryContainer(); c != nil && c.DeviceLogSvc != nil {
 				c.DeviceLogSvc.RecordDeviceOffline(context.Background(), dev.id, dev.desc, "")
@@ -536,7 +538,19 @@ func (dev *Device) Register(srv *RttyServer) byte {
 		}
 	}
 
-	if !srv.AddDevice(dev) {
+	if dev.certMAC != "" {
+		// The factory certificate proves who the device is and the whitelist
+		// pins its ID to that certificate, so whatever holds the ID is the
+		// device's own stale link or a token connection, which proves nothing.
+		// Take it over rather than make the device wait for it to time out.
+		if old := srv.ReplaceDevice(dev); old != nil {
+			log.Info().Str("devid", dev.id).Str("from", remoteIP(old.conn)).Str("to", remoteIP(dev.conn)).
+				Msg("mtls: device took over its existing connection")
+			old.Close(srv)
+			dev.registered.Store(true)
+			return 0 // seamless: the device never went offline
+		}
+	} else if !srv.AddDevice(dev) {
 		return devRegErrIdConflicting
 	}
 

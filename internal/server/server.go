@@ -153,20 +153,41 @@ func (srv *RttyServer) AddDevice(dev *Device) bool {
     return true
 }
 
-func (srv *RttyServer) DelDevice(dev *Device) {
+// ReplaceDevice registers dev, displacing the device already registered under
+// its ID, which it returns (nil if there was none). The caller closes the
+// displaced device, whose Close then leaves the device online.
+func (srv *RttyServer) ReplaceDevice(dev *Device) *Device {
+    srv.mu.Lock()
+    defer srv.mu.Unlock()
+
+    g := srv.GetGroup(dev.group, true)
+
+    prev, loaded := g.devices.Swap(dev.id, dev)
+    if !loaded {
+        g.count.Add(1)
+        return nil
+    }
+
+    return prev.(*Device)
+}
+
+// DelDevice removes dev and reports whether it was still the device registered
+// under its ID; one displaced by ReplaceDevice is not.
+func (srv *RttyServer) DelDevice(dev *Device) bool {
     srv.mu.Lock()
     defer srv.mu.Unlock()
 
     g := srv.GetGroup(dev.group, false)
     if g == nil {
-        return
+        return false
     }
 
-    if deleted := g.devices.CompareAndDelete(dev.id, dev); deleted {
-        if g.count.Add(-1) == 0 {
-            srv.groups.Delete(dev.group)
-        }
+    deleted := g.devices.CompareAndDelete(dev.id, dev)
+    if deleted && g.count.Add(-1) == 0 {
+        srv.groups.Delete(dev.group)
     }
+
+    return deleted
 }
 
 // DisconnectDevice drops a device's connection; the terminal and web proxy

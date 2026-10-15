@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"math/big"
 	"net"
@@ -83,6 +84,11 @@ type mtlsFixture struct {
 
 func newMTLSFixture(t *testing.T, factory *testCA) *mtlsFixture {
 	t.Helper()
+	return newMTLSFixtureWith(t, factory, xconfig.Config{})
+}
+
+func newMTLSFixtureWith(t *testing.T, factory *testCA, cfg xconfig.Config) *mtlsFixture {
+	t.Helper()
 	dir := t.TempDir()
 	discardLogFile()
 	ctx := context.Background()
@@ -122,7 +128,7 @@ func newMTLSFixture(t *testing.T, factory *testCA) *mtlsFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv := New(xconfig.Config{})
+	srv := New(cfg)
 	go srv.serveDevicesMTLS(tls.NewListener(ln, deviceTLSConfig(serverCert, factory.pool())))
 
 	t.Cleanup(func() {
@@ -162,6 +168,12 @@ func (f *mtlsFixture) register(cert tls.Certificate, devid, mac, code string) (b
 	if err != nil {
 		return 0, nil, err
 	}
+	return sendRegister(conn, devid, mac, code)
+}
+
+// sendRegister sends an rtty register frame on conn and returns the server's
+// register code, leaving the connection open (closed on error).
+func sendRegister(conn net.Conn, devid, mac, code string) (byte, net.Conn, error) {
 	payload := []byte{5} // proto 5, TLV attributes
 	payload = append(payload, tlv(msgRegAttrDevid, devid)...)
 	payload = append(payload, tlv(msgRegAttrDescription, mac)...)
@@ -175,18 +187,27 @@ func (f *mtlsFixture) register(cert tls.Certificate, devid, mac, code string) (b
 		return 0, nil, err
 	}
 
-	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
-	if _, err := io.ReadFull(conn, head); err != nil {
+	typ, resp, err := readFrame(conn)
+	if err != nil || typ != msgTypeRegister || len(resp) == 0 {
 		conn.Close()
-		return 0, nil, err
+		return 0, nil, fmt.Errorf("register reply: type %d, %v", typ, err)
 	}
-	resp := make([]byte, binary.BigEndian.Uint16(head[1:]))
-	if _, err := io.ReadFull(conn, resp); err != nil {
-		conn.Close()
-		return 0, nil, err
-	}
-	conn.SetReadDeadline(time.Time{})
 	return resp[0], conn, nil
+}
+
+// readFrame reads one rtty frame, waiting at most 5 seconds.
+func readFrame(conn net.Conn) (byte, []byte, error) {
+	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	defer conn.SetReadDeadline(time.Time{})
+	head := make([]byte, 3)
+	if _, err := io.ReadFull(conn, head); err != nil {
+		return 0, nil, err
+	}
+	data := make([]byte, binary.BigEndian.Uint16(head[1:]))
+	if _, err := io.ReadFull(conn, data); err != nil {
+		return 0, nil, err
+	}
+	return head[0], data, nil
 }
 
 // closeAndWait closes a registered device's connection and waits until the
