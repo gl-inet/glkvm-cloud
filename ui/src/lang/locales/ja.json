@@ -218,7 +218,8 @@
     "deleteOnlyOneAdminTips": "削除できません：システム最後の管理者です。",
     "myGroup": "マイグループ",
     "userRoleDesc": "管理者はすべてのデバイスを閲覧できますが、一般ユーザーはユーザーグループに関連付けられたデバイスグループ内のデバイスのみ閲覧できます",
-    "userType": "ユーザータイプ"
+    "userType": "ユーザータイプ",
+    "roleOperator": "オペレーター"
   },
   "deviceLog": {
     "title": "ログ",

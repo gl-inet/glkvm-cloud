@@ -218,7 +218,8 @@
     "deleteOnlyOneAdminTips": "삭제할 수 없습니다: 시스템에 관리자가 한 명만 남아 있습니다.",
     "myGroup": "내 그룹",
     "userRoleDesc": "관리자는 모든 기기를 볼 수 있으며, 일반 사용자는 사용자 그룹에 연결된 기기 그룹의 기기만 볼 수 있습니다",
-    "userType": "사용자 유형"
+    "userType": "사용자 유형",
+    "roleOperator": "운영자"
   },
   "deviceLog": {
     "title": "로그",

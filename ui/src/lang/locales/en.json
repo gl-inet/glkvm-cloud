@@ -218,7 +218,8 @@
     "deleteOnlyOneAdminTips": "Cannot delete: Only system admin left.",
     "myGroup": "My Group",
     "userRoleDesc": "Administrators can view all devices, while ordinary users can only see the devices in the device group associated with the user group",
-    "userType": "User Type"
+    "userType": "User Type",
+    "roleOperator": "Operator"
   },
   "deviceLog": {
     "title": "Logs",

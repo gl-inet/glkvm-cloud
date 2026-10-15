@@ -218,7 +218,8 @@
     "deleteOnlyOneAdminTips": "Löschen nicht möglich: Letzter Systemadministrator.",
     "myGroup": "Meine Gruppe",
     "userRoleDesc": "Administratoren können alle Geräte sehen, während normale Benutzer nur die Geräte in der Gerätegruppe sehen können, die der Benutzergruppe zugeordnet ist",
-    "userType": "Benutzertyp"
+    "userType": "Benutzertyp",
+    "roleOperator": "Operator"
   },
   "deviceLog": {
     "title": "Protokolle",

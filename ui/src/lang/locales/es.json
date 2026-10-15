@@ -218,7 +218,8 @@
     "deleteOnlyOneAdminTips": "No se puede eliminar: es el último administrador del sistema.",
     "myGroup": "Mi grupo",
     "userRoleDesc": "Los administradores pueden ver todos los dispositivos, mientras que los usuarios comunes solo pueden ver los dispositivos del grupo de dispositivos asociado al grupo de usuarios",
-    "userType": "Tipo de usuario"
+    "userType": "Tipo de usuario",
+    "roleOperator": "Operador"
   },
   "deviceLog": {
     "title": "Registros",

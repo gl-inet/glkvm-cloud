@@ -218,7 +218,8 @@
     "deleteOnlyOneAdminTips": "Suppression impossible : dernier administrateur système restant.",
     "myGroup": "Mon groupe",
     "userRoleDesc": "Les administrateurs peuvent voir tous les appareils, tandis que les utilisateurs ordinaires ne peuvent voir que les appareils du groupe d'appareils associé à leur groupe d'utilisateurs",
-    "userType": "Type d'utilisateur"
+    "userType": "Type d'utilisateur",
+    "roleOperator": "Opérateur"
   },
   "deviceLog": {
     "title": "Journaux",

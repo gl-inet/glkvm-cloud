@@ -218,7 +218,8 @@
     "deleteOnlyOneAdminTips": "无法删除：只剩一个系统管理员了。",
     "myGroup": "我的用户组",
     "userRoleDesc": "管理员可以看到所有设备，普通用户只能看到用户组关联设备组的设备",
-    "userType": "用户类型"
+    "userType": "用户类型",
+    "roleOperator": "运维员"
   },
   "deviceLog": {
     "title": "日志",

@@ -19,7 +19,9 @@ export enum UserRoleEnum {
 
 export const UserRoleLabelMap = new Map([
     [UserRoleEnum.ADMIN, 'user.admin'],
-    [UserRoleEnum.USER, 'user.user'],
+    // The role is shown as "operator": regular accounts here operate the
+    // devices of their groups. 'user.user' stays the generic word for accounts.
+    [UserRoleEnum.USER, 'user.roleOperator'],
 ])
 
 export enum AuthProviderEnum {
