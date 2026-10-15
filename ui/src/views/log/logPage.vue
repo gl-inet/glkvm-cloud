@@ -57,6 +57,9 @@
                                             {{ eventTypeLabel(record.eventType) }}
                                         </BaseTag>
                                     </template>
+                                    <template #actorName="{ record }">
+                                        <span>{{ record.actorName || '-' }}</span>
+                                    </template>
                                 </BaseTable>
                             </div>
                         </a-tab-pane>
@@ -128,7 +131,7 @@ import { reqListDeviceEventLogs, type DeviceEventLog } from '@/api/deviceLog'
 type TabKey = 'device' | 'access'
 
 const TAB_TYPES: Record<TabKey, string[]> = {
-    device: ['device_online', 'device_offline'],
+    device: ['device_online', 'device_offline', 'device_joined', 'device_removed'],
     access: ['remote_ssh', 'remote_web', 'remote_control'],
 }
 
@@ -160,6 +163,7 @@ const deviceColumns = computed<TableColumnType[]>(() => [
     { title: t('deviceLog.createTime'), dataIndex: 'createdAt' },
     { title: t('deviceLog.eventType'), dataIndex: 'eventType' },
     { title: t('deviceLog.mac'), dataIndex: 'deviceMac', ellipsis: true },
+    { title: t('deviceLog.actor'), dataIndex: 'actorName', ellipsis: true },
 ])
 
 const accessColumns = computed<TableColumnType[]>(() => [
@@ -177,6 +181,8 @@ const eventTypeLabel = (type: string): string => {
     switch (type) {
     case 'device_online':   return t('deviceLog.event.deviceOnline')
     case 'device_offline':  return t('deviceLog.event.deviceOffline')
+    case 'device_joined':   return t('deviceLog.event.deviceJoined')
+    case 'device_removed':  return t('deviceLog.event.deviceRemoved')
     case 'remote_ssh':      return t('deviceLog.event.remoteSsh')
     case 'remote_web':      return t('deviceLog.event.remoteWeb')
     case 'remote_control':  return t('deviceLog.event.remoteControl')
@@ -190,6 +196,10 @@ const eventTypeColor = (type: string): { bg: string; fg: string } => {
         return { bg: 'var(--gl-color-success-background)', fg: 'var(--gl-color-success-primary)' }
     case 'device_offline':
         return { bg: 'var(--gl-color-error-background)',   fg: 'var(--gl-color-error-primary)' }
+    case 'device_joined':
+        return { bg: 'var(--gl-color-primary-background)', fg: 'var(--gl-color-primary)' }
+    case 'device_removed':
+        return { bg: 'var(--gl-color-warning-background)', fg: 'var(--gl-color-warning-primary)' }
     case 'remote_ssh':
         return { bg: 'var(--gl-color-primary-background)', fg: 'var(--gl-color-primary)' }
     case 'remote_web':

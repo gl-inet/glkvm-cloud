@@ -165,9 +165,27 @@
     "ipNotCorrect": "La dirección IP es incorrecta",
     "portNotCorrect": "El puerto es incorrecto",
     "remoteWeb": "Web remota",
-    "linuxTips": "Compatible con OpenWrt, Raspberry PI, Ubuntu, CentOS, etc.",
     "customColumns": "Columnas personalizadas",
-    "dragColumnTips": "Puede personalizar su lista de dispositivos. Arrastre el botón del lado derecho de los siguientes elementos para ajustar el orden de visualización, o use las casillas de verificación para controlar la visibilidad de ciertas columnas."
+    "dragColumnTips": "Puede personalizar su lista de dispositivos. Arrastre el botón del lado derecho de los siguientes elementos para ajustar el orden de visualización, o use las casillas de verificación para controlar la visibilidad de ciertas columnas.",
+    "addDeviceModeAccessCode": "Código de acceso (firmware nuevo)",
+    "addDeviceModeLegacy": "Script (firmware antiguo)",
+    "accessCodeTip": "Genere un código de acceso y péguelo en la página «Nube autoalojada» de la interfaz web local del dispositivo. Cada código se puede usar una sola vez y caduca en 24 horas.",
+    "accessCodeCount": "Cantidad",
+    "generateAccessCode": "Generar",
+    "copyAccessCode": "Copiar código de acceso",
+    "accessCodeShownOnce": "Los códigos de acceso solo se muestran una vez. Cópielos ahora.",
+    "recentAccessCodes": "Códigos de acceso recientes",
+    "noAccessCodes": "Aún no hay códigos de acceso",
+    "accessCodeStatus": {
+      "unused": "Sin usar",
+      "used": "Usado",
+      "expired": "Caducado",
+      "revoked": "Revocado"
+    },
+    "revokeAccessCode": "Revocar",
+    "revokeAccessCodeConfirm": "¿Revocar este código de acceso? Los dispositivos ya no podrán usarlo.",
+    "revokeAccessCodeSuccess": "Revocado",
+    "generateAccessCodeFirst": "Genere primero un código de acceso"
   },
   "user": {
     "user": "Usuario",
@@ -217,7 +235,7 @@
     "refresh": "Actualizar",
     "inProgress": "En curso",
     "tabs": {
-      "device": "Conexión/desconexión",
+      "device": "Eventos del dispositivo",
       "access": "Acceso remoto"
     },
     "event": {
@@ -225,7 +243,9 @@
       "deviceOffline": "Dispositivo fuera de línea",
       "remoteSsh": "SSH remoto",
       "remoteWeb": "Web remota",
-      "remoteControl": "Control remoto"
+      "remoteControl": "Control remoto",
+      "deviceJoined": "Dispositivo añadido",
+      "deviceRemoved": "Dispositivo eliminado"
     }
   },
   "rtty": {

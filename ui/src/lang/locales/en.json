@@ -165,9 +165,27 @@
     "ipNotCorrect": "IP address is incorrect",
     "portNotCorrect": "Port is incorrect",
     "remoteWeb": "Remote Web",
-    "linuxTips": "Supports OpenWrt, Raspberry PI, Ubuntu, CentOS, etc.",
     "customColumns": "Custom Columns",
-    "dragColumnTips": "You can customize your device list. Drag the button on the right side of the following items to adjust the display order, or use the checkboxes to control the display or hide of certain columns."
+    "dragColumnTips": "You can customize your device list. Drag the button on the right side of the following items to adjust the display order, or use the checkboxes to control the display or hide of certain columns.",
+    "addDeviceModeAccessCode": "Access code (new firmware)",
+    "addDeviceModeLegacy": "Script (old firmware)",
+    "accessCodeTip": "Generate an access code and paste it into the Self-hosted Cloud page of the device's local web UI. Each code works once and expires in 24 hours.",
+    "accessCodeCount": "Quantity",
+    "generateAccessCode": "Generate",
+    "copyAccessCode": "Copy access code",
+    "accessCodeShownOnce": "Access codes are shown only once. Copy them now.",
+    "recentAccessCodes": "Recent access codes",
+    "noAccessCodes": "No access codes yet",
+    "accessCodeStatus": {
+      "unused": "Unused",
+      "used": "Used",
+      "expired": "Expired",
+      "revoked": "Revoked"
+    },
+    "revokeAccessCode": "Revoke",
+    "revokeAccessCodeConfirm": "Revoke this access code? Devices can no longer join with it.",
+    "revokeAccessCodeSuccess": "Revoked",
+    "generateAccessCodeFirst": "Generate an access code first"
   },
   "user": {
     "user": "User",
@@ -217,7 +235,7 @@
     "refresh": "Refresh",
     "inProgress": "In progress",
     "tabs": {
-      "device": "Device Up/Down",
+      "device": "Device events",
       "access": "Remote Access"
     },
     "event": {
@@ -225,7 +243,9 @@
       "deviceOffline": "Device Offline",
       "remoteSsh": "Remote SSH",
       "remoteWeb": "Remote Web",
-      "remoteControl": "Remote Control"
+      "remoteControl": "Remote Control",
+      "deviceJoined": "Device joined",
+      "deviceRemoved": "Device removed"
     }
   },
   "rtty": {

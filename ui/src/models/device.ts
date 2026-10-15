@@ -41,6 +41,28 @@ export interface ExecuteCommandParams {
     username: string
 }
 
+/** 接入码状态 */
+export type RegistrationCodeStatus = 'unused' | 'used' | 'expired' | 'revoked'
+
+/** 接入码（一次性注册码）记录 */
+export interface RegistrationCode {
+    id: number
+    status: RegistrationCodeStatus
+    createdAt: number
+    expiresAt: number
+    usedAt?: number
+    usedMac?: string
+    devid?: string
+    revokedAt?: number
+}
+
+/** 新生成的接入码：明文只在这次返回里出现 */
+export interface CreatedRegistrationCode {
+    id: number
+    accessCode: string
+    expiresAt: number
+}
+
 /** 执行命令表单参数 */
 export interface ExecuteCommandFormData {
     username: string

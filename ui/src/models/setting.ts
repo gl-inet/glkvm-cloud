@@ -40,18 +40,16 @@ export interface Theme {
     content: any,
 }
 
-/** 操作系统 */
-export enum OperatingSystemEnum {
-    GL_KVM = 'gl-kvm',
-    LINUX = 'linux',
-    WINDOWS = 'windows',
-    MAC_OS = 'macOS',
+/** 添加设备方式 */
+export enum AddDeviceModeEnum {
+    /** 新固件：粘贴接入码，工厂证书 mTLS 接入 */
+    ACCESS_CODE = 'access-code',
+    /** 旧固件：在设备 shell 里运行脚本，token 接入 */
+    LEGACY_SCRIPT = 'legacy-script',
 }
 
-/** 操作系统label映射 */
-export const operatingSystemLabelMap = new Map<OperatingSystemEnum, string>([
-    [OperatingSystemEnum.GL_KVM, 'GL-iNet KVM'],
-    [OperatingSystemEnum.LINUX, 'Linux'],
-    [OperatingSystemEnum.WINDOWS, 'Windows'],
-    [OperatingSystemEnum.MAC_OS, 'MacOS'],
+/** 添加设备方式 label 映射 */
+export const addDeviceModeLabelMap = new Map<AddDeviceModeEnum, string>([
+    [AddDeviceModeEnum.ACCESS_CODE, 'device.addDeviceModeAccessCode'],
+    [AddDeviceModeEnum.LEGACY_SCRIPT, 'device.addDeviceModeLegacy'],
 ])

@@ -6,7 +6,7 @@
  * @FilePath: \glkvm-cloud\ui\src\api\device.ts
  * @Description: 设备相关API
  */
-import { ExecuteCommandParams, type DeviceInfo } from '@/models/device'
+import { ExecuteCommandParams, type CreatedRegistrationCode, type DeviceInfo, type RegistrationCode } from '@/models/device'
 import request from './request'
 import axios from 'axios'
 
@@ -27,7 +27,31 @@ export const getDeviceListApi = (params?: {
     })
 }
 
-/** 获取添加设备脚本 */
+/** 生成接入码（每个 24 小时内有效、只能用一次） */
+export const createRegistrationCodesApi = (count: number) => {
+    return request<{ items: CreatedRegistrationCode[] }>({
+        url: '/api/registration-codes',
+        method: 'POST',
+        data: { count },
+    })
+}
+
+/** 最近的接入码 */
+export const listRegistrationCodesApi = () => {
+    return request<{ items: RegistrationCode[] }>({
+        url: '/api/registration-codes',
+    })
+}
+
+/** 作废未使用的接入码 */
+export const revokeRegistrationCodeApi = (id: number) => {
+    return request({
+        url: `/api/registration-codes/${id}`,
+        method: 'DELETE',
+    })
+}
+
+/** 获取添加设备脚本（旧固件） */
 export const getAddDeviceScriptInfoApi = () => {
     return request({
         url: '/api/script-info',

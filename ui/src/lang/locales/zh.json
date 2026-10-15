@@ -165,9 +165,27 @@
     "ipNotCorrect": "IP 地址错误",
     "portNotCorrect": "端口号错误",
     "remoteWeb": "远程 Web",
-    "linuxTips": "支持 OpenWrt、树莓派、Ubuntu、CentOS 等",
     "customColumns": "自定义列",
-    "dragColumnTips": "您可以自定义您的设备列表，拖动下列项右侧的按钮来调整显示顺序，也可以通过复选框来控制显示或隐藏某些列。"
+    "dragColumnTips": "您可以自定义您的设备列表，拖动下列项右侧的按钮来调整显示顺序，也可以通过复选框来控制显示或隐藏某些列。",
+    "addDeviceModeAccessCode": "接入码（新固件）",
+    "addDeviceModeLegacy": "脚本（旧固件）",
+    "accessCodeTip": "生成接入码后，粘贴到设备本地 Web 的「自部署云接入」页面即可。每个接入码只能使用一次，24 小时内有效。",
+    "accessCodeCount": "数量",
+    "generateAccessCode": "生成接入码",
+    "copyAccessCode": "复制接入码",
+    "accessCodeShownOnce": "接入码只显示这一次，请立即复制保存。",
+    "recentAccessCodes": "最近的接入码",
+    "noAccessCodes": "暂无接入码",
+    "accessCodeStatus": {
+      "unused": "未使用",
+      "used": "已使用",
+      "expired": "已过期",
+      "revoked": "已作废"
+    },
+    "revokeAccessCode": "作废",
+    "revokeAccessCodeConfirm": "确定作废这个接入码吗？作废后设备无法再用它接入。",
+    "revokeAccessCodeSuccess": "已作废",
+    "generateAccessCodeFirst": "请先生成接入码"
   },
   "user": {
     "user": "用户",
@@ -217,7 +235,7 @@
     "refresh": "刷新",
     "inProgress": "进行中",
     "tabs": {
-      "device": "设备上下线",
+      "device": "设备事件",
       "access": "远程访问"
     },
     "event": {
@@ -225,7 +243,9 @@
       "deviceOffline": "设备下线",
       "remoteSsh": "远程 SSH",
       "remoteWeb": "远程 Web",
-      "remoteControl": "远程控制"
+      "remoteControl": "远程控制",
+      "deviceJoined": "设备接入",
+      "deviceRemoved": "设备删除"
     }
   },
   "rtty": {

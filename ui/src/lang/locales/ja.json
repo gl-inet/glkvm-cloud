@@ -165,9 +165,27 @@
     "ipNotCorrect": "IPアドレスが正しくありません",
     "portNotCorrect": "ポートが正しくありません",
     "remoteWeb": "リモートWeb",
-    "linuxTips": "OpenWrt、Raspberry Pi、Ubuntu、CentOSなどに対応",
     "customColumns": "カラムのカスタマイズ",
-    "dragColumnTips": "デバイスリストをカスタマイズできます。以下の項目の右側にあるボタンをドラッグして表示順序を調整するか、チェックボックスで列の表示・非表示を切り替えてください。"
+    "dragColumnTips": "デバイスリストをカスタマイズできます。以下の項目の右側にあるボタンをドラッグして表示順序を調整するか、チェックボックスで列の表示・非表示を切り替えてください。",
+    "addDeviceModeAccessCode": "アクセスコード（新ファームウェア）",
+    "addDeviceModeLegacy": "スクリプト（旧ファームウェア）",
+    "accessCodeTip": "アクセスコードを生成し、デバイスのローカル Web 画面の「セルフホストクラウド」ページに貼り付けてください。各コードは 1 回のみ使用でき、24 時間で失効します。",
+    "accessCodeCount": "数量",
+    "generateAccessCode": "生成",
+    "copyAccessCode": "アクセスコードをコピー",
+    "accessCodeShownOnce": "アクセスコードは一度しか表示されません。今すぐコピーしてください。",
+    "recentAccessCodes": "最近のアクセスコード",
+    "noAccessCodes": "アクセスコードはまだありません",
+    "accessCodeStatus": {
+      "unused": "未使用",
+      "used": "使用済み",
+      "expired": "期限切れ",
+      "revoked": "無効化"
+    },
+    "revokeAccessCode": "無効化",
+    "revokeAccessCodeConfirm": "このアクセスコードを無効化しますか？無効化すると、デバイスはこのコードで接続できなくなります。",
+    "revokeAccessCodeSuccess": "無効化しました",
+    "generateAccessCodeFirst": "先にアクセスコードを生成してください"
   },
   "user": {
     "user": "ユーザー",
@@ -217,7 +235,7 @@
     "refresh": "更新",
     "inProgress": "進行中",
     "tabs": {
-      "device": "デバイスのオン/オフ",
+      "device": "デバイスイベント",
       "access": "リモートアクセス"
     },
     "event": {
@@ -225,7 +243,9 @@
       "deviceOffline": "デバイスオフライン",
       "remoteSsh": "リモートSSH",
       "remoteWeb": "リモートWeb",
-      "remoteControl": "リモートコントロール"
+      "remoteControl": "リモートコントロール",
+      "deviceJoined": "デバイス追加",
+      "deviceRemoved": "デバイス削除"
     }
   },
   "rtty": {
