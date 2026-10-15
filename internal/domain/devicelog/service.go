@@ -72,6 +72,10 @@ func normalizeMac(mac string) string {
 	return strings.ReplaceAll(strings.ToLower(mac), ":", "")
 }
 
+// SkipStartupGrace makes the service record online/offline events from the
+// start, for tests that look at them.
+func (s *Service) SkipStartupGrace() { s.startupTime = time.Time{} }
+
 // inGracePeriod reports whether we are still inside the post-startup quiet
 // window during which device on/off events are dropped.
 func (s *Service) inGracePeriod() bool {

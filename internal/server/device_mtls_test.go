@@ -102,10 +102,12 @@ func newMTLSFixtureWith(t *testing.T, factory *testCA, cfg xconfig.Config) *mtls
 	}
 	g := db.Gorm()
 	prev := sqlite.TryContainer()
+	logSvc := devicelog.NewService(sqlite.NewDeviceLogRepo(g))
+	logSvc.SkipStartupGrace() // tests look at online/offline events
 	sqlite.SetContainer(&sqlite.Container{
 		Gorm:         g,
 		DeviceMeta:   sqlite.NewDeviceMetaRepo(g),
-		DeviceLogSvc: devicelog.NewService(sqlite.NewDeviceLogRepo(g)),
+		DeviceLogSvc: logSvc,
 		Access:       sqlite.NewAccessRepo(g),
 	})
 
