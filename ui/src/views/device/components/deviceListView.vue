@@ -49,7 +49,7 @@
                         size="middle"
                         style="margin-right: 12px;"
                         @click="moveToGroup">{{ $t('device.moveToDeviceGroup') }}</BaseButton>
-                    <BaseButton v-if="hasPermission(PermissionEnum.DEVICE_WRITE)" type="primary" size="middle" @click="state.addDeviceOpen = true">
+                    <BaseButton v-if="hasPermission(PermissionEnum.DEVICE_WRITE)" type="primary" size="middle" @click="deviceStore.state.addDeviceOpen = true">
                         <GlSvg name="gl-icon-plus-regular" style="color: var(--gl-color-text-white);margin-right: 4px;"></GlSvg>
                         {{ $t('device.addDevice') }}
                     </BaseButton>
@@ -132,11 +132,6 @@
             </div>
         </div>
 
-        <!-- 添加设备弹窗 -->
-        <AddDeviceDialog
-            v-model:open="state.addDeviceOpen"
-        />
-
         <!-- 批量编辑弹窗 -->
         <ExecuteCommandDialog 
             v-model:open="executeCommandOpen"
@@ -190,7 +185,6 @@ import { BaseDropdownSelect, BaseTag, GlSvg } from 'gl-web-main/components'
 import EditDescriptionDialog from './editDescriptionDialog.vue'
 import { baseCustomModal, deepClone, macAddressFormatter, SelectOptions } from 'gl-web-main'
 import { reqDeleteDevice, reqDeviceGroupListOptions } from '@/api/device'
-import AddDeviceDialog from './addDeviceDialog.vue'
 import MoveToDeviceGroupDialog from './moveToDeviceGroupDialog.vue'
 import { PermissionEnum } from '@/models/permission'
 import { hasPermission } from '@/utils/permission'
@@ -237,7 +231,6 @@ type Key = string | number;
 const state = reactive<{
   selectedRowKeys: Key[];
   selectedRows: DeviceInfo[];
-  addDeviceOpen: boolean;
   moveToGroupOpen: boolean;
   accessDeviceWebOpen: boolean;
   groupList: { groupId: number, name: string }[];
@@ -245,7 +238,6 @@ const state = reactive<{
 }>({
     selectedRowKeys: [], // Check here to configure the default column
     selectedRows: [],
-    addDeviceOpen: false,
     moveToGroupOpen: false,
     accessDeviceWebOpen: false,
     groupList: [],

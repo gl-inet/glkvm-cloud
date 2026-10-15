@@ -29,6 +29,9 @@
             </div> 
         </div>
     </div>
+
+    <!-- 添加设备弹窗 -->
+    <AddDeviceDialog v-model:open="deviceStore.state.addDeviceOpen" />
 </template> 
 
 <script setup lang="ts">
@@ -36,6 +39,7 @@ import BasePage from '@/components/base/basePage.vue'
 import NoDevicePage from './components/noDevicePage.vue'
 import { useDeviceStore } from '@/stores/modules/device'
 import DeviceListView from './components/deviceListView.vue'
+import AddDeviceDialog from './components/addDeviceDialog.vue'
 import { reactive, onBeforeUnmount, onMounted } from 'vue'
 import { BaseLoading } from 'gl-web-main/components'
 
@@ -51,6 +55,7 @@ deviceStore.startPolling()
 
 onBeforeUnmount(() => {
     deviceStore.stopPolling()
+    deviceStore.state.addDeviceOpen = false
     deviceStore.state.searchText = ''
     deviceStore.state.deviceGroupId = undefined
 })

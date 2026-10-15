@@ -38,6 +38,8 @@ export const useDeviceStore = defineStore('device', () => {
         status: undefined as 'online' | 'offline' | undefined,
         /** 这个字段存储是否有设备，因为UI上没有设备和没有筛选出来的设备是对应不同的展示画面的 */
         hasDevice: false,
+        /** 添加设备弹窗是否打开：弹窗挂在设备页上，首台设备上线、无设备页切到列表时不会被关掉 */
+        addDeviceOpen: false,
         /** 排序字段 */
         sortBy: undefined,
         /** 排序方式 */

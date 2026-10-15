@@ -17,28 +17,20 @@
                 <span style="padding-left: 4px;">{{ $t('device.addDevice') }}</span>
             </BaseButton>
         </div>
-
-        <!-- 添加设备弹窗 -->
-        <AddDeviceDialog
-            v-model:open="state.addDeviceOpen" 
-        />
     </div>
 </template> 
 
 <script setup lang="ts">
 import noDeviceSvg from '@/assets/svg/no-device.svg'
-import AddDeviceDialog from './addDeviceDialog.vue'
-import { reactive } from 'vue'
+import { useDeviceStore } from '@/stores/modules/device'
 import { hasPermission } from '@/utils/permission'
 import { PermissionEnum } from '@/models/permission'
 import { GlSvg } from 'gl-web-main/components'
 
-const state = reactive({
-    addDeviceOpen: false,
-})
+const deviceStore = useDeviceStore()
 
 const addDevice = () => { 
-    state.addDeviceOpen = true
+    deviceStore.state.addDeviceOpen = true
 }
 </script> 
 
