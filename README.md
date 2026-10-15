@@ -53,7 +53,8 @@ If your server provider uses a **cloud security group** (e.g., AWS, Aliyun, etc.
 | ----- | -------- | ------------------------------ |
 | 443   | TCP      | Web UI access                  |
 | 10443 | TCP      | WebSocket proxy                |
-| 5912  | TCP      | Device connection              |
+| 5912  | TCP      | Device connection (old firmware) |
+| 5915  | TCP      | Device connection (new firmware, access code) |
 | 3478  | TCP/UDP  | TURN server for WebRTC support |
 
 ⚠️ **Important:**
@@ -159,13 +160,14 @@ To enable full domain-based access, configure the following DNS records for your
 
 #### Using a Custom SSL Certificate
 
-To avoid browser warnings, replace the default certificates with your own **wildcard SSL certificate**
+No certificate is shipped: if you provide none, GLKVM Cloud generates a self-signed one on first start.
+To avoid browser warnings, put your own **wildcard SSL certificate** in place
  that supports both:
 
 - `*.your-domain.com` (for device access)
 - `www.your-domain.com` (for platform access)
 
-Replace the following files in:
+Put them in:
 
 ```
 ~/glkvm_cloud/certificate
@@ -175,6 +177,10 @@ Replace the following files in:
 - `glkvm.key`
 
 ⚠️ **Make sure the filenames remain unchanged.**
+
+The device ports don't use this certificate. They use one signed by the platform's own CA,
+generated in `~/glkvm_cloud/database/pki`. Keep that directory and include it in your backups:
+devices that joined with an access code trust that CA and lose access if it is replaced.
 
 #### Restart Services After Configuration Changes
 

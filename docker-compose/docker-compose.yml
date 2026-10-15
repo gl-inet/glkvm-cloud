@@ -16,6 +16,7 @@ services:
       RTTYS_DEVICE_PORT:      ${RTTYS_DEVICE_PORT:-5912}    # addr-dev
       RTTYS_WEBUI_PORT:       ${RTTYS_WEBUI_PORT:-443}      # addr-user
       RTTYS_HTTP_PROXY_PORT:  ${RTTYS_HTTP_PROXY_PORT:-10443} # addr-http-proxy
+      RTTYS_DEVICE_MTLS_PORT: ${RTTYS_DEVICE_MTLS_PORT:-5915}  # addr-dev-mtls (new firmware)
 
       # WebRTC / TURN reference (used by rttys template)
       TURN_PORT:  ${TURN_PORT:-3478}
@@ -61,13 +62,15 @@ services:
 
       # ---- Device Endpoint Host ----
       DEVICE_ENDPOINT_HOST: ${DEVICE_ENDPOINT_HOST:-}
+      # ---- Device Access Host (mTLS port address in access codes) ----
+      DEVICE_ACCESS_HOST: ${DEVICE_ACCESS_HOST:-}
       # ---- Web UI Host ----
       WEB_UI_HOST: ${WEB_UI_HOST:-}
     volumes:
       - ./templates/rttys.conf.template:/tpl/rttys.conf.tmpl:ro
       - ./scripts/docker-entrypoint.sh:/docker-entrypoint.sh:ro
-      - ./certificate/glkvm.cer:/home/certificate/glkvm_cer:ro
-      - ./certificate/glkvm.key:/home/certificate/glkvm_key:ro
+      # Optional web certificate (glkvm.cer / glkvm.key); one is generated if absent.
+      - ./certificate:/home/certificate:ro
       - ./database:/home/database:rw
     entrypoint: ["/bin/sh", "/docker-entrypoint.sh"]
     command: ["rttys"]
@@ -75,6 +78,7 @@ services:
       - "${RTTYS_WEBUI_PORT:-443}:${RTTYS_WEBUI_PORT:-443}"
       - "${RTTYS_HTTP_PROXY_PORT:-10443}:${RTTYS_HTTP_PROXY_PORT:-10443}"
       - "${RTTYS_DEVICE_PORT:-5912}:${RTTYS_DEVICE_PORT:-5912}"
+      - "${RTTYS_DEVICE_MTLS_PORT:-5915}:${RTTYS_DEVICE_MTLS_PORT:-5915}"
 
   coturn:
     image: ${COTURN_IMAGE:-coturn/coturn:edge-alpine}

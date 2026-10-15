@@ -15,6 +15,7 @@ webrtc-password: {{TURN_PASS}}
 
 # Listen addresses
 addr-dev: :{{RTTYS_DEVICE_PORT}}
+addr-dev-mtls: :{{RTTYS_DEVICE_MTLS_PORT}}
 addr-user: :{{RTTYS_WEBUI_PORT}}
 addr-http-proxy: :{{RTTYS_HTTP_PROXY_PORT}}
 
