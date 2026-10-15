@@ -296,6 +296,7 @@ func (srv *RttyServer) ListenAPI() error {
 		DeviceLogSvc:    container.DeviceLogSvc,
 		UserSvc:         container.UserSvc,
 		NotificationSvc: container.NotificationSvc,
+		Access:          sqlite.NewAccessRepo(container.DB.Gorm()),
 	})
 
 	// ===== 添加OIDC路由 =====

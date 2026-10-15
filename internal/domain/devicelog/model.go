@@ -9,6 +9,8 @@ const (
 	EventRemoteSSH      EventType = "remote_ssh"
 	EventRemoteWeb      EventType = "remote_web"
 	EventRemoteControl  EventType = "remote_control"
+	// EventDeviceJoined: a device redeemed a registration code and joined.
+	EventDeviceJoined EventType = "device_joined"
 )
 
 // IsSession reports whether the event represents a long-running session

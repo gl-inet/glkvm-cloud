@@ -87,6 +87,13 @@ type Device struct {
 	// (token + MAC checks) and is added to the server. Close() consults it so
 	// that failed registrations never emit an unpaired device-offline event.
 	registered atomic.Bool
+
+	// certMAC is the MAC from the verified factory certificate of a device on
+	// the mTLS port ("" on the token port). When set it is the device's
+	// identity: the ID and MAC in the register frame are not trusted.
+	certMAC string
+	// regCode is the one-time registration code an mTLS device sends to join.
+	regCode string
 }
 
 const (
@@ -124,6 +131,11 @@ const (
 	msgRegAttrGroup
 )
 
+// Custom register attribute (same out-of-upstream range as msgTypeDeviceInfo).
+const (
+	msgRegAttrRegCode = 0xF0
+)
+
 const (
 	msgHeartbeatAttrUptime = iota
 )
@@ -134,6 +146,10 @@ const (
 	devRegErrHookFailed
 	devRegErrIdConflicting
 	devRegErrEmptyMac
+	devRegErrNotRegistered
+	devRegErrInvalidRegCode
+	devRegErrDevidTaken
+	devRegErrInternal
 )
 
 const (
@@ -152,6 +168,10 @@ var DevRegErrMsg = map[byte]string{
 	devRegErrHookFailed:       "Hook failed",
 	devRegErrIdConflicting:    "ID conflict",
 	devRegErrEmptyMac:         "Empty MAC",
+	devRegErrNotRegistered:    "Device not registered",
+	devRegErrInvalidRegCode:   "Invalid registration code",
+	devRegErrDevidTaken:       "Device ID belongs to another device",
+	devRegErrInternal:         "Internal error",
 }
 
 var DeviceMsgHandlers = map[byte]func(*Device, []byte) error{
@@ -198,11 +218,14 @@ func (srv *RttyServer) ListenDevices() {
 			continue
 		}
 
-		go handleDeviceConnection(srv, conn)
+		go handleDeviceConnection(srv, conn, "")
 	}
 }
 
-func handleDeviceConnection(srv *RttyServer, conn net.Conn) {
+// handleDeviceConnection serves one device connection. certMAC is the MAC from
+// the verified factory certificate for connections on the mTLS port, "" on the
+// token port.
+func handleDeviceConnection(srv *RttyServer, conn net.Conn, certMAC string) {
 	defer LogPanic()
 
 	dev := &Device{
@@ -210,6 +233,7 @@ func handleDeviceConnection(srv *RttyServer, conn net.Conn) {
 		heartbeat: DefaultHeartbeat,
 		timestamp: time.Now().Unix(),
 		br:        bufio.NewReader(conn),
+		certMAC:   certMAC,
 	}
 	defer dev.Close(srv)
 
@@ -429,7 +453,11 @@ func (dev *Device) ParseRegister(b []byte) bool {
 		for typ, val := range attrs {
 			switch typ {
 			case msgRegAttrHeartbeat:
-				dev.heartbeat = time.Duration(val[0]) * time.Second
+				if len(val) >= 1 && val[0] > 0 {
+					dev.heartbeat = time.Duration(val[0]) * time.Second
+				}
+			case msgRegAttrRegCode:
+				dev.regCode = string(val)
 			case msgRegAttrDevid:
 				dev.id = string(val)
 			case msgRegAttrDescription:
@@ -467,18 +495,24 @@ func (dev *Device) Register(srv *RttyServer) byte {
 		return devRegErrHookFailed
 	}
 
-	if cfg.Token != "" && dev.token != cfg.Token {
-		log.Error().Msgf("invalid token for device '%s'", dev.id)
-		return devRegErrInvalidToken
-	}
+	if dev.certMAC != "" {
+		if code := dev.registerMTLS(); code != 0 {
+			return code
+		}
+	} else {
+		if cfg.Token != "" && dev.token != cfg.Token {
+			log.Error().Msgf("invalid token for device '%s'", dev.id)
+			return devRegErrInvalidToken
+		}
 
-	// Reject an empty MAC (carried in the register description field). An empty
-	// value would collide with the devices.mac UNIQUE constraint as soon as a
-	// second device registers the same way, so refuse it here instead of
-	// letting the DB upsert fail repeatedly on every reconnect.
-	if strings.TrimSpace(dev.desc) == "" {
-		log.Error().Msgf("empty MAC for device '%s'", dev.id)
-		return devRegErrEmptyMac
+		// Reject an empty MAC (carried in the register description field). An empty
+		// value would collide with the devices.mac UNIQUE constraint as soon as a
+		// second device registers the same way, so refuse it here instead of
+		// letting the DB upsert fail repeatedly on every reconnect.
+		if strings.TrimSpace(dev.desc) == "" {
+			log.Error().Msgf("empty MAC for device '%s'", dev.id)
+			return devRegErrEmptyMac
+		}
 	}
 
 	devHookUrl := cfg.DevHookUrl

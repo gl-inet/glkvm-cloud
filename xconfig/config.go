@@ -119,6 +119,9 @@ type Config struct {
     // =====================================================
     // Device access over mTLS (factory certificate + access code)
     // =====================================================
+    // Listen address of the mTLS device port.
+    AddrDevMTLS string
+
     // Host (IP or domain) devices dial for the mTLS device port. It goes into
     // access codes and the device-port certificate. Empty = WebrtcIP
     // (GLKVM_ACCESS_IP).
@@ -198,6 +201,7 @@ func parseYamlCfg(cfg *Config, conf string) error {
     getConfigOpt(yamlCfg, "verbose", &cfg.Verbose)
 
     getConfigOpt(yamlCfg, "addr-dev", &cfg.AddrDev)
+    getConfigOpt(yamlCfg, "addr-dev-mtls", &cfg.AddrDevMTLS)
     getConfigOpt(yamlCfg, "addr-user", &cfg.AddrUser)
     getConfigOpt(yamlCfg, "addr-http-proxy", &cfg.AddrHttpProxy)
     getConfigOpt(yamlCfg, "http-proxy-redir-url", &cfg.HttpProxyRedirURL)

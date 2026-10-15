@@ -16,6 +16,7 @@ type Container struct {
     DeviceLogSvc    *devicelog.Service
     UserSvc         *user.Service
     NotificationSvc *notification.Service
+    Access          *AccessRepo
 }
 
 var (

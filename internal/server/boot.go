@@ -22,11 +22,12 @@ func RunFromEnv() error {
     defer LogPanic()
 
     cfg := xconfig.Config{
-        AddrDev:   ":5912",
-        AddrUser:  ":5913",
-        LocalAuth: true,
-        LogPath:   defaultLogPath,
-        LogLevel:  "info",
+        AddrDev:     ":5912",
+        AddrDevMTLS: ":5915",
+        AddrUser:    ":5913",
+        LocalAuth:   true,
+        LogPath:     defaultLogPath,
+        LogLevel:    "info",
     }
 
     confPath := os.Getenv("RTTYS_CONF")

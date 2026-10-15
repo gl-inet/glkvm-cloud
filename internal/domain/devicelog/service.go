@@ -124,6 +124,23 @@ func (s *Service) RecordDeviceOffline(ctx context.Context, deviceID, mac, ip str
 	}
 }
 
+// RecordDeviceJoined records a device joining the platform with a
+// registration code. Unlike online/offline it is never dropped or damped.
+func (s *Service) RecordDeviceJoined(ctx context.Context, deviceID, mac, ip string) {
+	if s == nil || s.repo == nil {
+		return
+	}
+	if _, err := s.repo.Create(ctx, &Log{
+		DeviceID:  deviceID,
+		DeviceMac: normalizeMac(mac),
+		EventType: EventDeviceJoined,
+		ClientIP:  ip,
+		CreatedAt: time.Now().Unix(),
+	}); err != nil {
+		log.Warn().Err(err).Str("device", deviceID).Msg("devicelog: record joined failed")
+	}
+}
+
 // StartRemoteSSHSession records the start of an SSH session and returns
 // the row ID so the caller can later mark it ended via EndSession.
 // Returns 0 if recording failed.
