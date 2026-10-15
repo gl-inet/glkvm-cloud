@@ -28,6 +28,7 @@
    - `GLKVM_ACCESS_IP`: glkvm cloud access address (leave empty to auto-detect at startup)
    - `RTTYS_DEVICE_MTLS_PORT`: device port for new firmware, which joins with an access code (default `5915`)
    - `DEVICE_ACCESS_HOST`: address devices dial for that port, put into access codes (leave empty to use `GLKVM_ACCESS_IP`)
+   - `RTTYS_LEGACY_TOKEN_ACCESS`: keep accepting old-firmware devices with `RTTYS_TOKEN` on `RTTYS_DEVICE_PORT` (default `true`)
 
    **LDAP Authentication (Optional):**
 

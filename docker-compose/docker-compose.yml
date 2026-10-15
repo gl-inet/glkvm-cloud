@@ -17,6 +17,8 @@ services:
       RTTYS_WEBUI_PORT:       ${RTTYS_WEBUI_PORT:-443}      # addr-user
       RTTYS_HTTP_PROXY_PORT:  ${RTTYS_HTTP_PROXY_PORT:-10443} # addr-http-proxy
       RTTYS_DEVICE_MTLS_PORT: ${RTTYS_DEVICE_MTLS_PORT:-5915}  # addr-dev-mtls (new firmware)
+      # Keep the token device port open for old firmware.
+      RTTYS_LEGACY_TOKEN_ACCESS: ${RTTYS_LEGACY_TOKEN_ACCESS:-true}
 
       # WebRTC / TURN reference (used by rttys template)
       TURN_PORT:  ${TURN_PORT:-3478}

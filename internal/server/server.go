@@ -66,7 +66,9 @@ func (srv *RttyServer) Run() error {
 
     log.Info().Msgf("SslCert: %s,SslKey: %s", srv.cfg.SslCert, srv.cfg.SslKey)
 
-    go srv.ListenDevices()
+    if srv.cfg.LegacyTokenAccess {
+        go srv.ListenDevices()
+    }
     if srv.cfg.AddrDevMTLS != "" {
         go srv.ListenDevicesMTLS()
     }

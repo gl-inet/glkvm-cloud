@@ -53,6 +53,8 @@ func TestRttysStress(t *testing.T) {
     cfg := xconfig.Config{
         AddrDev:  ":5912",
         AddrUser: ":5913",
+
+        LegacyTokenAccess: true,
     }
 
     srv := &RttyServer{cfg: cfg}

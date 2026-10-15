@@ -16,6 +16,9 @@ webrtc-password: {{TURN_PASS}}
 # Listen addresses
 addr-dev: :{{RTTYS_DEVICE_PORT}}
 addr-dev-mtls: :{{RTTYS_DEVICE_MTLS_PORT}}
+
+# Accept old-firmware devices on addr-dev with the shared token
+legacy-token-access: {{RTTYS_LEGACY_TOKEN_ACCESS}}
 addr-user: :{{RTTYS_WEBUI_PORT}}
 addr-http-proxy: :{{RTTYS_HTTP_PROXY_PORT}}
 

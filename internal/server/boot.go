@@ -28,6 +28,8 @@ func RunFromEnv() error {
         LocalAuth:   true,
         LogPath:     defaultLogPath,
         LogLevel:    "info",
+
+        LegacyTokenAccess: true,
     }
 
     confPath := os.Getenv("RTTYS_CONF")
@@ -45,8 +47,8 @@ func RunFromEnv() error {
 
     // Logging is set up first: the file hook has no path before SetPath, so an
     // earlier Fatal would be reported as a failed log write instead of this.
-    if cfg.Password == "" {
-        return fmt.Errorf("password is not set: set 'password' in the config file or RTTYS_PASS")
+    if err := validateConfig(&cfg); err != nil {
+        return err
     }
 
     switch cfg.LogLevel {
@@ -95,4 +97,17 @@ func RunFromEnv() error {
 
     srv := New(cfg)
     return srv.Run()
+}
+
+// validateConfig refuses settings that would leave the platform unusable or
+// open: no password (nobody could sign in), and legacy token access with no
+// token (any device could register).
+func validateConfig(cfg *xconfig.Config) error {
+    if cfg.Password == "" {
+        return fmt.Errorf("password is not set: set 'password' in the config file or RTTYS_PASS")
+    }
+    if cfg.LegacyTokenAccess && cfg.Token == "" {
+        return fmt.Errorf("token is not set: set 'token' (RTTYS_TOKEN), or turn off legacy token access with 'legacy-token-access: false' (RTTYS_LEGACY_TOKEN_ACCESS)")
+    }
+    return nil
 }
