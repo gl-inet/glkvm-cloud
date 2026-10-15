@@ -20,7 +20,6 @@ import (
 	"rttys/internal/domain/devicelog"
 	"rttys/internal/pkg/pki"
 	"rttys/internal/store/sqlite"
-	xlog "rttys/log"
 	"rttys/xconfig"
 )
 
@@ -85,7 +84,7 @@ type mtlsFixture struct {
 func newMTLSFixture(t *testing.T, factory *testCA) *mtlsFixture {
 	t.Helper()
 	dir := t.TempDir()
-	xlog.SetPath(filepath.Join(dir, "rttys.log"))
+	discardLogFile()
 	ctx := context.Background()
 
 	db, err := sqlite.Open(ctx, sqlite.Options{DSN: filepath.Join(dir, "mtls.db")})
@@ -289,5 +288,47 @@ func TestMTLSRejectsNonDeviceCertificates(t *testing.T) {
 	}
 	if f.srv.GetDevice("", "zh71fb1") != nil {
 		t.Error("a non-device certificate got a device online")
+	}
+}
+
+func TestMTLSDeletedDeviceIsRejected(t *testing.T) {
+	factory := newTestCA(t)
+	f := newMTLSFixture(t, factory)
+	dev := factory.device(t, "9483c4b71fb1", []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth})
+
+	f.addCode(t, "code")
+	code, conn, err := f.register(dev, "zh71fb1", "9483c4b71fb1", "code")
+	if err != nil || code != 0 {
+		t.Fatalf("join: (%d, %v)", code, err)
+	}
+
+	// The device row is written just after the register reply.
+	var id int64
+	for deadline := time.Now().Add(3 * time.Second); id == 0; time.Sleep(10 * time.Millisecond) {
+		if time.Now().After(deadline) {
+			t.Fatal("device row never appeared")
+		}
+		f.db.Gorm().Raw(`SELECT id FROM devices WHERE ddns = 'zh71fb1'`).Scan(&id)
+	}
+
+	// What DELETE /api/devices/:id does: database first, then drop the link.
+	if _, _, err := sqlite.NewAccessRepo(f.db.Gorm()).RemoveDevice(context.Background(), id); err != nil {
+		t.Fatal(err)
+	}
+	f.srv.DisconnectDevice("zh71fb1")
+
+	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	if _, err := conn.Read(make([]byte, 1)); err == nil {
+		t.Error("the deleted device's connection is still open")
+	}
+	conn.Close()
+	if f.srv.GetDevice("", "zh71fb1") != nil {
+		t.Error("the deleted device is still online")
+	}
+
+	if code, conn, err := f.register(dev, "zh71fb1", "9483c4b71fb1", ""); err != nil || code != devRegErrNotRegistered {
+		t.Fatalf("reconnect after delete: (%d, %v), want %d", code, err, devRegErrNotRegistered)
+	} else {
+		conn.Close()
 	}
 }

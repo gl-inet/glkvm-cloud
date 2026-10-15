@@ -17,6 +17,8 @@ var (
 	ErrCodeNotFound = errors.New("registration code not found")
 	// ErrCodeNotRevocable: the code was already used, revoked or has expired.
 	ErrCodeNotRevocable = errors.New("registration code is already used, revoked or expired")
+	// ErrDeviceNotFound: no device with that ID.
+	ErrDeviceNotFound = errors.New("device not found")
 )
 
 // CodeStatus is the state of a registration code.

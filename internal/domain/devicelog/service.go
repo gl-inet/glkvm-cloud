@@ -141,6 +141,24 @@ func (s *Service) RecordDeviceJoined(ctx context.Context, deviceID, mac, ip stri
 	}
 }
 
+// RecordDeviceRemoved records an admin deleting a device.
+func (s *Service) RecordDeviceRemoved(ctx context.Context, deviceID, mac string, userID int64, userName, ip string) {
+	if s == nil || s.repo == nil {
+		return
+	}
+	if _, err := s.repo.Create(ctx, &Log{
+		DeviceID:    deviceID,
+		DeviceMac:   normalizeMac(mac),
+		EventType:   EventDeviceRemoved,
+		ActorUserID: userID,
+		ActorName:   userName,
+		ClientIP:    ip,
+		CreatedAt:   time.Now().Unix(),
+	}); err != nil {
+		log.Warn().Err(err).Str("device", deviceID).Msg("devicelog: record removed failed")
+	}
+}
+
 // StartRemoteSSHSession records the start of an SSH session and returns
 // the row ID so the caller can later mark it ended via EndSession.
 // Returns 0 if recording failed.

@@ -167,6 +167,17 @@ func (srv *RttyServer) DelDevice(dev *Device) {
     }
 }
 
+// DisconnectDevice drops a device's connection; the terminal and web proxy
+// sessions riding on it end with it.
+func (srv *RttyServer) DisconnectDevice(devid string) {
+    srv.groups.Range(func(_, v any) bool {
+        if d, ok := v.(*DeviceGroup).devices.Load(devid); ok {
+            d.(*Device).Close(srv)
+        }
+        return true
+    })
+}
+
 func (srv *RttyServer) GetGroup(group string, create bool) *DeviceGroup {
     if create {
         val, _ := srv.groups.LoadOrStore(group, &DeviceGroup{})

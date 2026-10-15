@@ -194,3 +194,25 @@ func (r *AccessRepo) RevokeCode(ctx context.Context, id, now int64) error {
 	}
 	return access.ErrCodeNotRevocable
 }
+
+// RemoveDevice deletes a device record together with its whitelist entry, so
+// the device cannot come back on the mTLS port. It returns the device's ID
+// and MAC.
+func (r *AccessRepo) RemoveDevice(ctx context.Context, id int64) (devid, mac string, err error) {
+	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var row struct{ Ddns, Mac string }
+		res := tx.Raw(`SELECT ddns, mac FROM devices WHERE id = ?`, id).Scan(&row)
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return access.ErrDeviceNotFound
+		}
+		devid, mac = row.Ddns, row.Mac
+		if err := tx.Exec(`DELETE FROM device_whitelist WHERE mac = ? OR devid = ?`, mac, devid).Error; err != nil {
+			return err
+		}
+		return tx.Exec(`DELETE FROM devices WHERE id = ?`, id).Error
+	})
+	return devid, mac, err
+}

@@ -7,11 +7,22 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	xlog "rttys/log"
 	"rttys/xconfig"
 )
+
+var logFileOnce sync.Once
+
+// discardLogFile points the log package's file hook at the null device. Code
+// under test logs, and without a path the hook fails fatally. It is set once
+// for the whole package: server goroutines can still log after the test that
+// started them has returned.
+func discardLogFile() {
+	logFileOnce.Do(func() { xlog.SetPath(os.DevNull) })
+}
 
 func leafSANs(t *testing.T, path string) ([]net.IP, []string) {
 	t.Helper()
@@ -29,8 +40,7 @@ func leafSANs(t *testing.T, path string) ([]net.IP, []string) {
 
 func TestSetupPKI(t *testing.T) {
 	dir := t.TempDir()
-	// setupPKI logs; give the log package's file hook somewhere to write.
-	xlog.SetPath(filepath.Join(dir, "rttys.log"))
+	discardLogFile()
 
 	cfg := xconfig.Config{WebrtcIP: "192.0.2.10"}
 	if err := setupPKI(&cfg, dir); err != nil {

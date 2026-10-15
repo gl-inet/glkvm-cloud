@@ -6,7 +6,9 @@ import (
 	"strconv"
 	"strings"
 
+	"rttys/internal/domain/access"
 	"rttys/internal/domain/device"
+	"rttys/internal/domain/devicelog"
 	"rttys/internal/domain/identity"
 	"rttys/internal/http/dto"
 	"rttys/internal/http/middleware"
@@ -20,17 +22,27 @@ type DeviceHandler struct {
 	devSvc        *device.Service
 	groupRepo     *sqlite.GroupRepo
 	relationsRepo *sqlite.RelationsRepo
+	accessRepo    *sqlite.AccessRepo
+	devLogSvc     *devicelog.Service
+	// disconnect drops a device's live connection and its sessions.
+	disconnect func(devid string)
 }
 
 func NewDeviceHandler(
 	devSvc *device.Service,
 	groupRepo *sqlite.GroupRepo,
 	relationsRepo *sqlite.RelationsRepo,
+	accessRepo *sqlite.AccessRepo,
+	devLogSvc *devicelog.Service,
+	disconnect func(devid string),
 ) *DeviceHandler {
 	return &DeviceHandler{
 		devSvc:        devSvc,
 		groupRepo:     groupRepo,
 		relationsRepo: relationsRepo,
+		accessRepo:    accessRepo,
+		devLogSvc:     devLogSvc,
+		disconnect:    disconnect,
 	}
 }
 
@@ -240,18 +252,23 @@ func (h *DeviceHandler) DeleteDevice(c *gin.Context) {
 		return
 	}
 
-	db := sqlite.MustContainer().Gorm.WithContext(c.Request.Context())
-	res := db.Exec(`DELETE FROM devices WHERE id=?`, id)
-	if res.Error != nil {
-		dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", map[string]any{
-			"detail": res.Error.Error(),
-		}))
-		return
-	}
-	if res.RowsAffected == 0 {
+	devid, mac, err := h.accessRepo.RemoveDevice(c.Request.Context(), id)
+	if errors.Is(err, access.ErrDeviceNotFound) {
 		dto.Write(c, dto.Err(traceID, dto.CodeNotFound, "Device not found", nil))
 		return
 	}
+	if err != nil {
+		dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", nil))
+		return
+	}
+
+	// Drop the device only after its whitelist entry is gone, so it cannot
+	// reconnect over mTLS in between.
+	if h.disconnect != nil {
+		h.disconnect(devid)
+	}
+	p := middleware.MustPrincipal(c)
+	h.devLogSvc.RecordDeviceRemoved(c.Request.Context(), devid, mac, p.UserID, p.Username, c.ClientIP())
 
 	dto.Write(c, dto.Ok(traceID, struct{}{}))
 }

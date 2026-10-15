@@ -30,6 +30,8 @@ type Deps struct {
     DeviceLogSvc      *devicelog.Service
     NotificationSvc   *notification.Service
     AccessRepo        *sqlite.AccessRepo
+    // DisconnectDevice drops a device's live connection and its sessions.
+    DisconnectDevice func(devid string)
     Cfg               *xconfig.Config
     CloudVersion      string
 }
@@ -42,7 +44,7 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
 
     authH := handler.NewAuthHandler(d.UserSvc, d.SessionStore, d.TrustedDeviceRepo)
     meH := handler.NewMeHandler()
-    devH := handler.NewDeviceHandler(d.DevSvc, d.GroupRepo, d.RelationsRepo)
+    devH := handler.NewDeviceHandler(d.DevSvc, d.GroupRepo, d.RelationsRepo, d.AccessRepo, d.DeviceLogSvc, d.DisconnectDevice)
     dgH := handler.NewDeviceGroupHandler(d.GroupRepo, d.RelationsRepo)
     ugH := handler.NewUserGroupHandler(d.GroupRepo)
     relH := handler.NewRelationsHandler(d.RelationsRepo)

@@ -29,8 +29,10 @@ import (
 )
 
 type apiFixture struct {
-	r      *gin.Engine
-	access *sqlite.AccessRepo
+	r            *gin.Engine
+	access       *sqlite.AccessRepo
+	db           *sqlite.AppDB
+	disconnected []string // devices DisconnectDevice was called for
 }
 
 // newAPI serves the API routes over a temp database with one admin (session
@@ -60,7 +62,7 @@ func newAPI(t *testing.T, cfg *xconfig.Config) *apiFixture {
 	r := gin.New()
 	r.Use(middleware.Trace())
 	groupRepo := sqlite.NewGroupRepo(g)
-	accessRepo := sqlite.NewAccessRepo(g)
+	f := &apiFixture{r: r, access: sqlite.NewAccessRepo(g), db: db}
 	RegisterAPIRoutes(r, Deps{
 		UserSvc:           user.NewService(sqlite.NewUserRepo(g)),
 		PermSvc:           permission.NewService(memory.NewPermissionRepo()),
@@ -71,10 +73,11 @@ func newAPI(t *testing.T, cfg *xconfig.Config) *apiFixture {
 		TrustedDeviceRepo: sqlite.NewTrustedDeviceRepo(g),
 		DeviceLogSvc:      devicelog.NewService(sqlite.NewDeviceLogRepo(g)),
 		NotificationSvc:   notification.NewService(sqlite.NewNotificationRepo(g)),
-		AccessRepo:        accessRepo,
+		AccessRepo:        f.access,
+		DisconnectDevice:  func(devid string) { f.disconnected = append(f.disconnected, devid) },
 		Cfg:               cfg,
 	})
-	return &apiFixture{r: r, access: accessRepo}
+	return f
 }
 
 type envelope struct {
@@ -190,5 +193,49 @@ func TestRegistrationCodesNeedAccessAddress(t *testing.T) {
 	f := newAPI(t, &xconfig.Config{AddrDevMTLS: ":5915", DeviceCAFile: d.CAFile()})
 	if env := f.call(t, http.MethodPost, "/api/registration-codes", "sid-admin", nil); env.Code != dto.CodeValidationFailed {
 		t.Errorf("no access address: code=%q, want %q", env.Code, dto.CodeValidationFailed)
+	}
+}
+
+func TestDeleteDeviceRevokesAccess(t *testing.T) {
+	f := newAPI(t, &xconfig.Config{})
+	ctx := context.Background()
+	g := f.db.Gorm()
+	now := time.Now().Unix()
+
+	if err := g.Exec(`INSERT INTO registration_codes (code_hash, created_at, expires_at) VALUES (?, ?, ?)`,
+		access.HashCode("c"), now, now+60).Error; err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.access.Claim(ctx, access.HashCode("c"), "9483c4b71fb1", "zh71fb1", now); err != nil {
+		t.Fatal(err)
+	}
+	if err := g.Exec(`INSERT INTO devices (ddns, mac) VALUES ('zh71fb1', '9483c4b71fb1')`).Error; err != nil {
+		t.Fatal(err)
+	}
+	var id int64
+	g.Raw(`SELECT id FROM devices WHERE ddns = 'zh71fb1'`).Scan(&id)
+	path := "/api/devices/" + strconv.FormatInt(id, 10)
+
+	if env := f.call(t, http.MethodDelete, path, "sid-alice", nil); env.Code != dto.CodeForbidden {
+		t.Errorf("regular user delete: code=%q, want %q", env.Code, dto.CodeForbidden)
+	}
+	if env := f.call(t, http.MethodDelete, path, "sid-admin", nil); env.Code != dto.CodeOK {
+		t.Fatalf("admin delete: code=%q", env.Code)
+	}
+
+	if e, _ := f.access.GetByMAC(ctx, "9483c4b71fb1"); e != nil {
+		t.Error("deleted device is still whitelisted")
+	}
+	if len(f.disconnected) != 1 || f.disconnected[0] != "zh71fb1" {
+		t.Errorf("disconnected = %v, want [zh71fb1]", f.disconnected)
+	}
+	var actor string
+	g.Raw(`SELECT actor_name FROM device_event_logs WHERE event_type = 'device_removed' AND device_id = 'zh71fb1'`).Scan(&actor)
+	if actor != "admin" {
+		t.Errorf("device_removed actor = %q, want admin", actor)
+	}
+
+	if env := f.call(t, http.MethodDelete, path, "sid-admin", nil); env.Code != dto.CodeNotFound {
+		t.Errorf("second delete: code=%q, want %q", env.Code, dto.CodeNotFound)
 	}
 }

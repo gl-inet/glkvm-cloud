@@ -164,3 +164,28 @@ func TestCodesLifecycle(t *testing.T) {
 		t.Errorf("revoke expired: %v, want ErrCodeNotRevocable", err)
 	}
 }
+
+func TestRemoveDevice(t *testing.T) {
+	repo, db := newAccessFixture(t)
+	ctx := context.Background()
+	addCode(t, db, "c", now+3600, false)
+	if _, err := repo.Claim(ctx, access.HashCode("c"), "9483c4b71fb1", "zh71fb1", now); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Gorm().Exec(`INSERT INTO devices (ddns, mac) VALUES ('zh71fb1', '9483c4b71fb1')`).Error; err != nil {
+		t.Fatal(err)
+	}
+	var id int64
+	db.Gorm().Raw(`SELECT id FROM devices WHERE ddns = 'zh71fb1'`).Scan(&id)
+
+	devid, mac, err := repo.RemoveDevice(ctx, id)
+	if err != nil || devid != "zh71fb1" || mac != "9483c4b71fb1" {
+		t.Fatalf("RemoveDevice = (%q, %q, %v)", devid, mac, err)
+	}
+	if e, _ := repo.GetByMAC(ctx, mac); e != nil {
+		t.Error("whitelist entry survived the delete")
+	}
+	if _, _, err := repo.RemoveDevice(ctx, id); !errors.Is(err, access.ErrDeviceNotFound) {
+		t.Errorf("second delete: %v, want ErrDeviceNotFound", err)
+	}
+}

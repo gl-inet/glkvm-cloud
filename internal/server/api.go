@@ -67,7 +67,7 @@ var sessionStore *memory.SessionStore
 
 const defaultDBPath = "/home/database/glkvm-cloud.db"
 
-func InitAppContainer(r *gin.Engine) (*AppContainer, error) {
+func InitAppContainer(r *gin.Engine, disconnectDevice func(devid string)) (*AppContainer, error) {
 	ctx := context.Background()
 	cfg := xconfig.Must()
 	// --- DB ---
@@ -122,6 +122,7 @@ func InitAppContainer(r *gin.Engine) (*AppContainer, error) {
 		DeviceLogSvc:      deviceLogSvc,
 		NotificationSvc:   notificationSvc,
 		AccessRepo:        sqlite.NewAccessRepo(appDB.Gorm()),
+		DisconnectDevice:  disconnectDevice,
 		Cfg:               cfg,
 		CloudVersion:      KVMCloudVersion,
 	})
@@ -286,7 +287,7 @@ func (srv *RttyServer) ListenAPI() error {
 		httpProxyRedirect(srv, c, "")
 	})
 
-	container, err := InitAppContainer(r)
+	container, err := InitAppContainer(r, srv.DisconnectDevice)
 	if err != nil {
 		return err
 	}

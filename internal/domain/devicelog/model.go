@@ -11,6 +11,8 @@ const (
 	EventRemoteControl  EventType = "remote_control"
 	// EventDeviceJoined: a device redeemed a registration code and joined.
 	EventDeviceJoined EventType = "device_joined"
+	// EventDeviceRemoved: an admin deleted the device from the platform.
+	EventDeviceRemoved EventType = "device_removed"
 )
 
 // IsSession reports whether the event represents a long-running session
