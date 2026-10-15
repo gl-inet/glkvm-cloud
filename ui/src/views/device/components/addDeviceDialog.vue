@@ -155,7 +155,7 @@ import BaseModal from '@/components/base/baseModalI18n.vue'
 import AddDeviceStep from './addDeviceStep.vue'
 import AccessCodeHistory from './accessCodeHistory.vue'
 import { createRegistrationCodesApi, listRegistrationCodesApi, revokeRegistrationCodeApi } from '@/api/device'
-import { copyText } from 'gl-web-main'
+import { baseCustomModal, copyText } from 'gl-web-main'
 import { message } from 'ant-design-vue'
 import { t } from '@/hooks/useLanguage'
 import type { RegistrationCode, RegistrationCodeStatus } from '@/models/device'
@@ -218,6 +218,11 @@ const shorten = (code: string) => (code.length > 40 ? `${code.slice(0, 26)}…${
 let copiedTimer: number | undefined
 let pollTimer: number | undefined
 let polling = false
+/** 复制过的接入码：没复制过的关掉弹窗后就再也拿不到了 */
+const copiedIds = new Set<number>()
+
+/** 作废这些接入码，失败的留着等 24 小时过期 */
+const revokeCodes = (ids: number[]) => Promise.allSettled(ids.map(id => revokeRegistrationCodeApi(id)))
 
 /** 用查到的状态更新本次生成的接入码，返回是否有设备新接入 */
 const sync = (items: RegistrationCode[]) => {
@@ -272,6 +277,11 @@ const generate = async (count: number) => {
     state.generating = true
     try {
         const res = await createRegistrationCodesApi(count)
+        // 请求途中弹窗已经关了：这些码谁也看不到，直接作废
+        if (!props.open) {
+            revokeCodes(res.data.items.map(item => item.id))
+            return
+        }
         state.codes.push(...res.data.items.map(item => ({
             id: item.id, accessCode: item.accessCode, status: 'unused' as RegistrationCodeStatus, devid: '',
         })))
@@ -283,21 +293,22 @@ const generate = async (count: number) => {
     }
 }
 
-const copy = async (text: string, key: number | 'all') => {
+const copy = async (text: string, key: number | 'all', ids: number[]) => {
     try {
         await copyText(text)
     } catch {
         message.error(t('common.copyFailed'))
         return
     }
+    ids.forEach(id => copiedIds.add(id))
     state.copied = key
     window.clearTimeout(copiedTimer)
     copiedTimer = window.setTimeout(() => {
         state.copied = 0
     }, 1600)
 }
-const copyOne = (item: GeneratedCode) => copy(item.accessCode, item.id)
-const copyAll = () => copy(state.codes.map(item => item.accessCode).join('\n'), 'all')
+const copyOne = (item: GeneratedCode) => copy(item.accessCode, item.id, [item.id])
+const copyAll = () => copy(state.codes.map(item => item.accessCode).join('\n'), 'all', state.codes.map(item => item.id))
 
 /** 作废接入码 */
 const revoke = async (id: number) => {
@@ -306,7 +317,25 @@ const revoke = async (id: number) => {
     await loadHistory()
 }
 
-const close = () => emits('update:open', false)
+/** 关闭：还有没复制、也没用掉的接入码时先确认，这些码关掉后明文就没了，一并作废 */
+const close = () => {
+    const uncopied = state.codes.filter(item => item.status === 'unused' && !copiedIds.has(item.id))
+    if (!uncopied.length) {
+        emits('update:open', false)
+        return
+    }
+    baseCustomModal({
+        type: 'confirm',
+        title: t('device.uncopiedCodesTitle'),
+        content: t('device.uncopiedCodesContent', { n: uncopied.length }, uncopied.length),
+        okText: t('device.revokeAndClose'),
+        cancelText: t('device.backToCopy'),
+        onOk: async () => {
+            await revokeCodes(uncopied.map(item => item.id))
+            emits('update:open', false)
+        },
+    })
+}
 
 const viewDevices = () => {
     deviceStore.getDeviceList()
@@ -323,6 +352,7 @@ watch(() => props.open, (open) => {
     state.batchOpen = false
     state.codes = []
     state.copied = 0
+    copiedIds.clear()
     loadHistory()
 })
 
