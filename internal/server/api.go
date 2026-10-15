@@ -121,6 +121,7 @@ func InitAppContainer(r *gin.Engine) (*AppContainer, error) {
 		TrustedDeviceRepo: trustedDeviceRepo,
 		DeviceLogSvc:      deviceLogSvc,
 		NotificationSvc:   notificationSvc,
+		AccessRepo:        sqlite.NewAccessRepo(appDB.Gorm()),
 		Cfg:               cfg,
 		CloudVersion:      KVMCloudVersion,
 	})

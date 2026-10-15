@@ -29,6 +29,7 @@ type Deps struct {
     TrustedDeviceRepo *sqlite.TrustedDeviceRepo
     DeviceLogSvc      *devicelog.Service
     NotificationSvc   *notification.Service
+    AccessRepo        *sqlite.AccessRepo
     Cfg               *xconfig.Config
     CloudVersion      string
 }
@@ -50,6 +51,7 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
     personalH := handler.NewPersonalHandler(d.UserSvc, d.TrustedDeviceRepo, "GLKVM Cloud")
     devLogH := handler.NewDeviceLogHandler(d.DeviceLogSvc)
     notifH := handler.NewNotificationHandler(d.NotificationSvc)
+    accessH := handler.NewAccessHandler(d.AccessRepo, cfg)
 
     // public
     r.GET("/auth-config", func(c *gin.Context) {
@@ -138,6 +140,11 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
     api.POST("/devices/move-to-device-group", middleware.Require(permission.DeviceGroupWrite), devH.MoveToDeviceGroup)
     api.PUT("/devices/:id", middleware.Require(permission.DeviceWrite), devH.UpdateDevice)
     api.DELETE("/devices/:id", middleware.Require(permission.DeviceWrite), devH.DeleteDevice)
+
+    // registration codes for devices joining over mTLS (admin)
+    api.GET("/registration-codes", middleware.Require(permission.DeviceWrite), accessH.ListCodes)
+    api.POST("/registration-codes", middleware.Require(permission.DeviceWrite), accessH.CreateCodes)
+    api.DELETE("/registration-codes/:id", middleware.Require(permission.DeviceWrite), accessH.RevokeCode)
 
     // --- users ---
     api.GET("/users", middleware.Require(permission.UserRead), userH.ListUsers)

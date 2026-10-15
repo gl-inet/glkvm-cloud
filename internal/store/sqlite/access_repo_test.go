@@ -122,3 +122,45 @@ func TestClaimDeviceIDOwnership(t *testing.T) {
 		t.Errorf("token-era device: claim = (%q, %v), want oldid", devid, err)
 	}
 }
+
+func TestCodesLifecycle(t *testing.T) {
+	repo, _ := newAccessFixture(t)
+	ctx := context.Background()
+
+	ids, err := repo.CreateCodes(ctx, []string{access.HashCode("one"), access.HashCode("two")}, 7, now, now+3600)
+	if err != nil || len(ids) != 2 || ids[0] == ids[1] {
+		t.Fatalf("CreateCodes = (%v, %v)", ids, err)
+	}
+
+	if _, err := repo.Claim(ctx, access.HashCode("one"), "9483c4b71fb1", "zh71fb1", now+5); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.RevokeCode(ctx, ids[1], now+5); err != nil {
+		t.Fatalf("revoke unused: %v", err)
+	}
+
+	codes, err := repo.ListCodes(ctx, 50)
+	if err != nil || len(codes) != 2 {
+		t.Fatalf("ListCodes = (%v, %v)", codes, err)
+	}
+	byID := map[int64]access.RegistrationCode{codes[0].ID: codes[0], codes[1].ID: codes[1]}
+	used, revoked := byID[ids[0]], byID[ids[1]]
+	if used.Status(now+5) != access.CodeUsed || used.Devid != "zh71fb1" || used.UsedMAC != "9483c4b71fb1" || used.CreatedBy != 7 {
+		t.Errorf("used code = %+v", used)
+	}
+	if revoked.Status(now+5) != access.CodeRevoked {
+		t.Errorf("revoked code = %+v", revoked)
+	}
+
+	if err := repo.RevokeCode(ctx, ids[0], now+5); !errors.Is(err, access.ErrCodeNotRevocable) {
+		t.Errorf("revoke used: %v, want ErrCodeNotRevocable", err)
+	}
+	if err := repo.RevokeCode(ctx, 9999, now+5); !errors.Is(err, access.ErrCodeNotFound) {
+		t.Errorf("revoke unknown: %v, want ErrCodeNotFound", err)
+	}
+
+	late, _ := repo.CreateCodes(ctx, []string{access.HashCode("three")}, 7, now, now+10)
+	if err := repo.RevokeCode(ctx, late[0], now+20); !errors.Is(err, access.ErrCodeNotRevocable) {
+		t.Errorf("revoke expired: %v, want ErrCodeNotRevocable", err)
+	}
+}
