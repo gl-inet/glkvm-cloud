@@ -11,15 +11,13 @@ import (
 	"time"
 )
 
-// Device CONTROL plane authorization (/connect, /cmd, /web) and credential
-// exposure via /api/script-info.
+// Device CONTROL plane authorization (/connect, /cmd, /web).
 //
 // A logged-in session alone must NOT be enough to drive a device: the caller
 // also has to be allowed to see that specific device. The device LIST already
 // enforced this (covered by TestE2E_GroupsRBAC); these endpoints did not, so a
-// regular user could reach any device — including ungrouped ones — by id, and
-// any logged-in user could read the device token and TURN credentials. This
-// suite pins both boundaries so they cannot regress.
+// regular user could reach any device — including ungrouped ones — by id. This
+// suite pins that boundary so it cannot regress.
 //
 // Run (same env vars as the rest of the qa suite):
 //
@@ -170,28 +168,6 @@ func TestE2E_DeviceControlAuthz(t *testing.T) {
 			if got := anon.ctrl(t, p.method, p.path, nil); got != http.StatusUnauthorized {
 				t.Errorf("%s: anonymous request returned http=%d, want 401", p.name, got)
 			}
-		}
-	})
-
-	// /api/script-info hands out the device registration token and the TURN
-	// credentials, so it must be restricted to roles that may add devices.
-	t.Run("script_info_admin_only", func(t *testing.T) {
-		_, env, err := user.do("GET", "/api/script-info", nil, true)
-		if err != nil {
-			t.Fatalf("script-info as user: %v", err)
-		}
-		if env.OK {
-			t.Errorf("script-info: regular user got code=%s, want a denial", env.Code)
-		} else {
-			t.Logf("script-info as user: code=%s (denied)", env.Code)
-		}
-
-		_, env, err = admin.do("GET", "/api/script-info", nil, true)
-		if err != nil {
-			t.Fatalf("script-info as admin: %v", err)
-		}
-		if !env.OK {
-			t.Errorf("script-info: admin got code=%s, want it to still work", env.Code)
 		}
 	})
 }

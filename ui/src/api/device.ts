@@ -51,13 +51,6 @@ export const revokeRegistrationCodeApi = (id: number) => {
     })
 }
 
-/** 获取添加设备脚本（旧固件） */
-export const getAddDeviceScriptInfoApi = () => {
-    return request({
-        url: '/api/script-info',
-    })
-}
-
 /** 执行命令 */
 // The /cmd endpoint is served directly by rttys and does NOT use the cloud
 // `{code:"OK",...}` envelope: success is {code:0,stdout,stderr,devid}, an rtty error is

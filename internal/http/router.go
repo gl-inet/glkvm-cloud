@@ -1,8 +1,6 @@
 package http
 
 import (
-    "net"
-
     "rttys/internal/domain/device"
     "rttys/internal/domain/devicelog"
     "rttys/internal/domain/notification"
@@ -14,7 +12,6 @@ import (
     "rttys/internal/store/memory"
     "rttys/internal/store/sqlite"
     "rttys/xconfig"
-    "strings"
 
     "github.com/gin-gonic/gin"
 )
@@ -74,53 +71,6 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
     // authed group
     api := r.Group("/api")
     api.Use(middleware.Auth(d.SessionStore, d.UserSvc, d.PermSvc))
-
-    // device script info (admin only: it returns the device token and TURN credentials)
-    api.GET("/script-info", middleware.Require(permission.DeviceWrite), func(c *gin.Context) {
-        traceID := middleware.GetTraceID(c)
-
-        // Get domain info
-        host := c.Request.Host
-        hostname, _, err := net.SplitHostPort(host)
-        if err != nil {
-            hostname = host // Use host directly if no port
-        }
-
-        chosen := hostname
-        // GLKVM_ACCESS_IP (cfg.WebrtcIP) takes priority whenever it is set,
-        // regardless of how the web UI was reached (IP or domain/localhost)
-        // and regardless of reverse-proxy mode. Only fall back to the current
-        // web host when it is left empty (auto-detect).
-        if v := strings.TrimSpace(cfg.WebrtcIP); v != "" {
-            chosen = v
-        }
-
-        // Determine selfhost WebUI URL
-        webUIURL := strings.TrimSpace(cfg.SelfhostWebUIURL)
-        if webUIURL == "" {
-            scheme := "https"
-            if c.Request.TLS == nil {
-                scheme = "http"
-            }
-            if fwdProto := c.GetHeader("X-Forwarded-Proto"); fwdProto != "" {
-                scheme = fwdProto
-            }
-            webUIURL = scheme + "://" + c.Request.Host
-        }
-
-        data := scriptInfoResp{
-            Hostname:       chosen, // reuse the same chosen value
-            Port:           cfg.AddrDev,
-            Token:          cfg.Token,
-            WebrtcIP:       chosen, // same as hostname
-            WebrtcPort:     cfg.WebrtcPort,
-            WebrtcUsername: cfg.WebrtcUsername,
-            WebrtcPassword: cfg.WebrtcPassword,
-            WebUIURL:       webUIURL,
-        }
-
-        dto.Write(c, dto.Ok(traceID, data))
-    })
 
     // auth
     api.POST("/logout", middleware.Require(permission.AuthWrite), authH.Logout)
@@ -195,15 +145,4 @@ type authConfigResp struct {
     LegacyPassword  bool   `json:"legacyPassword"`
     OidcEnabled     bool   `json:"oidcEnabled"`
     KVMCloudVersion string `json:"kvmCloudVersion"`
-}
-
-type scriptInfoResp struct {
-    Hostname       string `json:"hostname"`
-    Port           string `json:"port"`
-    Token          string `json:"token"`
-    WebrtcIP       string `json:"webrtcIP"`
-    WebrtcPort     string `json:"webrtcPort"`
-    WebrtcUsername string `json:"webrtcUsername"`
-    WebrtcPassword string `json:"webrtcPassword"`
-    WebUIURL       string `json:"webUIURL"`
 }

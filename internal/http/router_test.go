@@ -105,26 +105,6 @@ func (f *apiFixture) call(t *testing.T, method, path, sid string, body any) enve
 	return env
 }
 
-// script-info returns the device token and TURN credentials, so only roles with
-// device.write (admin) may read it.
-func TestScriptInfoRequiresDeviceWrite(t *testing.T) {
-	f := newAPI(t, &xconfig.Config{Token: "device-token"})
-
-	var data map[string]any
-	env := f.call(t, http.MethodGet, "/api/script-info", "sid-alice", nil)
-	_ = json.Unmarshal(env.Data, &data)
-	if env.Code != dto.CodeForbidden || data["token"] != nil {
-		t.Errorf("regular user: code=%q token=%v, want %q and no token", env.Code, data["token"], dto.CodeForbidden)
-	}
-
-	env = f.call(t, http.MethodGet, "/api/script-info", "sid-admin", nil)
-	data = nil
-	_ = json.Unmarshal(env.Data, &data)
-	if env.Code != dto.CodeOK || data["token"] != "device-token" {
-		t.Errorf("admin: code=%q token=%v, want %q and the device token", env.Code, data["token"], dto.CodeOK)
-	}
-}
-
 func TestRegistrationCodesAPI(t *testing.T) {
 	d, err := pki.LoadOrCreate(t.TempDir())
 	if err != nil {

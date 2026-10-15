@@ -39,17 +39,3 @@ export interface Theme {
     attribute: string,
     content: any,
 }
-
-/** 添加设备方式 */
-export enum AddDeviceModeEnum {
-    /** 新固件：粘贴接入码，工厂证书 mTLS 接入 */
-    ACCESS_CODE = 'access-code',
-    /** 旧固件：在设备 shell 里运行脚本，token 接入 */
-    LEGACY_SCRIPT = 'legacy-script',
-}
-
-/** 添加设备方式 label 映射 */
-export const addDeviceModeLabelMap = new Map<AddDeviceModeEnum, string>([
-    [AddDeviceModeEnum.ACCESS_CODE, 'device.addDeviceModeAccessCode'],
-    [AddDeviceModeEnum.LEGACY_SCRIPT, 'device.addDeviceModeLegacy'],
-])

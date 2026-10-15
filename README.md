@@ -7,7 +7,7 @@ Self-Deployed Lightweight Cloud is a lightweight KVM remote cloud platform tailo
 #### Main Functions and Features
 
 -  **User Groups and Device Support** - Supports user groups managing specific device groups, enabling different users to manage different devices
--  **Script Deployment** - Convenient script-based device addition
+-  **Access Code Onboarding** - Add a KVM by pasting an access code into its local web UI; the device proves itself with its factory certificate
 -  **Remote SSH** - Web SSH remote connections
 -  **Remote Control** - Web remote desktop control
 -  **Batch Operations** - Batch command execution capabilities
@@ -18,7 +18,7 @@ Self-Deployed Lightweight Cloud is a lightweight KVM remote cloud platform tailo
 -  **Enterprise Authentication** -  Supports both **LDAP** and **OIDC** login methods for enterprise users. 
 
 -  **Deployment & Platform Compatibility** - Supports both **internal network** and **public internet** deployments on **x86_64** and **arm64** platforms
--  **HTTP/HTTPS Web Proxy Support** - Supports onboarding embedded devices such as OpenWrt, Raspberry Pi, and other Linux-based hosts into self-hosted GLKVM Cloud for centralized management and NAT traversal access
+-  **HTTP/HTTPS Web Proxy Support** - Reach web services on the KVM, or on hosts it can reach, through the cloud
 
 ## Self-Hosting Guide
 
@@ -53,7 +53,7 @@ If your server provider uses a **cloud security group** (e.g., AWS, Aliyun, etc.
 | ----- | -------- | ------------------------------ |
 | 443   | TCP      | Web UI access                  |
 | 10443 | TCP      | WebSocket proxy                |
-| 5912  | TCP      | Device connection (old firmware) |
+| 5912  | TCP      | Device connection for devices still on old firmware (deprecated, see below) |
 | 5915  | TCP      | Device connection (new firmware, access code) |
 | 3478  | TCP/UDP  | TURN server for WebRTC support |
 
@@ -109,18 +109,23 @@ At the end of the installation script, the console will display the Web UI admin
 
 ###  Add KVM Devices to the Lightweight Cloud 
 
-- Copy script
+The device needs firmware with self-hosted cloud access.
 
-![Add KVM Devices to the Lightweight Cloud](img/adddevice.png)
-
-- Run the script in the device terminal
-
-![Add KVM Devices to the Lightweight Cloud](img/rundevicescript.png)
-
+- In the cloud, open **Add Device**, generate an access code and copy it. Each code works once, on any device, within 24 hours.
+- On the device's local web UI, open the self-hosted cloud page and paste the access code. The device verifies the cloud with the CA in the code, and the cloud verifies the device with its factory certificate.
 - Devices connected to the cloud
 
 ![Add KVM Devices to the Lightweight Cloud](img/devicelist.png)
 
+
+### Devices on Old Firmware
+
+Devices that were added with the old script keep connecting on port 5912 after the cloud is upgraded. Old firmware cannot be added anymore. To move a device to access codes:
+
+1. Upgrade the cloud first, then the device firmware.
+2. Paste an access code into the device's self-hosted cloud page. The device keeps its record, ID and groups in the cloud; if it is still connected the old way, it switches over without going offline.
+
+Port 5912 is deprecated and will be removed in a later release. Once no device uses it, set `RTTYS_LEGACY_TOKEN_ACCESS=false` to close it.
 
 ### Remote SSH Connection
 
