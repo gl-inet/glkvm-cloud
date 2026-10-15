@@ -8,7 +8,7 @@ Self-Deployed Lightweight Cloud is a lightweight KVM remote cloud platform tailo
 
 -  **User Groups and Device Support** - Supports user groups managing specific device groups, enabling different users to manage different devices
 -  **Access Code Onboarding** - Add a KVM by pasting an access code into its local web UI; the device proves itself with its factory certificate
--  **Remote SSH** - Web SSH remote connections
+-  **KVM Terminal** - A web terminal on the KVM's own system
 -  **Remote Control** - Web remote desktop control
 -  **Batch Operations** - Batch command execution capabilities
 -  **Rapid Deployment** - Quick self-deployment with simple operations
@@ -127,9 +127,9 @@ Devices that were added with the old script keep connecting on port 5912 after t
 
 Port 5912 is deprecated and will be removed in a later release. Once no device uses it, set `RTTYS_LEGACY_TOKEN_ACCESS=false` to close it.
 
-### Remote SSH Connection
+### KVM Terminal
 
-![Remote SSH Screenshot](img/ssh.png)
+![KVM Terminal Screenshot](img/ssh.png)
 
 ### Remote Desktop Control
 

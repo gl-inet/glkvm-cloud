@@ -95,7 +95,7 @@
                                 rel="noopener noreferrer"
                                 :class="[{'disabled': !isDeviceOnline(record)}]"
                                 :style="{'margin-right': hasPermission(PermissionEnum.DEVICE_WRITE) ? '0px' : '12px'}"
-                                @click="handleRemoteSSH(record.ddns, record)">{{ $t('device.remoteSSH') }}</a>
+                                @click="handleRemoteSSH(record.ddns, record)">{{ isKVM(record) ? $t('device.kvmTerminal') : $t('device.terminal') }}</a>
                             <a 
                                 v-if="!isKVM(record)"
                                 target="_blank"
