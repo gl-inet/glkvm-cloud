@@ -8,7 +8,7 @@
  */
 
 import i18n from '@/lang'
-import { languageLabelMap, AppLanguages } from '@/models/setting'
+import { languageLabelMap } from '@/models/setting'
 import { computed } from 'vue'
 import { LocalStorageKeys, useLocalStorage } from './useLocalStorage'
 import { Languages } from 'gl-web-main'
@@ -19,7 +19,7 @@ export default function useLanguage () {
     const langPrefix = browserLanguage.split('-')[0].toLowerCase()
 
     // 根据浏览器语言推断默认语言
-    const allLangs = Object.values(AppLanguages) as string[]
+    const allLangs = Object.values(Languages) as string[]
     const defaultLang = allLangs.includes(langPrefix) ? langPrefix as Languages : Languages.EN
 
     const {getValue, setValue} = useLocalStorage(LocalStorageKeys.STORAGE_LANGUAGE_KEY, defaultLang)
@@ -27,6 +27,8 @@ export default function useLanguage () {
     const currentLang = computed(() => i18n.global.locale.value as Languages)
 
     const setLanguage = (lang = getValue()) => {
+        // 只支持中英：以前选过日韩德法西的改回默认语言
+        if (!allLangs.includes(lang)) lang = defaultLang
         i18n.global.locale.value = lang
         setValue(lang)
     }
