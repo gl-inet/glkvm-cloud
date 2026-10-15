@@ -94,6 +94,8 @@ type Device struct {
 	certMAC string
 	// regCode is the one-time registration code an mTLS device sends to join.
 	regCode string
+	// joinedAt is when an mTLS device first joined the platform.
+	joinedAt int64
 }
 
 const (
@@ -112,6 +114,7 @@ const (
 // Custom extension message types (keep out of upstream range to avoid conflicts).
 const (
 	msgTypeDeviceInfo = byte(0xF0)
+	msgTypeCtrl       = byte(0xF1) // rtty-ctrl control channel (rtty-go only)
 )
 
 const (
@@ -269,6 +272,10 @@ func handleDeviceConnection(srv *RttyServer, conn net.Conn, certMAC string) {
 
 	if code != 0 {
 		return
+	}
+
+	if dev.certMAC != "" {
+		dev.sendCloudInfo(&srv.cfg)
 	}
 
 	deviceRemoteIP := ""

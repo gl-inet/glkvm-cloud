@@ -112,7 +112,7 @@ func (dev *Device) registerMTLS() byte {
 		return devRegErrInternal
 	}
 	if entry != nil {
-		dev.id, dev.desc = entry.Devid, dev.certMAC
+		dev.id, dev.desc, dev.joinedAt = entry.Devid, dev.certMAC, entry.CreatedAt
 		return 0
 	}
 
@@ -127,7 +127,8 @@ func (dev *Device) registerMTLS() byte {
 	if devid == "" || len(devid) > 32 || strings.ContainsAny(devid, " \t") {
 		devid = dev.certMAC
 	}
-	devid, err = cont.Access.Claim(ctx, access.HashCode(dev.regCode), dev.certMAC, devid, time.Now().Unix())
+	now := time.Now().Unix()
+	devid, err = cont.Access.Claim(ctx, access.HashCode(dev.regCode), dev.certMAC, devid, now)
 	switch {
 	case errors.Is(err, access.ErrCodeInvalid):
 		log.Warn().Str("mac", dev.certMAC).Str("ip", remoteIP(dev.conn)).Msg("mtls: invalid registration code")
@@ -140,7 +141,7 @@ func (dev *Device) registerMTLS() byte {
 		return devRegErrInternal
 	}
 
-	dev.id, dev.desc = devid, dev.certMAC
+	dev.id, dev.desc, dev.joinedAt = devid, dev.certMAC, now
 	log.Info().Str("mac", dev.certMAC).Str("devid", devid).Msg("mtls: device joined with a registration code")
 	if cont.DeviceLogSvc != nil {
 		cont.DeviceLogSvc.RecordDeviceJoined(ctx, devid, dev.certMAC, remoteIP(dev.conn))

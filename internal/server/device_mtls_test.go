@@ -338,8 +338,7 @@ func TestMTLSDeletedDeviceIsRejected(t *testing.T) {
 	}
 	f.srv.DisconnectDevice("zh71fb1")
 
-	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
-	if _, err := conn.Read(make([]byte, 1)); err == nil {
+	if !closedByServer(conn) {
 		t.Error("the deleted device's connection is still open")
 	}
 	conn.Close()
