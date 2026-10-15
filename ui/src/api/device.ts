@@ -36,10 +36,11 @@ export const createRegistrationCodesApi = (count: number) => {
     })
 }
 
-/** 最近的接入码 */
-export const listRegistrationCodesApi = () => {
+/** 最近的接入码；传 ids 时只查这几个（添加设备弹窗等待设备接入时用） */
+export const listRegistrationCodesApi = (ids?: number[]) => {
     return request<{ items: RegistrationCode[] }>({
         url: '/api/registration-codes',
+        params: ids?.length ? { ids: ids.join(',') } : undefined,
     })
 }
 
