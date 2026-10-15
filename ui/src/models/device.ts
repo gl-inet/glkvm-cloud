@@ -9,6 +9,8 @@ export enum DeviceStatusEnum {
 /** 设备信息（列表） */
 export interface DeviceInfo {
     client: '' | 'rtty-go'
+    /** GL 硬件型号，其他主机为空 */
+    model: string
     connectedTime: number
     ddns: string
     description: string

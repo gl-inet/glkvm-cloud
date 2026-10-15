@@ -18,7 +18,7 @@ func TestMarkOnlineAndClientGuard(t *testing.T) {
 	defer db.Close()
 	g := db.Gorm()
 	g.Exec(`CREATE TABLE devices (id INTEGER PRIMARY KEY AUTOINCREMENT, ddns TEXT, mac TEXT, name TEXT DEFAULT '',
-		description TEXT DEFAULT '', ip TEXT DEFAULT '', client TEXT DEFAULT '', device_group_id INTEGER,
+		description TEXT DEFAULT '', ip TEXT DEFAULT '', client TEXT DEFAULT '', model TEXT NOT NULL DEFAULT '', device_group_id INTEGER,
 		status TEXT, last_seen_at INTEGER)`)
 	g.Exec(`INSERT INTO devices(ddns,mac,description,ip,client,status,last_seen_at)
 		VALUES ('dev1','aabbcc','MacInfo','10.0.0.9','rtty-go','offline',100)`)
@@ -44,19 +44,26 @@ func TestMarkOnlineAndClientGuard(t *testing.T) {
 		t.Errorf("identity columns changed: mac=%q desc=%q ip=%q", mac, desc, ip)
 	}
 
-	// UpdateClient with the SAME value => no row written
-	res := g.Exec(`UPDATE devices SET client=? WHERE ddns=? AND (client IS NULL OR client <> ?)`,
-		"rtty-go", "dev1", "rtty-go")
+	// UpdateClient with the SAME values => no row written
+	const guard = `UPDATE devices SET client=?, model=? WHERE ddns=? AND (client IS NULL OR client <> ? OR model <> ?)`
+	res := g.Exec(guard, "rtty-go", "", "dev1", "rtty-go", "")
 	if res.RowsAffected != 0 {
 		t.Errorf("unchanged client should not write, RowsAffected=%d", res.RowsAffected)
 	}
-	if err := repo.UpdateClient(ctx, "dev1", "rtty-go"); err != nil {
+	if err := repo.UpdateClient(ctx, "dev1", "rtty-go", ""); err != nil {
 		t.Fatalf("UpdateClient same: %v", err)
 	}
-	// changed value => writes
-	res = g.Exec(`UPDATE devices SET client=? WHERE ddns=? AND (client IS NULL OR client <> ?)`,
-		"rtty-go-2.0", "dev1", "rtty-go-2.0")
+	// changed client or model => writes
+	res = g.Exec(guard, "rtty-go-2.0", "", "dev1", "rtty-go-2.0", "")
 	if res.RowsAffected != 1 {
 		t.Errorf("changed client should write once, RowsAffected=%d", res.RowsAffected)
+	}
+	if err := repo.UpdateClient(ctx, "dev1", "rtty-go-2.0", "rm1pe"); err != nil {
+		t.Fatalf("UpdateClient model: %v", err)
+	}
+	var model string
+	g.Raw(`SELECT model FROM devices WHERE ddns='dev1'`).Row().Scan(&model)
+	if model != "rm1pe" {
+		t.Errorf("model=%q, want the reported one", model)
 	}
 }

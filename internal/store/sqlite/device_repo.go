@@ -22,6 +22,7 @@ type deviceRow struct {
     Description   string `gorm:"column:description"`
     IP            string `gorm:"column:ip"`
     Client        string `gorm:"column:client"`
+    Model         string `gorm:"column:model"`
     DeviceGroupID *int64 `gorm:"column:device_group_id"` // NULL => nil
     Status        string `gorm:"column:status"`
     LastSeenAt    *int64 `gorm:"column:last_seen_at"` // NULL => nil
@@ -48,6 +49,7 @@ func (r *DeviceRepo) ListAll(ctx context.Context) ([]device.Device, error) {
             Description:   row.Description,
             IP:            row.IP,
             Client:        row.Client,
+            Model:         row.Model,
             DeviceGroupID: row.DeviceGroupID,
             Status:        device.Status(row.Status),
             LastSeenAt:    row.LastSeenAt,
@@ -80,6 +82,7 @@ func (r *DeviceRepo) ListByDeviceGroupIDs(ctx context.Context, groupIDs []int64)
             Description:   row.Description,
             IP:            row.IP,
             Client:        row.Client,
+            Model:         row.Model,
             DeviceGroupID: row.DeviceGroupID,
             Status:        device.Status(row.Status),
             LastSeenAt:    row.LastSeenAt,
@@ -97,6 +100,7 @@ type deviceListRow struct {
     Description   string `gorm:"column:description"`
     IP            string `gorm:"column:ip"`
     Client        string `gorm:"column:client"`
+    Model         string `gorm:"column:model"`
     DeviceGroupID *int64 `gorm:"column:device_group_id"`
     Status        string `gorm:"column:status"`
     LastSeenAt    *int64 `gorm:"column:last_seen_at"`
@@ -180,6 +184,7 @@ func (r *DeviceRepo) ListPaged(ctx context.Context, q device.ListQuery) ([]devic
                 Description:   row.Description,
                 IP:            row.IP,
                 Client:        row.Client,
+                Model:         row.Model,
                 DeviceGroupID: row.DeviceGroupID,
                 Status:        device.Status(row.Status),
                 LastSeenAt:    row.LastSeenAt,

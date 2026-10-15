@@ -11,9 +11,9 @@ func SaveOrUpdateDeviceMeta(deviceID, mac, description, ip string) error {
     return repo.SaveOrUpdate(context.Background(), deviceID, mac, description, ip)
 }
 
-func UpdateDeviceClient(deviceID, client string) error {
+func UpdateDeviceClient(deviceID, client, model string) error {
     repo := sqlite.MustContainer().DeviceMeta
-    return repo.UpdateClient(context.Background(), deviceID, client)
+    return repo.UpdateClient(context.Background(), deviceID, client, model)
 }
 
 func GetDeviceMetaByDeviceID(deviceID string) (*model.DeviceMeta, error) {

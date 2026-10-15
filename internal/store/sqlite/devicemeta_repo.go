@@ -51,15 +51,15 @@ func (r *DeviceMetaRepo) MarkOnline(ctx context.Context, deviceID string) error 
     ).Error
 }
 
-func (r *DeviceMetaRepo) UpdateClient(ctx context.Context, deviceID, client string) error {
+func (r *DeviceMetaRepo) UpdateClient(ctx context.Context, deviceID, client, model string) error {
     if r.db == nil {
         return fmt.Errorf("gorm db is nil")
     }
-    // Only write when the value actually changed, so reconnects of a device
+    // Only write when a value actually changed, so reconnects of a device
     // whose client is unchanged don't generate a redundant write.
     return r.db.WithContext(ctx).Exec(
-        `UPDATE devices SET client=? WHERE ddns=? AND (client IS NULL OR client <> ?)`,
-        client, deviceID, client,
+        `UPDATE devices SET client=?, model=? WHERE ddns=? AND (client IS NULL OR client <> ? OR model <> ?)`,
+        client, model, deviceID, client, model,
     ).Error
 }
 

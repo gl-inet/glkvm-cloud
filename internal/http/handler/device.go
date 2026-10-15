@@ -156,6 +156,7 @@ func (h *DeviceHandler) ListDevices(c *gin.Context) {
 			Mac:             d.Mac,
 			Description:     d.Description,
 			Client:          d.Client,
+			Model:           d.Model,
 			DeviceGroupID:   d.DeviceGroupID,
 			DeviceGroupName: d.GroupName,
 		})

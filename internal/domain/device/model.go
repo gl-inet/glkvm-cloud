@@ -16,6 +16,7 @@ type Device struct {
     Description   string
     IP            string
     Client        string
+    Model         string // hardware model reported by GL devices, "" for other hosts
     DeviceGroupID *int64 // nil means ungrouped (admin-only visibility)
     Status        Status
     LastSeenAt    *int64

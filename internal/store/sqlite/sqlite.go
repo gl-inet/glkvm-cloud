@@ -100,6 +100,9 @@ func InitSchema(ctx context.Context, db *sql.DB, schemaPath string) error {
     if err := ensureDeviceClientColumn(ctx, db); err != nil {
         return err
     }
+    if err := ensureDeviceModelColumn(ctx, db); err != nil {
+        return err
+    }
     if err := ensureUserIsSystemColumn(ctx, db); err != nil {
         return err
     }
@@ -174,6 +177,22 @@ func ensureDeviceClientColumn(ctx context.Context, db *sql.DB) error {
         return nil
     }
     _, err := db.ExecContext(ctx, `ALTER TABLE devices ADD COLUMN client TEXT NOT NULL DEFAULT ''`)
+    if err == nil {
+        return nil
+    }
+    if strings.Contains(err.Error(), "duplicate column name") {
+        return nil
+    }
+    return err
+}
+
+// ensureDeviceModelColumn adds the hardware model a device reports in its
+// client info, empty for hosts that are not GL hardware.
+func ensureDeviceModelColumn(ctx context.Context, db *sql.DB) error {
+    if db == nil {
+        return nil
+    }
+    _, err := db.ExecContext(ctx, `ALTER TABLE devices ADD COLUMN model TEXT NOT NULL DEFAULT ''`)
     if err == nil {
         return nil
     }

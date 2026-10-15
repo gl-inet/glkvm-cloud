@@ -9,6 +9,7 @@ type Device struct {
     Mac             string `json:"mac"`
     Description     string `json:"description"`
     Client          string `json:"client"`
+    Model           string `json:"model"`
     DeviceGroupID   *int64 `json:"deviceGroupId"`
     DeviceGroupName string `json:"deviceGroupName"`
 }

@@ -365,8 +365,8 @@ func httpProxyRedirect(srv *RttyServer, c *gin.Context, group string) {
 	}
 	if cont := sqlite.TryContainer(); cont != nil && cont.DeviceLogSvc != nil {
 		actorID, actorName := principalFromCtx(c)
-		if dev.ClientType() != "rtty-go" {
-			// Non-rtty-go clients use the KVM control UI → remote_control
+		if dev.IsKVM() {
+			// A KVM's own web UI → remote_control
 			ses.logID = cont.DeviceLogSvc.StartRemoteControlSession(
 				c.Request.Context(), devid, dev.desc, actorID, actorName, c.ClientIP())
 			if cont.NotificationSvc != nil {

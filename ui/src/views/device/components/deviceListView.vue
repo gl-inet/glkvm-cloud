@@ -97,7 +97,7 @@
                                 :style="{'margin-right': hasPermission(PermissionEnum.DEVICE_WRITE) ? '0px' : '12px'}"
                                 @click="handleRemoteSSH(record.ddns, record)">{{ $t('device.remoteSSH') }}</a>
                             <a 
-                                v-if="record.client === 'rtty-go'"
+                                v-if="!isKVM(record)"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 :class="[{'disabled': !isDeviceOnline(record)}]"
@@ -325,6 +325,9 @@ const handleRemoteSSH = async (id: string, device: DeviceInfo) => {
 }
 
 /** 远程控制 */
+/** KVM 远程控制打开设备自己的 Web；其他跑 rtty-go 的主机用 Web 代理 */
+const isKVM = (device: DeviceInfo) => device.client !== 'rtty-go' || !!device.model
+
 const handleRemoteControl = async (id: string, device: DeviceInfo) => {
     if (!isDeviceOnline(device)) return
     try {

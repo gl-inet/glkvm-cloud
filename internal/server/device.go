@@ -586,23 +586,25 @@ func (dev *Device) setClientInfo(data []byte) {
 	dev.clientInfoMu.Unlock()
 }
 
-// ClientType returns the "client" value from the device's client info JSON
-// (e.g. "rtty-go"). Returns "" if not available or not parseable.
-func (dev *Device) ClientType() string {
+// IsKVM reports whether the device is a KVM, whose own web UI the platform
+// opens for remote control, rather than another host running rtty-go: any
+// device but rtty-go, or rtty-go on GL hardware, which reports its model in
+// the client info.
+func (dev *Device) IsKVM() bool {
 	dev.clientInfoMu.RLock()
 	raw := make([]byte, len(dev.clientInfo))
 	copy(raw, dev.clientInfo)
 	dev.clientInfoMu.RUnlock()
-	if len(raw) == 0 {
-		return ""
-	}
 	var info struct {
 		Client string `json:"client"`
+		Model  string `json:"model"`
 	}
-	if err := jsoniter.Unmarshal(raw, &info); err != nil {
-		return ""
+	if len(raw) > 0 {
+		if err := jsoniter.Unmarshal(raw, &info); err != nil {
+			return true
+		}
 	}
-	return info.Client
+	return info.Client != "rtty-go" || info.Model != ""
 }
 
 func handleDeviceInfoMsg(dev *Device, data []byte) error {
@@ -621,6 +623,9 @@ func handleDeviceInfoMsg(dev *Device, data []byte) error {
 		OS       string `json:"os"`
 		Hostname string `json:"hostname"`
 		LocalIP  string `json:"local_ip"`
+		// Model is the GL hardware model; it tells a KVM, whose web UI the
+		// platform opens for remote control, from other hosts running rtty-go.
+		Model string `json:"model"`
 	}
 	if err := jsoniter.Unmarshal(data, &payload); err != nil {
 		log.Warn().Msgf("device '%s' client info invalid json: %v", dev.id, err)
@@ -629,7 +634,11 @@ func handleDeviceInfoMsg(dev *Device, data []byte) error {
 
 	dev.setClientInfo(data)
 	if payload.Client != "" {
-		if err := legacy.UpdateDeviceClient(dev.id, payload.Client); err != nil {
+		model := strings.TrimSpace(payload.Model)
+		if len(model) > 64 {
+			model = model[:64]
+		}
+		if err := legacy.UpdateDeviceClient(dev.id, payload.Client, model); err != nil {
 			log.Warn().Err(err).Msgf("device '%s' update client info failed", dev.id)
 		}
 	}
