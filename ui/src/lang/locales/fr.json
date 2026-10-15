@@ -246,7 +246,8 @@
       "remoteWeb": "Web distant",
       "remoteControl": "Contrôle à distance",
       "deviceJoined": "Appareil ajouté",
-      "deviceRemoved": "Appareil supprimé"
+      "deviceRemoved": "Appareil supprimé",
+      "deviceLeft": "Appareil désinscrit"
     }
   },
   "rtty": {

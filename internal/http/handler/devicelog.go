@@ -93,7 +93,8 @@ func parseEventTypes(raw string) []devicelog.EventType {
 			devicelog.EventRemoteWeb,
 			devicelog.EventRemoteControl,
 			devicelog.EventDeviceJoined,
-			devicelog.EventDeviceRemoved:
+			devicelog.EventDeviceRemoved,
+			devicelog.EventDeviceLeft:
 			out = append(out, devicelog.EventType(p))
 		}
 	}

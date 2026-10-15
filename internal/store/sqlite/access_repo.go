@@ -216,3 +216,20 @@ func (r *AccessRepo) RemoveDevice(ctx context.Context, id int64) (devid, mac str
 	})
 	return devid, mac, err
 }
+
+// RemoveByMAC deletes the whitelist entry and the device record of the device
+// with this factory certificate MAC, for a device that leaves the platform.
+// It returns the device's ID, "" if the device was not listed.
+func (r *AccessRepo) RemoveByMAC(ctx context.Context, mac string) (devid string, err error) {
+	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		res := tx.Raw(`SELECT devid FROM device_whitelist WHERE mac = ?`, mac).Scan(&devid)
+		if res.Error != nil || res.RowsAffected == 0 {
+			return res.Error
+		}
+		if err := tx.Exec(`DELETE FROM device_whitelist WHERE mac = ?`, mac).Error; err != nil {
+			return err
+		}
+		return tx.Exec(`DELETE FROM devices WHERE ddns = ? OR mac = ?`, devid, mac).Error
+	})
+	return devid, err
+}

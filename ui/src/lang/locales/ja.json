@@ -246,7 +246,8 @@
       "remoteWeb": "リモートWeb",
       "remoteControl": "リモートコントロール",
       "deviceJoined": "デバイス追加",
-      "deviceRemoved": "デバイス削除"
+      "deviceRemoved": "デバイス削除",
+      "deviceLeft": "デバイス離脱"
     }
   },
   "rtty": {

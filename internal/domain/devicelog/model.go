@@ -13,6 +13,9 @@ const (
 	EventDeviceJoined EventType = "device_joined"
 	// EventDeviceRemoved: an admin deleted the device from the platform.
 	EventDeviceRemoved EventType = "device_removed"
+	// EventDeviceLeft: the device left the platform (moved to another one,
+	// or back to the official cloud).
+	EventDeviceLeft EventType = "device_left"
 )
 
 // IsSession reports whether the event represents a long-running session

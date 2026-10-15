@@ -145,6 +145,22 @@ func (s *Service) RecordDeviceJoined(ctx context.Context, deviceID, mac, ip stri
 	}
 }
 
+// RecordDeviceLeft records a device leaving the platform on its own.
+func (s *Service) RecordDeviceLeft(ctx context.Context, deviceID, mac, ip string) {
+	if s == nil || s.repo == nil {
+		return
+	}
+	if _, err := s.repo.Create(ctx, &Log{
+		DeviceID:  deviceID,
+		DeviceMac: normalizeMac(mac),
+		EventType: EventDeviceLeft,
+		ClientIP:  ip,
+		CreatedAt: time.Now().Unix(),
+	}); err != nil {
+		log.Warn().Err(err).Str("device", deviceID).Msg("devicelog: record left failed")
+	}
+}
+
 // RecordDeviceRemoved records an admin deleting a device.
 func (s *Service) RecordDeviceRemoved(ctx context.Context, deviceID, mac string, userID int64, userName, ip string) {
 	if s == nil || s.repo == nil {

@@ -246,7 +246,8 @@
       "remoteWeb": "Web remota",
       "remoteControl": "Control remoto",
       "deviceJoined": "Dispositivo añadido",
-      "deviceRemoved": "Dispositivo eliminado"
+      "deviceRemoved": "Dispositivo eliminado",
+      "deviceLeft": "Dispositivo desvinculado"
     }
   },
   "rtty": {

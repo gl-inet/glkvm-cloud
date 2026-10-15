@@ -246,7 +246,8 @@
       "remoteWeb": "Remote-Web",
       "remoteControl": "Fernsteuerung",
       "deviceJoined": "Gerät hinzugefügt",
-      "deviceRemoved": "Gerät entfernt"
+      "deviceRemoved": "Gerät entfernt",
+      "deviceLeft": "Gerät abgemeldet"
     }
   },
   "rtty": {

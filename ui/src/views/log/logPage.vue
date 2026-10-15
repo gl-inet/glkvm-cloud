@@ -131,7 +131,7 @@ import { reqListDeviceEventLogs, type DeviceEventLog } from '@/api/deviceLog'
 type TabKey = 'device' | 'access'
 
 const TAB_TYPES: Record<TabKey, string[]> = {
-    device: ['device_online', 'device_offline', 'device_joined', 'device_removed'],
+    device: ['device_online', 'device_offline', 'device_joined', 'device_removed', 'device_left'],
     access: ['remote_ssh', 'remote_web', 'remote_control'],
 }
 
@@ -183,6 +183,7 @@ const eventTypeLabel = (type: string): string => {
     case 'device_offline':  return t('deviceLog.event.deviceOffline')
     case 'device_joined':   return t('deviceLog.event.deviceJoined')
     case 'device_removed':  return t('deviceLog.event.deviceRemoved')
+    case 'device_left':     return t('deviceLog.event.deviceLeft')
     case 'remote_ssh':      return t('deviceLog.event.remoteSsh')
     case 'remote_web':      return t('deviceLog.event.remoteWeb')
     case 'remote_control':  return t('deviceLog.event.remoteControl')
@@ -200,6 +201,8 @@ const eventTypeColor = (type: string): { bg: string; fg: string } => {
         return { bg: 'var(--gl-color-primary-background)', fg: 'var(--gl-color-primary)' }
     case 'device_removed':
         return { bg: 'var(--gl-color-warning-background)', fg: 'var(--gl-color-warning-primary)' }
+    case 'device_left':
+        return { bg: 'var(--gl-color-bg-surface2)',        fg: 'var(--gl-color-text-secondary)' }
     case 'remote_ssh':
         return { bg: 'var(--gl-color-primary-background)', fg: 'var(--gl-color-primary)' }
     case 'remote_web':

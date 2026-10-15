@@ -186,6 +186,7 @@ var DeviceMsgHandlers = map[byte]func(*Device, []byte) error{
 	msgTypeCmd:        handleCmdMsg,
 	msgTypeHttp:       handleHttpMsg,
 	msgTypeDeviceInfo: handleDeviceInfoMsg,
+	msgTypeCtrl:       handleCtrlMsg,
 }
 
 func (srv *RttyServer) ListenDevices() {
@@ -333,7 +334,9 @@ func handleDeviceConnection(srv *RttyServer, conn net.Conn, certMAC string) {
 
 		err = handler(dev, data)
 		if err != nil {
-			log.Error().Msg(err.Error())
+			if err != errDeviceLeft {
+				log.Error().Msg(err.Error())
+			}
 			return
 		}
 	}
@@ -363,6 +366,8 @@ func msgTypeName(typ byte) string {
 		return "ack"
 	case msgTypeDeviceInfo:
 		return "deviceinfo"
+	case msgTypeCtrl:
+		return "ctrl"
 	default:
 		return fmt.Sprintf("unknown(%d)", typ)
 	}

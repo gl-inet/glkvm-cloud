@@ -246,7 +246,8 @@
       "remoteWeb": "원격 웹",
       "remoteControl": "원격 제어",
       "deviceJoined": "기기 추가",
-      "deviceRemoved": "기기 삭제"
+      "deviceRemoved": "기기 삭제",
+      "deviceLeft": "기기 탈퇴"
     }
   },
   "rtty": {

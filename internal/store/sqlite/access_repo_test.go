@@ -202,3 +202,31 @@ func TestInitSchemaCreatesAccessTables(t *testing.T) {
 		}
 	}
 }
+
+func TestRemoveByMAC(t *testing.T) {
+	repo, db := newAccessFixture(t)
+	ctx := context.Background()
+	addCode(t, db, "c", now+3600, false)
+	if _, err := repo.Claim(ctx, access.HashCode("c"), "9483c4b71fb1", "zh71fb1", now); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Gorm().Exec(`INSERT INTO devices (ddns, mac) VALUES ('zh71fb1', '9483c4b71fb1'), ('dl1ddff', '9483c4e1ddff')`).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	if devid, err := repo.RemoveByMAC(ctx, "9483c4b71fb1"); err != nil || devid != "zh71fb1" {
+		t.Fatalf("RemoveByMAC = (%q, %v)", devid, err)
+	}
+	if e, _ := repo.GetByMAC(ctx, "9483c4b71fb1"); e != nil {
+		t.Error("whitelist entry survived")
+	}
+	var left []string
+	db.Gorm().Raw(`SELECT ddns FROM devices ORDER BY ddns`).Scan(&left)
+	if len(left) != 1 || left[0] != "dl1ddff" {
+		t.Errorf("devices left: %v, want only the other device", left)
+	}
+	// Not listed (any more): nothing to do.
+	if devid, err := repo.RemoveByMAC(ctx, "9483c4b71fb1"); err != nil || devid != "" {
+		t.Errorf("second RemoveByMAC = (%q, %v)", devid, err)
+	}
+}

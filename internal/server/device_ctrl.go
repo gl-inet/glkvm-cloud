@@ -1,9 +1,12 @@
 package server
 
 import (
+	"context"
+	"errors"
 	"net"
 	"strings"
 
+	"rttys/internal/store/sqlite"
 	"rttys/xconfig"
 
 	jsoniter "github.com/json-iterator/go"
@@ -13,10 +16,18 @@ import (
 // ctrlEnvelope is an rtty-ctrl message, carried in msgTypeCtrl frames. Only
 // rtty-go understands them, so they go to mTLS devices only.
 type ctrlEnvelope struct {
-	V    int    `json:"v"`
-	T    string `json:"t"` // "req", "resp" or "evt"
-	Cmd  string `json:"cmd,omitempty"`
-	Data any    `json:"data,omitempty"`
+	V    int      `json:"v"`
+	T    string   `json:"t"` // "req", "resp" or "evt"
+	ID   string   `json:"id,omitempty"`
+	Cmd  string   `json:"cmd,omitempty"`
+	Data any      `json:"data,omitempty"`
+	OK   bool     `json:"ok,omitempty"`
+	Err  *ctrlErr `json:"err,omitempty"`
+}
+
+type ctrlErr struct {
+	Code string `json:"code"`
+	Msg  string `json:"msg,omitempty"`
 }
 
 // cloudInfo is what the platform tells a device once it is registered, for the
@@ -28,18 +39,84 @@ type cloudInfo struct {
 	JoinedAt int64  `json:"joinedAt,omitempty"`
 }
 
-func (dev *Device) sendCloudInfo(cfg *xconfig.Config) {
-	b, err := jsoniter.Marshal(ctrlEnvelope{V: 1, T: "evt", Cmd: "cloud.info", Data: cloudInfo{
-		Devid:    dev.id,
-		WebURL:   deviceWebURL(cfg),
-		JoinedAt: dev.joinedAt,
-	}})
+func (dev *Device) sendCtrl(e ctrlEnvelope) {
+	e.V = 1
+	b, err := jsoniter.Marshal(e)
 	if err != nil {
 		return
 	}
 	if err := dev.WriteMsg(msgTypeCtrl, "", b); err != nil {
-		log.Warn().Err(err).Str("devid", dev.id).Msg("send cloud info to device")
+		log.Warn().Err(err).Str("devid", dev.id).Str("cmd", e.Cmd).Msg("send control message to device")
 	}
+}
+
+func (dev *Device) sendCloudInfo(cfg *xconfig.Config) {
+	dev.sendCtrl(ctrlEnvelope{T: "evt", Cmd: "cloud.info", Data: cloudInfo{
+		Devid:    dev.id,
+		WebURL:   deviceWebURL(cfg),
+		JoinedAt: dev.joinedAt,
+	}})
+}
+
+// replyCtrl answers request id: success when errCode is "".
+func (dev *Device) replyCtrl(id string, errCode, errMsg string) {
+	e := ctrlEnvelope{T: "resp", ID: id, OK: errCode == ""}
+	if errCode != "" {
+		e.Err = &ctrlErr{Code: errCode, Msg: errMsg}
+	}
+	dev.sendCtrl(e)
+}
+
+// errDeviceLeft ends the connection of a device that has left the platform.
+var errDeviceLeft = errors.New("device left the platform")
+
+// handleCtrlMsg serves the requests a device sends on the control channel.
+// Anything else is ignored: a control message never costs a device its link.
+func handleCtrlMsg(dev *Device, data []byte) error {
+	var e struct {
+		T   string `json:"t"`
+		ID  string `json:"id"`
+		Cmd string `json:"cmd"`
+	}
+	if err := jsoniter.Unmarshal(data, &e); err != nil || e.T != "req" {
+		return nil
+	}
+	switch e.Cmd {
+	case "cloud.leave":
+		return dev.leave(e.ID)
+	default:
+		dev.replyCtrl(e.ID, "unknown_cmd", "unknown command: "+e.Cmd)
+		return nil
+	}
+}
+
+// leave takes a device off the platform at its own request, before it moves to
+// another platform or back to the official cloud: as when an admin deletes
+// it, its whitelist entry and device record go and its connection is dropped.
+// Only an mTLS device, which proves who it is, can do this.
+func (dev *Device) leave(id string) error {
+	if dev.certMAC == "" {
+		dev.replyCtrl(id, "not_supported", "only devices on the mTLS port can leave")
+		return nil
+	}
+	cont := sqlite.TryContainer()
+	if cont == nil || cont.Access == nil {
+		dev.replyCtrl(id, "internal", "")
+		return nil
+	}
+	ctx := context.Background()
+	if _, err := cont.Access.RemoveByMAC(ctx, dev.certMAC); err != nil {
+		log.Error().Err(err).Str("mac", dev.certMAC).Msg("mtls: removing a leaving device failed")
+		dev.replyCtrl(id, "internal", "")
+		return nil
+	}
+
+	log.Info().Str("devid", dev.id).Str("mac", dev.certMAC).Msg("mtls: device left the platform")
+	if cont.DeviceLogSvc != nil {
+		cont.DeviceLogSvc.RecordDeviceLeft(ctx, dev.id, dev.certMAC, remoteIP(dev.conn))
+	}
+	dev.replyCtrl(id, "", "")
+	return errDeviceLeft
 }
 
 // deviceWebURL is the address of the web UI as given to devices. They have no

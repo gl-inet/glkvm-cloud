@@ -246,7 +246,8 @@
       "remoteWeb": "远程 Web",
       "remoteControl": "远程控制",
       "deviceJoined": "设备接入",
-      "deviceRemoved": "设备删除"
+      "deviceRemoved": "设备删除",
+      "deviceLeft": "设备退网"
     }
   },
   "rtty": {
