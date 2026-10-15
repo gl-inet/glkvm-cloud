@@ -58,6 +58,39 @@ func (dev *Device) sendCloudInfo(cfg *xconfig.Config) {
 	}})
 }
 
+// turnConfig is the TURN server the device's web relays the KVM stream
+// through, as the device keeps it in /tmp/turnserver.json.
+type turnConfig struct {
+	Username string   `json:"username"`
+	TTL      int      `json:"ttl"`
+	Password string   `json:"password"`
+	URIs     []string `json:"uris"`
+}
+
+// deviceTurnConfig is the platform's TURN server as given to devices, nil
+// when it has none.
+func deviceTurnConfig(cfg *xconfig.Config) *turnConfig {
+	host, port := strings.TrimSpace(cfg.WebrtcIP), strings.TrimSpace(cfg.WebrtcPort)
+	if host == "" || port == "" || cfg.WebrtcUsername == "" || cfg.WebrtcPassword == "" {
+		return nil
+	}
+	addr := net.JoinHostPort(host, port)
+	return &turnConfig{
+		Username: cfg.WebrtcUsername,
+		TTL:      864000, // as the old self-hosted script wrote it
+		Password: cfg.WebrtcPassword,
+		URIs:     []string{"turn:" + addr + "?transport=udp", "turn:" + addr + "?transport=tcp"},
+	}
+}
+
+// sendTurnConfig gives the device the platform's TURN server; before access
+// codes, the old self-hosted script wrote it onto the device.
+func (dev *Device) sendTurnConfig(cfg *xconfig.Config) {
+	if tc := deviceTurnConfig(cfg); tc != nil {
+		dev.sendCtrl(ctrlEnvelope{T: "evt", Cmd: "turn.config", Data: tc})
+	}
+}
+
 // replyCtrl answers request id: success when errCode is "".
 func (dev *Device) replyCtrl(id string, errCode, errMsg string) {
 	e := ctrlEnvelope{T: "resp", ID: id, OK: errCode == ""}

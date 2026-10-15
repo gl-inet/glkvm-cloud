@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"net"
+	"strings"
 	"testing"
 	"time"
 
@@ -169,4 +170,97 @@ func TestUnknownCtrlRequest(t *testing.T) {
 		t.Error("an unknown request dropped the device")
 	}
 	f.closeAndWait(t, conn, "zh71fb1")
+}
+
+// ctrlEvents returns the commands of the events the server has sent on conn so
+// far: it sends a request and collects the events that arrive before the
+// answer.
+func ctrlEvents(t *testing.T, conn net.Conn) map[string]json.RawMessage {
+	t.Helper()
+	b, _ := json.Marshal(map[string]any{"v": 1, "t": "req", "id": "probe", "cmd": "probe"})
+	head := []byte{msgTypeCtrl, 0, 0}
+	binary.BigEndian.PutUint16(head[1:], uint16(len(b)))
+	if _, err := conn.Write(append(head, b...)); err != nil {
+		t.Fatal(err)
+	}
+	evts := map[string]json.RawMessage{}
+	for {
+		typ, data, err := readFrame(conn)
+		if err != nil {
+			t.Fatalf("reading events: %v", err)
+		}
+		var e struct {
+			T, ID, Cmd string
+			Data       json.RawMessage
+		}
+		if typ != msgTypeCtrl || json.Unmarshal(data, &e) != nil {
+			continue
+		}
+		if e.T == "resp" && e.ID == "probe" {
+			return evts
+		}
+		if e.T == "evt" {
+			evts[e.Cmd] = e.Data
+		}
+	}
+}
+
+func TestMTLSTurnConfig(t *testing.T) {
+	factory := newTestCA(t)
+	f := newMTLSFixtureWith(t, factory, xconfig.Config{
+		WebrtcIP: "192.0.2.10", WebrtcPort: "3478", WebrtcUsername: "turn-user", WebrtcPassword: "turn-pass",
+	})
+	f.addCode(t, "code")
+	code, conn, err := f.register(factory.device(t, "9483c4b71fb1", clientAuthEKU), "zh71fb1", "9483c4b71fb1", "code")
+	if err != nil || code != 0 {
+		t.Fatalf("join: (%d, %v)", code, err)
+	}
+
+	raw, ok := ctrlEvents(t, conn)["turn.config"]
+	if !ok {
+		t.Fatal("no turn.config after registering")
+	}
+	var got turnConfig
+	json.Unmarshal(raw, &got)
+	want := turnConfig{Username: "turn-user", TTL: 864000, Password: "turn-pass",
+		URIs: []string{"turn:192.0.2.10:3478?transport=udp", "turn:192.0.2.10:3478?transport=tcp"}}
+	if got.Username != want.Username || got.TTL != want.TTL || got.Password != want.Password || strings.Join(got.URIs, " ") != strings.Join(want.URIs, " ") {
+		t.Errorf("turn.config %+v, want %+v", got, want)
+	}
+	f.closeAndWait(t, conn, "zh71fb1")
+}
+
+// A platform without a TURN server sends no TURN config.
+func TestMTLSNoTurnConfig(t *testing.T) {
+	factory := newTestCA(t)
+	f := newMTLSFixtureWith(t, factory, xconfig.Config{WebrtcIP: "192.0.2.10", WebrtcPort: "3478"})
+	f.addCode(t, "code")
+	code, conn, err := f.register(factory.device(t, "9483c4b71fb1", clientAuthEKU), "zh71fb1", "9483c4b71fb1", "code")
+	if err != nil || code != 0 {
+		t.Fatalf("join: (%d, %v)", code, err)
+	}
+	evts := ctrlEvents(t, conn)
+	if _, ok := evts["turn.config"]; ok {
+		t.Error("turn.config sent without TURN credentials")
+	}
+	if _, ok := evts["cloud.info"]; !ok {
+		t.Error("no cloud.info")
+	}
+	f.closeAndWait(t, conn, "zh71fb1")
+}
+
+func TestDeviceTurnConfig(t *testing.T) {
+	cfg := xconfig.Config{WebrtcIP: "2001:db8::1", WebrtcPort: "3478", WebrtcUsername: "u", WebrtcPassword: "p"}
+	if tc := deviceTurnConfig(&cfg); tc == nil || tc.URIs[0] != "turn:[2001:db8::1]:3478?transport=udp" {
+		t.Errorf("IPv6 TURN server: %+v", tc)
+	}
+	for _, c := range []xconfig.Config{
+		{WebrtcPort: "3478", WebrtcUsername: "u", WebrtcPassword: "p"},
+		{WebrtcIP: "192.0.2.10", WebrtcUsername: "u", WebrtcPassword: "p"},
+		{WebrtcIP: "192.0.2.10", WebrtcPort: "3478", WebrtcPassword: "p"},
+	} {
+		if tc := deviceTurnConfig(&c); tc != nil {
+			t.Errorf("%+v: %+v, want none", c, tc)
+		}
+	}
 }

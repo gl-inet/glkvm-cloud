@@ -277,6 +277,7 @@ func handleDeviceConnection(srv *RttyServer, conn net.Conn, certMAC string) {
 
 	if dev.certMAC != "" {
 		dev.sendCloudInfo(&srv.cfg)
+		dev.sendTurnConfig(&srv.cfg)
 	}
 
 	deviceRemoteIP := ""
