@@ -100,27 +100,3 @@ FOR EACH ROW
 BEGIN
   UPDATE devices SET updated_at = unixepoch() WHERE id = OLD.id;
 END;
-
--- Devices allowed on the mTLS device port. A row is written when a device
--- claims a registration code, keyed by the MAC in its factory certificate; it
--- pins the device ID so another certificate cannot take it over.
-CREATE TABLE IF NOT EXISTS device_whitelist (
-  mac        TEXT    PRIMARY KEY,
-  devid      TEXT    NOT NULL UNIQUE,
-  code_id    INTEGER NULL,
-  created_at INTEGER NOT NULL
-);
-
--- One-time registration codes handed out inside access codes. Only a hash of
--- each code is stored.
-CREATE TABLE IF NOT EXISTS registration_codes (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  code_hash  TEXT    NOT NULL UNIQUE,
-  created_by INTEGER NULL,
-  created_at INTEGER NOT NULL,
-  expires_at INTEGER NOT NULL,
-  used_at    INTEGER NULL,
-  used_mac   TEXT    NULL,
-  revoked_at INTEGER NULL
-);
-CREATE INDEX IF NOT EXISTS idx_registration_codes_created_at ON registration_codes(created_at);

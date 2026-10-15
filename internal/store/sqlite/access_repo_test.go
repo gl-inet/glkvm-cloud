@@ -189,3 +189,16 @@ func TestRemoveDevice(t *testing.T) {
 		t.Errorf("second delete: %v, want ErrDeviceNotFound", err)
 	}
 }
+
+// An upgraded deployment keeps the schema.sql of its old release, which has no
+// access tables, so InitSchema has to create them itself.
+func TestInitSchemaCreatesAccessTables(t *testing.T) {
+	_, db := newAccessFixture(t)
+	for _, table := range []string{"device_whitelist", "registration_codes"} {
+		var n int64
+		db.Gorm().Raw(`SELECT COUNT(1) FROM sqlite_master WHERE type = 'table' AND name = ?`, table).Scan(&n)
+		if n != 1 {
+			t.Errorf("table %s was not created", table)
+		}
+	}
+}

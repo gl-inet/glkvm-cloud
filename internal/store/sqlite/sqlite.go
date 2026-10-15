@@ -127,6 +127,9 @@ func InitSchema(ctx context.Context, db *sql.DB, schemaPath string) error {
     if err := ensureDeviceEventLogsTable(ctx, db); err != nil {
         return err
     }
+    if err := ensureDeviceAccessTables(ctx, db); err != nil {
+        return err
+    }
     return ensureNotificationTables(ctx, db)
 }
 
@@ -326,6 +329,44 @@ func ensureDeviceEventLogsTable(ctx context.Context, db *sql.DB) error {
         return err
     }
     if _, err := db.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_device_event_logs_created_at ON device_event_logs(created_at)`); err != nil {
+        return err
+    }
+    return nil
+}
+
+// ensureDeviceAccessTables creates the tables behind the mTLS device port.
+// Deployments upgraded from an older release keep their own schema.sql, so
+// the tables are created here rather than there.
+func ensureDeviceAccessTables(ctx context.Context, db *sql.DB) error {
+    if db == nil {
+        return nil
+    }
+    // Devices allowed on the mTLS device port. A row is written when a device
+    // claims a registration code, keyed by the MAC in its factory certificate;
+    // it pins the device ID so another certificate cannot take it over.
+    if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS device_whitelist (
+  mac        TEXT    PRIMARY KEY,
+  devid      TEXT    NOT NULL UNIQUE,
+  code_id    INTEGER NULL,
+  created_at INTEGER NOT NULL
+)`); err != nil {
+        return err
+    }
+    // One-time registration codes handed out inside access codes. Only a hash
+    // of each code is stored.
+    if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS registration_codes (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  code_hash  TEXT    NOT NULL UNIQUE,
+  created_by INTEGER NULL,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  used_at    INTEGER NULL,
+  used_mac   TEXT    NULL,
+  revoked_at INTEGER NULL
+)`); err != nil {
+        return err
+    }
+    if _, err := db.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_registration_codes_created_at ON registration_codes(created_at)`); err != nil {
         return err
     }
     return nil
