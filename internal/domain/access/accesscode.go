@@ -14,7 +14,7 @@ const (
 	// CodeTTL is how long a registration code can be redeemed.
 	CodeTTL = 24 * time.Hour
 	// MaxCodesPerRequest caps how many codes one request may generate.
-	MaxCodesPerRequest = 20
+	MaxCodesPerRequest = 5
 )
 
 // NewCode returns a fresh random registration code (128 bits).

@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"rttys/internal/domain/access"
@@ -99,11 +100,29 @@ func (h *AccessHandler) CreateCodes(c *gin.Context) {
 	dto.Write(c, dto.Ok(traceID, dto.CreateRegistrationCodesResp{Items: out}))
 }
 
-// GET /api/registration-codes
+// maxCodeIDs caps the codes one ?ids= query may name.
+const maxCodeIDs = 50
+
+// GET /api/registration-codes: the most recent codes, or with ?ids=1,2 the
+// codes with these IDs, which the add device dialog polls for the ones it
+// generated.
 func (h *AccessHandler) ListCodes(c *gin.Context) {
 	traceID := middleware.GetTraceID(c)
 
-	codes, err := h.repo.ListCodes(c.Request.Context(), 200)
+	var codes []access.RegistrationCode
+	var err error
+	if raw := strings.TrimSpace(c.Query("ids")); raw != "" {
+		ids, ok := parseIDs(raw, maxCodeIDs)
+		if !ok {
+			dto.Write(c, dto.Err(traceID, dto.CodeInvalidArgument, "Invalid argument", map[string]any{
+				"field": "ids", "max": maxCodeIDs,
+			}))
+			return
+		}
+		codes, err = h.repo.CodesByID(c.Request.Context(), ids)
+	} else {
+		codes, err = h.repo.ListCodes(c.Request.Context(), 200)
+	}
 	if err != nil {
 		dto.Write(c, dto.Err(traceID, dto.CodeInternalError, "Internal error", nil))
 		return
@@ -144,4 +163,21 @@ func (h *AccessHandler) RevokeCode(c *gin.Context) {
 	default:
 		dto.Write(c, dto.Ok(traceID, struct{}{}))
 	}
+}
+
+// parseIDs parses a comma-separated list of at most max positive IDs.
+func parseIDs(raw string, max int) ([]int64, bool) {
+	parts := strings.Split(raw, ",")
+	if len(parts) > max {
+		return nil, false
+	}
+	ids := make([]int64, 0, len(parts))
+	for _, p := range parts {
+		id, err := strconv.ParseInt(strings.TrimSpace(p), 10, 64)
+		if err != nil || id <= 0 {
+			return nil, false
+		}
+		ids = append(ids, id)
+	}
+	return ids, true
 }

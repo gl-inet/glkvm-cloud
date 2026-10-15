@@ -166,6 +166,19 @@ func TestRegistrationCodesAPI(t *testing.T) {
 	if got := status[second]; got.Status != "revoked" {
 		t.Errorf("second code = %+v, want revoked", got)
 	}
+
+	// The add device dialog polls just the codes it generated.
+	env = f.call(t, http.MethodGet, "/api/registration-codes?ids="+strconv.FormatInt(second, 10), "sid-admin", nil)
+	list = dto.ListRegistrationCodesResp{}
+	_ = json.Unmarshal(env.Data, &list)
+	if env.Code != dto.CodeOK || len(list.Items) != 1 || list.Items[0].ID != second || list.Items[0].Status != "revoked" {
+		t.Errorf("by id: code=%q items=%+v, want just the revoked second code", env.Code, list.Items)
+	}
+	for _, bad := range []string{"x", "1,,2", "0", "-3"} {
+		if env := f.call(t, http.MethodGet, "/api/registration-codes?ids="+bad, "sid-admin", nil); env.Code != dto.CodeInvalidArgument {
+			t.Errorf("ids=%q: code=%q, want %q", bad, env.Code, dto.CodeInvalidArgument)
+		}
+	}
 }
 
 func TestRegistrationCodesNeedAccessAddress(t *testing.T) {

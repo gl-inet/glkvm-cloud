@@ -147,13 +147,24 @@ func deref[T any](p *T) T {
 // ListCodes returns the most recent registration codes, newest first, with
 // the device each used code admitted.
 func (r *AccessRepo) ListCodes(ctx context.Context, limit int) ([]access.RegistrationCode, error) {
+	return r.listCodes(ctx, `ORDER BY rc.created_at DESC, rc.id DESC LIMIT ?`, limit)
+}
+
+// CodesByID returns the registration codes with these IDs, newest first.
+func (r *AccessRepo) CodesByID(ctx context.Context, ids []int64) ([]access.RegistrationCode, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	return r.listCodes(ctx, `WHERE rc.id IN ? ORDER BY rc.created_at DESC, rc.id DESC`, ids)
+}
+
+func (r *AccessRepo) listCodes(ctx context.Context, tail string, args ...any) ([]access.RegistrationCode, error) {
 	var rows []codeRow
 	if err := r.db.WithContext(ctx).Raw(
 		`SELECT rc.id, rc.created_by, rc.created_at, rc.expires_at, rc.used_at, rc.used_mac, rc.revoked_at, w.devid
 		   FROM registration_codes rc
 		   LEFT JOIN device_whitelist w ON w.code_id = rc.id
-		  ORDER BY rc.created_at DESC, rc.id DESC
-		  LIMIT ?`, limit,
+		  `+tail, args...,
 	).Scan(&rows).Error; err != nil {
 		return nil, err
 	}
