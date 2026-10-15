@@ -191,6 +191,45 @@ func TestEnsureLeaf(t *testing.T) {
 	}
 }
 
+// Moving the device port to a domain name must not strand devices that joined
+// with the IP address.
+func TestEnsureLeafKeeping(t *testing.T) {
+	d, err := LoadOrCreate(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	certFile, _, err := d.EnsureLeafKeeping("device", []string{"192.0.2.10"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := readLeaf(t, certFile)
+
+	if _, _, err := d.EnsureLeafKeeping("device", []string{"kvm.example.com"}); err != nil {
+		t.Fatal(err)
+	}
+	moved := readLeaf(t, certFile)
+	if moved.SerialNumber.Cmp(first.SerialNumber) == 0 {
+		t.Fatal("a new address did not reissue the certificate")
+	}
+	roots := x509.NewCertPool()
+	roots.AddCert(d.ca)
+	for _, host := range []string{"192.0.2.10", "kvm.example.com"} {
+		if _, err := moved.Verify(x509.VerifyOptions{Roots: roots, DNSName: host}); err != nil {
+			t.Errorf("after the move the certificate does not cover %s: %v", host, err)
+		}
+	}
+
+	// Either address again: already covered, kept as is.
+	for _, host := range []string{"kvm.example.com", "192.0.2.10"} {
+		if _, _, err := d.EnsureLeafKeeping("device", []string{host}); err != nil {
+			t.Fatal(err)
+		}
+		if readLeaf(t, certFile).SerialNumber.Cmp(moved.SerialNumber) != 0 {
+			t.Errorf("%s reissued a certificate that covers it", host)
+		}
+	}
+}
+
 func TestIsBundledSample(t *testing.T) {
 	d, err := LoadOrCreate(t.TempDir())
 	if err != nil {

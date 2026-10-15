@@ -27,7 +27,7 @@
    - `TURN_USER` / `TURN_PASS`: coturn authentication credentials (leave empty to use the default)
    - `GLKVM_ACCESS_IP`: glkvm cloud access address (leave empty to auto-detect at startup)
    - `RTTYS_DEVICE_MTLS_PORT`: device port for new firmware, which joins with an access code (default `5915`)
-   - `DEVICE_ACCESS_HOST`: address devices dial for that port, put into access codes (leave empty to use `GLKVM_ACCESS_IP`)
+   - `DEVICE_ACCESS_HOST`: address devices dial for that port, put into access codes (leave empty to use `GLKVM_ACCESS_IP`). Devices that already joined keep working after it changes, e.g. from an IP address to a domain name: the device-port certificate keeps covering the old address
    - `RTTYS_LEGACY_TOKEN_ACCESS`: keep accepting old-firmware devices with `RTTYS_TOKEN` on `RTTYS_DEVICE_PORT` (default `true`)
 
    **LDAP Authentication (Optional):**

@@ -103,6 +103,25 @@ func (d *Deployment) CAFile() string { return d.caFile }
 // CAPEM is the deployment CA certificate in PEM form.
 func (d *Deployment) CAPEM() []byte { return d.caPEM }
 
+// EnsureLeafKeeping is EnsureLeaf for a certificate whose clients keep the
+// address they were given, as devices do: a new certificate also covers the
+// addresses of the current one, so that clients still dialing an old address
+// can verify it.
+func (d *Deployment) EnsureLeafKeeping(name string, sans []string) (certFile, keyFile string, err error) {
+	all := slices.Clone(sans)
+	if b, err := os.ReadFile(filepath.Join(d.dir, name+".cer")); err == nil {
+		if blk, _ := pem.Decode(b); blk != nil {
+			if cur, err := x509.ParseCertificate(blk.Bytes); err == nil && cur.CheckSignatureFrom(d.ca) == nil {
+				for _, ip := range cur.IPAddresses {
+					all = append(all, ip.String())
+				}
+				all = append(all, cur.DNSNames...)
+			}
+		}
+	}
+	return d.EnsureLeaf(name, all)
+}
+
 // EnsureLeaf returns a server certificate <name>.cer/.key in the deployment
 // directory for the given SANs (IPs or DNS names). The existing pair is kept
 // when it is signed by this CA, covers exactly these SANs and is not about to

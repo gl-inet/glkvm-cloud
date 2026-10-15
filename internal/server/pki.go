@@ -29,7 +29,9 @@ func setupPKI(cfg *xconfig.Config, dir string) error {
 	if host == "" {
 		log.Warn().Msg("neither DEVICE_ACCESS_HOST nor GLKVM_ACCESS_IP is set: devices cannot verify the device port by address")
 	}
-	cfg.DeviceCertFile, cfg.DeviceKeyFile, err = d.EnsureLeaf("device", []string{host})
+	// Devices keep the address they joined with, so an address once used stays
+	// in the certificate, e.g. the IP after moving to a domain name.
+	cfg.DeviceCertFile, cfg.DeviceKeyFile, err = d.EnsureLeafKeeping("device", []string{host})
 	if err != nil {
 		return fmt.Errorf("device-port certificate: %w", err)
 	}
