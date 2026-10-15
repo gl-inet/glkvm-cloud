@@ -26,6 +26,7 @@ package xconfig
 
 import (
     "fmt"
+    "net"
     "os"
     "regexp"
     "strconv"
@@ -114,12 +115,36 @@ type Config struct {
     // so firmware can read it and create a link in the device's web page.
     // If empty, the URL is derived from the browser's current request.
     SelfhostWebUIURL string
+
+    // =====================================================
+    // Device access over mTLS (factory certificate + access code)
+    // =====================================================
+    // Host (IP or domain) devices dial for the mTLS device port. It goes into
+    // access codes and the device-port certificate. Empty = WebrtcIP
+    // (GLKVM_ACCESS_IP).
+    DeviceAccessHost string
+
+    // Resolved at startup, not configurable: the device-port certificate and
+    // the deployment CA devices verify it against.
+    DeviceCertFile string
+    DeviceKeyFile  string
+    DeviceCAFile   string
 }
 
 // docker mode fixed path for reading certificate
 const (
     SslCert = "/home/certificate/glkvm_cer"
     SslKey  = "/home/certificate/glkvm_key"
+
+    // Certificates the operator may provide when ./certificate is mounted as a
+    // directory (v3.0 compose). SslCert/SslKey above are the per-file mounts
+    // of earlier compose files.
+    WebCertFile = "/home/certificate/glkvm.cer"
+    WebKeyFile  = "/home/certificate/glkvm.key"
+
+    // The deployment CA and the certificates it signs live next to the
+    // database, which every compose version mounts persistently.
+    PKIDir = "/home/database/pki"
 )
 
 func (cfg *Config) Load(confPath string) error {
@@ -213,6 +238,7 @@ func parseYamlCfg(cfg *Config, conf string) error {
 
     // Selfhost WebUI URL
     getConfigOpt(yamlCfg, "selfhost-webui-url", &cfg.SelfhostWebUIURL)
+    getConfigOpt(yamlCfg, "device-access-host", &cfg.DeviceAccessHost)
 
     // ===== OIDC configuration (generic OIDC provider) =====
     // Switch and basic endpoints
@@ -358,6 +384,13 @@ func applyEnvCfg(cfg *Config) error {
         cfg.SelfhostWebUIURL = v
     }
 
+    if v := strings.TrimSpace(os.Getenv("DEVICE_ACCESS_HOST")); v != "" {
+        cfg.DeviceAccessHost = v
+    }
+    if cfg.DeviceAccessHost != "" {
+        cfg.DeviceAccessHost = bareHost(cfg.DeviceAccessHost)
+    }
+
     if v := strings.TrimSpace(os.Getenv("WEB_UI_HOST")); v != "" {
         cleaned := v
         // 1. Remove scheme if present (http:// or https://)
@@ -376,6 +409,21 @@ func applyEnvCfg(cfg *Config) error {
     }
 
     return nil
+}
+
+// bareHost strips scheme, path and port: "https://kvm.example.com:5915/x" ->
+// "kvm.example.com".
+func bareHost(v string) string {
+    if idx := strings.Index(v, "://"); idx != -1 {
+        v = v[idx+3:]
+    }
+    if idx := strings.IndexAny(v, "/?#"); idx != -1 {
+        v = v[:idx]
+    }
+    if h, _, err := net.SplitHostPort(v); err == nil {
+        v = h
+    }
+    return strings.Trim(strings.TrimSpace(v), "[]")
 }
 
 func getDurationOpt(yamlCfg *yaml.File, name string, opt *time.Duration) error {

@@ -79,6 +79,10 @@ func RunFromEnv() error {
         go StartSignalHandler()
     }
 
+    if err := setupPKI(&cfg, xconfig.PKIDir); err != nil {
+        return err
+    }
+
     {
         importJSON, _ := json.MarshalIndent(cfg, "", "  ")
         log.Info().Msg("==== Loaded Configuration ====")
