@@ -277,6 +277,26 @@ func TestMTLSRegister(t *testing.T) {
 	}
 	f.closeAndWait(t, conn, "zh71fb1")
 
+	// Reset and pasted a new code while still whitelisted: the code is spent,
+	// and bringing it again does not keep the device out.
+	f.addCode(t, "code-again")
+	for range 2 {
+		code, conn, err = f.register(dev, "zh71fb1", "9483c4b71fb1", "code-again")
+		if err != nil || code != 0 {
+			t.Fatalf("whitelisted with a code: (%d, %v), want 0", code, err)
+		}
+		f.closeAndWait(t, conn, "zh71fb1")
+	}
+	var used int64
+	f.db.Gorm().Raw(`SELECT COUNT(1) FROM registration_codes WHERE code_hash = ? AND used_mac = '9483c4b71fb1'`, access.HashCode("code-again")).Scan(&used)
+	if used != 1 {
+		t.Error("whitelisted device did not spend the code it brought")
+	}
+	f.db.Gorm().Raw(`SELECT COUNT(1) FROM device_event_logs WHERE event_type = 'device_joined' AND device_id = 'zh71fb1'`).Scan(&joined)
+	if joined != 2 {
+		t.Errorf("device_joined events = %d, want 2", joined)
+	}
+
 	// Another device cannot take that ID, and its code survives the attempt.
 	f.addCode(t, "code-2")
 	other := factory.device(t, "9483c4e1ddff", clientAuth)

@@ -102,6 +102,35 @@ func (r *AccessRepo) Claim(ctx context.Context, codeHash, mac, devid string, now
 	return devid, nil
 }
 
+// ClaimListed redeems a registration code brought by a device that is already
+// on the whitelist, e.g. one reset and joining again. The device keeps its
+// entry and ID; the code is marked used and the entry points at it, so the
+// code shows the device it admitted. It reports whether the code was valid;
+// an invalid one changes nothing.
+func (r *AccessRepo) ClaimListed(ctx context.Context, codeHash, mac string, now int64) (bool, error) {
+	mac = utils.NormalizeMac(mac)
+	claimed := false
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		res := tx.Exec(
+			`UPDATE registration_codes SET used_at = ?, used_mac = ?
+			  WHERE code_hash = ? AND used_at IS NULL AND revoked_at IS NULL AND expires_at > ?`,
+			now, mac, codeHash, now,
+		)
+		if res.Error != nil || res.RowsAffected != 1 {
+			return res.Error
+		}
+		claimed = true
+		return tx.Exec(
+			`UPDATE device_whitelist SET code_id = (SELECT id FROM registration_codes WHERE code_hash = ?)
+			  WHERE mac = ?`, codeHash, mac,
+		).Error
+	})
+	if err != nil {
+		return false, err
+	}
+	return claimed, nil
+}
+
 // CreateCodes stores registration codes (by hash) in one transaction and
 // returns their IDs in the same order.
 func (r *AccessRepo) CreateCodes(ctx context.Context, hashes []string, createdBy, now, expiresAt int64) ([]int64, error) {

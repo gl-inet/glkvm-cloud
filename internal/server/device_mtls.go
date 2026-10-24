@@ -96,8 +96,9 @@ func handleDeviceConnMTLS(srv *RttyServer, conn *tls.Conn) {
 
 // registerMTLS admits a device from the mTLS port. Its identity is the MAC in
 // the factory certificate: a whitelisted MAC comes in under the device ID it
-// is listed with; an unlisted one must bring a valid registration code, which
-// adds it to the whitelist.
+// is listed with, spending a valid registration code if it brings one; an
+// unlisted one must bring a valid registration code, which adds it to the
+// whitelist.
 func (dev *Device) registerMTLS() byte {
 	cont := sqlite.TryContainer()
 	if cont == nil || cont.Access == nil {
@@ -112,6 +113,22 @@ func (dev *Device) registerMTLS() byte {
 		return devRegErrInternal
 	}
 	if entry != nil {
+		// A listed device bringing a code was pasted one again (e.g. after a
+		// reset): spend it, so it shows this device and admits no other. An
+		// invalid code does not keep a listed device out.
+		if dev.regCode != "" {
+			claimed, err := cont.Access.ClaimListed(ctx, access.HashCode(dev.regCode), dev.certMAC, time.Now().Unix())
+			if err != nil {
+				log.Error().Err(err).Str("mac", dev.certMAC).Msg("mtls: claim failed")
+				return devRegErrInternal
+			}
+			if claimed {
+				log.Info().Str("mac", dev.certMAC).Str("devid", entry.Devid).Msg("mtls: listed device joined again with a registration code")
+				if cont.DeviceLogSvc != nil {
+					cont.DeviceLogSvc.RecordDeviceJoined(ctx, entry.Devid, dev.certMAC, remoteIP(dev.conn))
+				}
+			}
+		}
 		dev.id, dev.desc, dev.joinedAt = entry.Devid, dev.certMAC, entry.CreatedAt
 		return 0
 	}

@@ -123,6 +123,51 @@ func TestClaimDeviceIDOwnership(t *testing.T) {
 	}
 }
 
+func TestClaimListed(t *testing.T) {
+	repo, db := newAccessFixture(t)
+	ctx := context.Background()
+	addCode(t, db, "first", now+3600, false)
+	if _, err := repo.Claim(ctx, access.HashCode("first"), "9483c4b71fb1", "zh71fb1", now); err != nil {
+		t.Fatal(err)
+	}
+
+	// Pasted a new code while still listed: the code is spent and shows the device.
+	addCode(t, db, "again", now+3600, false)
+	claimed, err := repo.ClaimListed(ctx, access.HashCode("again"), "94:83:C4:B7:1F:B1", now+5)
+	if err != nil || !claimed {
+		t.Fatalf("ClaimListed = (%v, %v), want true", claimed, err)
+	}
+	if !codeUsed(t, db, "again") {
+		t.Error("code was not marked used")
+	}
+	codes, err := repo.ListCodes(ctx, 50)
+	if err != nil || len(codes) != 2 {
+		t.Fatalf("ListCodes = (%v, %v)", codes, err)
+	}
+	again := codes[0]
+	if again.ID < codes[1].ID {
+		again = codes[1]
+	}
+	if again.Status(now+5) != access.CodeUsed || again.Devid != "zh71fb1" || again.UsedMAC != "9483c4b71fb1" {
+		t.Errorf("pasted code = %+v, want it used by zh71fb1", again)
+	}
+	if e, _ := repo.GetByMAC(ctx, "9483c4b71fb1"); e == nil || e.Devid != "zh71fb1" || e.CodeID != again.ID {
+		t.Errorf("whitelist entry = %+v", e)
+	}
+
+	// Used, expired, revoked or unknown codes change nothing.
+	addCode(t, db, "expired", now-1, false)
+	addCode(t, db, "revoked", now+3600, true)
+	for _, code := range []string{"again", "expired", "revoked", "never-issued"} {
+		if claimed, err := repo.ClaimListed(ctx, access.HashCode(code), "9483c4b71fb1", now+5); err != nil || claimed {
+			t.Errorf("%s: ClaimListed = (%v, %v), want false", code, claimed, err)
+		}
+	}
+	if e, _ := repo.GetByMAC(ctx, "9483c4b71fb1"); e == nil || e.CodeID != again.ID {
+		t.Errorf("an invalid code moved the whitelist entry: %+v", e)
+	}
+}
+
 func TestCodesLifecycle(t *testing.T) {
 	repo, _ := newAccessFixture(t)
 	ctx := context.Background()
