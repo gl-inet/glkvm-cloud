@@ -25,7 +25,7 @@ export const useAppStore = defineStore('appGlobal', () => {
         /** 当前的主题模式 */
         themeMode: getThemeFromStorage(),
         /** 版本号 */
-        version: (useLocalStorage(LocalStorageKeys.VERSION).getValue() as string)?.toUpperCase() || 'V1.0.0',
+        version: (useLocalStorage(LocalStorageKeys.VERSION).getValue() as string)?.toUpperCase() || '',
     })
     
     /** 获取主题模式 */

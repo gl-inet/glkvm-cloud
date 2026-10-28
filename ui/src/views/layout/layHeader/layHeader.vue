@@ -96,11 +96,24 @@ import useLanguage from '@/hooks/useLanguage'
 import { languageOptions } from '@/models/setting'
 import { Languages } from 'gl-web-main'
 import { BaseDropdownSelect } from 'gl-web-main/components'
+import { onMounted } from 'vue'
+import { reqAuthConfig } from '@/api/user'
 
 const userStore = useUserStore()
 const appStore = useAppStore()
 const router = useRouter()
 const { currentLang } = useLanguage()
+
+// 版本号以服务端为准：没经过登录页进来（会话仍有效、平台升级后）也要刷新
+onMounted(async () => {
+    try {
+        const { data } = await reqAuthConfig()
+        if (data.kvmCloudVersion) appStore.setVersion(data.kvmCloudVersion)
+    } catch (error) {
+        // 拿不到就保留上次记录的版本号
+        console.error('Failed to load auth config:', error)
+    }
+})
 
 const changeLang = (key: Languages) => {
     useLanguage().setLanguage(key)
