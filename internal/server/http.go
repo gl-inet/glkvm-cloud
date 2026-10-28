@@ -34,6 +34,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -274,7 +275,9 @@ func doHttpProxy(srv *RttyServer, c net.Conn) {
 
 	dev.https.Store(string(srcAddr), c)
 
-	hpw := &HttpProxyWriter{destAddr, srcAddr, hostHeaderRewrite, dev, ses.https}
+	// No device ID in the host: the page is on the platform's own host
+	// (accessed by IP), so the browser sends it the platform's cookies too.
+	hpw := &HttpProxyWriter{destAddr, srcAddr, hostHeaderRewrite, dev, ses.https, devID == ""}
 
 	req.Host = hostHeaderRewrite
 	hpw.WriteRequest(req)
@@ -601,6 +604,7 @@ type HttpProxyWriter struct {
 	hostHeaderRewrite string
 	dev               *Device
 	https             bool
+	sharedHost        bool // the platform's own host: its cookies come along
 }
 
 func (rw *HttpProxyWriter) Write(p []byte) (n int, err error) {
@@ -609,15 +613,49 @@ func (rw *HttpProxyWriter) Write(p []byte) (n int, err error) {
 }
 
 func (rw *HttpProxyWriter) WriteRequest(req *http.Request) {
-	markProxyRequest(req, rw.hostHeaderRewrite)
+	markProxyRequest(req, rw.hostHeaderRewrite, rw.sharedHost)
 	req.Write(rw)
 }
 
+// platformLoginCookies are set on the platform's own host: the login session
+// (sid, see ui/src/utils/auth.ts) and the 2FA trusted device (td).
+var platformLoginCookies = []string{"sid", "td"}
+
 // markProxyRequest readies a browser request for the device. The session
-// header is set, not added, so the browser cannot claim otherwise.
-func markProxyRequest(req *http.Request, host string) {
+// header is set, not added, so the browser cannot claim otherwise. The
+// platform's cookies stay behind: always the proxy session, and on a host
+// shared with the platform the login too. A device on its own host keeps
+// any cookie of its own that happens to share one of those names.
+func markProxyRequest(req *http.Request, host string, sharedHost bool) {
 	req.Host = host
 	req.Header.Set(cloudSessionHeader, cloudSessionValue)
+	dropCookies(req.Header, func(name string) bool {
+		return name == "rtty-http-sid" || sharedHost && slices.Contains(platformLoginCookies, name)
+	})
+}
+
+// dropCookies removes the cookies drop picks from the Cookie header, leaving
+// the others byte for byte: parsing them would lose any a device web set in
+// a form net/http does not accept.
+func dropCookies(h http.Header, drop func(name string) bool) {
+	lines := h.Values("Cookie")
+	if len(lines) == 0 {
+		return
+	}
+	var kept []string
+	for _, line := range lines {
+		for _, pair := range strings.Split(line, ";") {
+			pair = strings.TrimSpace(pair)
+			name, _, _ := strings.Cut(pair, "=")
+			if pair != "" && !drop(strings.TrimSpace(name)) {
+				kept = append(kept, pair)
+			}
+		}
+	}
+	h.Del("Cookie")
+	if len(kept) > 0 {
+		h.Set("Cookie", strings.Join(kept, "; "))
+	}
 }
 
 // validProxySessionID reports whether s could be an ID from utils.GenUniqueID.

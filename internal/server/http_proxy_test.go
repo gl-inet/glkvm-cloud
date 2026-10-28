@@ -94,15 +94,15 @@ func TestProxyRejectsCraftedSessionID(t *testing.T) {
 	}
 }
 
-func TestProxyRequestCarriesCloudSession(t *testing.T) {
-	br := bufio.NewReader(strings.NewReader(
-		"GET /api/info HTTP/1.1\r\nHost: 106.55.158.199:10443\r\nx-cloud-session-flag: none\r\n\r\n"))
-	req, err := http.ReadRequest(br)
+// forward passes a browser request through markProxyRequest and returns it as
+// the device reads it.
+func forward(t *testing.T, raw string, sharedHost bool) *http.Request {
+	t.Helper()
+	req, err := http.ReadRequest(bufio.NewReader(strings.NewReader(raw)))
 	if err != nil {
 		t.Fatal(err)
 	}
-	markProxyRequest(req, "127.0.0.1:80")
-
+	markProxyRequest(req, "127.0.0.1:80", sharedHost)
 	var out strings.Builder
 	if err := req.Write(&out); err != nil {
 		t.Fatal(err)
@@ -111,10 +111,40 @@ func TestProxyRequestCarriesCloudSession(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	return fwd
+}
+
+func TestProxyRequestCarriesCloudSession(t *testing.T) {
+	fwd := forward(t, "GET /api/info HTTP/1.1\r\nHost: 106.55.158.199:10443\r\nx-cloud-session-flag: none\r\n\r\n", true)
 	if fwd.Host != "127.0.0.1:80" {
 		t.Errorf("Host = %q, want the device address", fwd.Host)
 	}
 	if v := fwd.Header.Values(cloudSessionHeader); len(v) != 1 || v[0] != "selfhost" {
 		t.Errorf("%s = %q, want only the platform's selfhost", cloudSessionHeader, v)
+	}
+	if v := fwd.Header.Values("Cookie"); len(v) != 0 {
+		t.Errorf("Cookie = %q, want none added", v)
+	}
+}
+
+func TestProxyKeepsPlatformCookies(t *testing.T) {
+	raw := "GET / HTTP/1.1\r\nHost: 106.55.158.199:10443\r\n" +
+		"Cookie: sid=platform; auth_token=dev\"1; rtty-http-sid=" + testProxySID + "\r\n" +
+		"Cookie: td=trusted; cloud-session-flag=selfhost\r\n\r\n"
+	cases := []struct {
+		name       string
+		sharedHost bool
+		want       string
+	}{
+		{"IP: the platform's host", true, `auth_token=dev"1; cloud-session-flag=selfhost`},
+		{"domain: the device's own host", false, `sid=platform; auth_token=dev"1; td=trusted; cloud-session-flag=selfhost`},
+	}
+	for _, tc := range cases {
+		if got := forward(t, raw, tc.sharedHost).Header.Values("Cookie"); len(got) != 1 || got[0] != tc.want {
+			t.Errorf("%s: Cookie = %q, want %q", tc.name, got, tc.want)
+		}
+	}
+	if got := forward(t, "GET / HTTP/1.1\r\nHost: h\r\nCookie: sid=platform\r\n\r\n", true).Header.Values("Cookie"); len(got) != 0 {
+		t.Errorf("only platform cookies: Cookie = %q, want the header gone", got)
 	}
 }
