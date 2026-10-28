@@ -194,6 +194,12 @@ func doHttpProxy(srv *RttyServer, c net.Conn) {
 	queryParams := req.URL.Query()
 	name := queryParams.Get("rttysid")
 	if name != "" {
+		// It goes into a response header: take only an ID this platform could
+		// have issued, so a crafted link cannot add headers of its own.
+		if !validProxySessionID(name) {
+			sendHTTPErrorResponse(c, "invalid")
+			return
+		}
 		_, overTLS := c.(*tls.Conn)
 		Write302WithCookies(c, "/",
 			fmt.Sprintf("rtty-http-sid=%s; Path=/; HttpOnly", name),
@@ -612,6 +618,19 @@ func (rw *HttpProxyWriter) WriteRequest(req *http.Request) {
 func markProxyRequest(req *http.Request, host string) {
 	req.Host = host
 	req.Header.Set(cloudSessionHeader, cloudSessionValue)
+}
+
+// validProxySessionID reports whether s could be an ID from utils.GenUniqueID.
+func validProxySessionID(s string) bool {
+	if s == "" || len(s) > 64 {
+		return false
+	}
+	for _, r := range s {
+		if !('0' <= r && r <= '9' || 'a' <= r && r <= 'z' || 'A' <= r && r <= 'Z') {
+			return false
+		}
+	}
+	return true
 }
 
 func generateErrorHTML(errorType string) string {

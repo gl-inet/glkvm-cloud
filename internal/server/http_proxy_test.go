@@ -11,12 +11,14 @@ import (
 	"testing"
 )
 
-// enterProxy sends the request that opens a session on the HTTP proxy port
+const testProxySID = "0123456789abcdef0123456789abcdef"
+
+// enterProxy sends the request that opens session sid on the HTTP proxy port
 // and returns the proxy's reply.
-func enterProxy(t *testing.T, server, client net.Conn, header string) *http.Response {
+func enterProxy(t *testing.T, server, client net.Conn, sid, header string) *http.Response {
 	t.Helper()
 	go doHttpProxy(nil, server)
-	req := "GET /?rttysid=sid-1 HTTP/1.1\r\nHost: 106.55.158.199:10443\r\n" + header + "\r\n"
+	req := "GET /?rttysid=" + sid + " HTTP/1.1\r\nHost: 106.55.158.199:10443\r\n" + header + "\r\n"
 	if _, err := client.Write([]byte(req)); err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +54,7 @@ func TestProxyMarksCloudSession(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			server, client := tc.conns()
 			defer client.Close()
-			resp := enterProxy(t, server, client, tc.header)
+			resp := enterProxy(t, server, client, testProxySID, tc.header)
 
 			if resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != "/" {
 				t.Fatalf("reply = %d to %q, want 302 to /", resp.StatusCode, resp.Header.Get("Location"))
@@ -61,7 +63,7 @@ func TestProxyMarksCloudSession(t *testing.T) {
 			for _, c := range resp.Cookies() {
 				got[c.Name] = c
 			}
-			if sid := got["rtty-http-sid"]; sid == nil || sid.Value != "sid-1" || !sid.HttpOnly {
+			if sid := got["rtty-http-sid"]; sid == nil || sid.Value != testProxySID || !sid.HttpOnly {
 				t.Errorf("rtty-http-sid = %+v", sid)
 			}
 			flag := got[cloudSessionCookie]
@@ -77,6 +79,18 @@ func TestProxyMarksCloudSession(t *testing.T) {
 					cloudSessionCookie, flag.Secure, flag.SameSite, tc.secure, wantSameSite)
 			}
 		})
+	}
+}
+
+func TestProxyRejectsCraftedSessionID(t *testing.T) {
+	for _, sid := range []string{"x%0d%0aX-Probe:%20injected", "a%3Bb", strings.Repeat("a", 65)} {
+		server, client := net.Pipe()
+		resp := enterProxy(t, server, client, sid, "")
+		client.Close()
+		if resp.StatusCode == http.StatusFound || resp.Header.Get("X-Probe") != "" || len(resp.Cookies()) != 0 {
+			t.Errorf("rttysid %q: reply %d, X-Probe %q, cookies %v; want an error page and nothing set",
+				sid, resp.StatusCode, resp.Header.Get("X-Probe"), resp.Cookies())
+		}
 	}
 }
 
