@@ -64,6 +64,25 @@ var httpProxySessions = sync.Map{}
 
 const httpProxySessionsExpire = 15 * time.Minute
 
+// The device web learns it is open remotely through this platform, so it can
+// hide what would cut the tunnel it is served over: the page reads the
+// cookie, the device's web server the request header.
+const (
+	cloudSessionCookie = "cloud-session-flag"
+	cloudSessionHeader = "X-Cloud-Session-Flag"
+	cloudSessionValue  = "selfhost"
+)
+
+// cloudSessionSetCookie is the Set-Cookie value marking a remote session. The
+// page must read it, so no HttpOnly; SameSite=None needs Secure, which only
+// holds over HTTPS.
+func cloudSessionSetCookie(secure bool) string {
+	if secure {
+		return cloudSessionCookie + "=" + cloudSessionValue + "; Path=/; Secure; SameSite=None"
+	}
+	return cloudSessionCookie + "=" + cloudSessionValue + "; Path=/; SameSite=Lax"
+}
+
 func (ses *HttpProxySession) Expire() {
 	ses.expire.Store(time.Now().Add(httpProxySessionsExpire).Unix())
 }
@@ -175,8 +194,10 @@ func doHttpProxy(srv *RttyServer, c net.Conn) {
 	queryParams := req.URL.Query()
 	name := queryParams.Get("rttysid")
 	if name != "" {
-		location := "/"
-		Write302WithCookie(c, location, "rtty-http-sid", name)
+		_, overTLS := c.(*tls.Conn)
+		Write302WithCookies(c, "/",
+			fmt.Sprintf("rtty-http-sid=%s; Path=/; HttpOnly", name),
+			cloudSessionSetCookie(overTLS || proto == "https"))
 		return
 	}
 
@@ -582,8 +603,15 @@ func (rw *HttpProxyWriter) Write(p []byte) (n int, err error) {
 }
 
 func (rw *HttpProxyWriter) WriteRequest(req *http.Request) {
-	req.Host = rw.hostHeaderRewrite
+	markProxyRequest(req, rw.hostHeaderRewrite)
 	req.Write(rw)
+}
+
+// markProxyRequest readies a browser request for the device. The session
+// header is set, not added, so the browser cannot claim otherwise.
+func markProxyRequest(req *http.Request, host string) {
+	req.Host = host
+	req.Header.Set(cloudSessionHeader, cloudSessionValue)
 }
 
 func generateErrorHTML(errorType string) string {
@@ -754,16 +782,12 @@ func sendHTTPErrorResponse(conn net.Conn, errorType string) {
 	conn.Write([]byte(response))
 }
 
-func Write302WithCookie(conn net.Conn, location, cookieName, cookieValue string) {
-	cookie := fmt.Sprintf("%s=%s; Path=/; HttpOnly", cookieName, cookieValue)
-	response := fmt.Sprintf(
-		"HTTP/1.1 302 Found\r\n"+
-			"Location: %s\r\n"+
-			"Set-Cookie: %s\r\n"+
-			"Content-Length: 0\r\n"+
-			"Connection: close\r\n"+
-			"\r\n",
-		location, cookie,
-	)
-	_, _ = conn.Write([]byte(response))
+func Write302WithCookies(conn net.Conn, location string, cookies ...string) {
+	var b strings.Builder
+	fmt.Fprintf(&b, "HTTP/1.1 302 Found\r\nLocation: %s\r\n", location)
+	for _, cookie := range cookies {
+		fmt.Fprintf(&b, "Set-Cookie: %s\r\n", cookie)
+	}
+	b.WriteString("Content-Length: 0\r\nConnection: close\r\n\r\n")
+	_, _ = conn.Write([]byte(b.String()))
 }
