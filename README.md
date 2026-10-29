@@ -43,7 +43,7 @@ The following mainstream operating systems have been tested and verified
 |       Memory        |       ≥ 1 GB        |
 |       Storage       |       ≥ 40 GB       |
 | Network Bandwidth   | ≥ 3 Mbps      |
-| KVM Device Firmware |      ≥ v1.5.0       |
+| KVM Device Firmware |      ≥ v1.11.0      |
 
 #### Cloud Security Group Settings
 
@@ -109,7 +109,7 @@ At the end of the installation script, the console will display the Web UI admin
 
 ###  Add KVM Devices to the Lightweight Cloud 
 
-The device needs firmware with self-hosted cloud access.
+The device needs firmware v1.11.0 or later.
 
 - In the cloud, open **Add Device**, generate an access code and copy it. Each code works once, on any device, within 24 hours.
 - On the device's local web UI, open the self-hosted cloud page and paste the access code. The device verifies the cloud with the CA in the code, and the cloud verifies the device with its factory certificate.
@@ -120,9 +120,9 @@ The device needs firmware with self-hosted cloud access.
 
 ### Devices on Old Firmware
 
-Devices that were added with the old script keep connecting on port 5912 after the cloud is upgraded. Old firmware cannot be added anymore. To move a device to access codes:
+Devices that were added with the old script keep connecting on port 5912 after the cloud is upgraded. Devices on firmware older than v1.11.0 cannot be added anymore, and adding a device by running a script in its terminal is no longer supported. To move a device to access codes:
 
-1. Upgrade the cloud first, then the device firmware.
+1. Upgrade the cloud first, then the device firmware to v1.11.0 or later.
 2. Paste an access code into the device's self-hosted cloud page. The device keeps its record, ID and groups in the cloud; if it is still connected the old way, it switches over without going offline.
 
 Port 5912 is deprecated and will be removed in a later release. Once no device uses it, set `RTTYS_LEGACY_TOKEN_ACCESS=false` to close it.

@@ -168,7 +168,7 @@
     "dragColumnTips": "您可以自定义您的设备列表，拖动下列项右侧的按钮来调整显示顺序，也可以通过复选框来控制显示或隐藏某些列。",
     "accessCodeCount": "数量",
     "addDeviceSubtitle": "生成一次性接入码，在设备上粘贴，设备就会加入这个平台。",
-    "addDeviceFirmwareTip": "设备需先升级到支持「自部署云」接入的新固件。已用旧方式接入的设备不受影响，可以继续使用。",
+    "addDeviceFirmwareTip": "设备固件需升级到 {version} 或更高版本，才能用接入码添加。在设备终端执行脚本的接入方式已不再支持，之前用这种方式接入的设备不受影响，可以继续使用。",
     "addDeviceDone": "完成",
     "stepGenerate": "生成接入码",
     "stepGenerateDesc": "每个接入码可用于一台设备，24 小时内有效，只能使用一次。",

@@ -168,7 +168,7 @@
     "dragColumnTips": "You can customize your device list. Drag the button on the right side of the following items to adjust the display order, or use the checkboxes to control the display or hide of certain columns.",
     "accessCodeCount": "Quantity",
     "addDeviceSubtitle": "Generate a one-time access code and paste it on the device to add it to this cloud.",
-    "addDeviceFirmwareTip": "The device must first be upgraded to new firmware with self-hosted cloud access. Devices added the old way are not affected and keep working.",
+    "addDeviceFirmwareTip": "Devices need firmware {version} or later to be added with an access code. Adding a device by running a script in its terminal is no longer supported. Devices already added that way keep working.",
     "addDeviceDone": "Done",
     "stepGenerate": "Generate an access code",
     "stepGenerateDesc": "Each code is for one device, works once and expires in 24 hours.",

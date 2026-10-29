@@ -20,7 +20,7 @@
         <BaseText el="div" type="body-r" class="subtitle">{{ $t('device.addDeviceSubtitle') }}</BaseText>
         <div class="prereq">
             <BaseSvg name="gl-icon-info-circle" :size="16" class="prereq-icon"></BaseSvg>
-            <BaseText type="body-r">{{ $t('device.addDeviceFirmwareTip') }}</BaseText>
+            <BaseText type="body-r">{{ $t('device.addDeviceFirmwareTip', { version: MIN_FIRMWARE }) }}</BaseText>
         </div>
 
         <ol class="steps">
@@ -161,6 +161,8 @@ import { t } from '@/hooks/useLanguage'
 import type { RegistrationCode, RegistrationCodeStatus } from '@/models/device'
 import { useDeviceStore } from '@/stores/modules/device'
 
+/** 支持接入码接入的最低固件版本 */
+const MIN_FIRMWARE = 'V1.11.0'
 /** 一次最多生成的接入码数（与后端一致） */
 const MAX_CODES = 5
 /** 等待设备接入时查询的间隔 */
