@@ -100,5 +100,6 @@ services:
       - ./templates/turnserver.conf.template:/tpl/turnserver.conf.tmpl:ro
       - ./scripts/docker-entrypoint.sh:/docker-entrypoint.sh:ro
     ports:
-      - "${TURN_PORT:-3478}:3478/tcp"
-      - "${TURN_PORT:-3478}:3478/udp"
+      # coturn listens on TURN_PORT inside the container too
+      - "${TURN_PORT:-3478}:${TURN_PORT:-3478}/tcp"
+      - "${TURN_PORT:-3478}:${TURN_PORT:-3478}/udp"
