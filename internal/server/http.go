@@ -247,6 +247,7 @@ func doHttpProxy(srv *RttyServer, c net.Conn) {
 				devID, ses.devid, sid, ses.group, domain, req.URL.String(),
 			)
 			sendHTTPErrorResponse(c, "invalid")
+			return
 		}
 	} else {
 		log.Debug().Msgf(

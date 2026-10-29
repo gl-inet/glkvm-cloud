@@ -2,6 +2,7 @@ package server
 
 import (
 	"bufio"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 const testProxySID = "0123456789abcdef0123456789abcdef"
@@ -146,5 +148,67 @@ func TestProxyKeepsPlatformCookies(t *testing.T) {
 	}
 	if got := forward(t, "GET / HTTP/1.1\r\nHost: h\r\nCookie: sid=platform\r\n\r\n", true).Header.Values("Cookie"); len(got) != 0 {
 		t.Errorf("only platform cookies: Cookie = %q, want the header gone", got)
+	}
+}
+
+// proxyOnce sends one raw request to the HTTP proxy port of srv and returns
+// the reply.
+func proxyOnce(t *testing.T, srv *RttyServer, raw string) (*http.Response, string) {
+	t.Helper()
+	// Over TCP like the real port: the proxy keys browser connections by
+	// their TCP address.
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ln.Close()
+	go func() {
+		if c, err := ln.Accept(); err == nil {
+			doHttpProxy(srv, c)
+		}
+	}()
+	client, err := net.Dial("tcp", ln.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	if _, err := client.Write([]byte(raw)); err != nil {
+		t.Fatal(err)
+	}
+	br := bufio.NewReader(client)
+	resp, err := http.ReadResponse(br, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	return resp, string(body)
+}
+
+func TestProxyRefusesAnotherDevicesSession(t *testing.T) {
+	discardLogFile()
+	deviceEnd, platformEnd := net.Pipe()
+	defer deviceEnd.Close()
+	srv := &RttyServer{}
+	srv.GetGroup("", true).devices.Store("devb", &Device{conn: platformEnd})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	httpProxySessions.Store(testProxySID, &HttpProxySession{ctx: ctx, cancel: cancel, devid: "devb", destaddr: "127.0.0.1:80"})
+	defer httpProxySessions.Delete(testProxySID)
+
+	// What reaches the device, if anything.
+	got := make(chan int, 1)
+	go func() {
+		deviceEnd.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+		n, _ := deviceEnd.Read(make([]byte, 64))
+		got <- n
+	}()
+
+	// A session for devb presented on deva's host.
+	_, body := proxyOnce(t, srv, "GET / HTTP/1.1\r\nHost: deva.example.com\r\nCookie: rtty-http-sid="+testProxySID+"\r\n\r\n")
+	if body != generateErrorHTML("invalid") {
+		t.Errorf("reply is not the invalid page: %.80q", body)
+	}
+	if n := <-got; n != 0 {
+		t.Errorf("the request still reached the device (%d bytes)", n)
 	}
 }
