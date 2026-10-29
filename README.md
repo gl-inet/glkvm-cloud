@@ -109,6 +109,10 @@ At the end of the installation script, the console will display the Web UI admin
 
 Upgrade the deployment files together with the image. Changing only the image tag is not enough: the `docker-compose.yml` of releases before v3.0 does not publish port 5915, so devices cannot join with access codes (the add device dialog warns about it).
 
+**Installed with the one-line installer:** back up `~/glkvm_cloud/database`, then run the installer again as root from the same directory, the one that holds `glkvm_cloud`. It downloads the new image and deployment files, keeps `.env` and the database, and restarts the services. Then allow 5915/TCP in the cloud security group.
+
+**Installed by hand:**
+
 1. Back up `~/glkvm_cloud/database`. It holds the database and `pki`, the CA that devices joined with an access code trust.
 2. Get the new deployment files into `~/glkvm_cloud`. The package holds neither `.env` nor the database, so both are kept:
 
@@ -129,8 +133,6 @@ Upgrade the deployment files together with the image. Changing only the image ta
    ```
 
    With the Docker CLI plugin, use `docker compose` instead of `docker-compose`.
-
-Do not re-run the one-line installer to upgrade: it generates a new token and new passwords, and devices on old firmware can no longer connect.
 
 ## Feature Demonstrations
 
