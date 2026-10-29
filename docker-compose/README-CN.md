@@ -123,6 +123,21 @@ https://<deviceId>.kvm.example.com  → 设备远程访问
 DEVICE_ENDPOINT_HOST=kvm.example.com
 ```
 
+##### 按路径访问设备（可选）
+
+设备可以直接挂在 Web UI 的域名下访问，不再每台设备一个子域名。只需要一张证书、一条域名解析，不需要泛域名：
+
+```text
+https://www.example.com                     → Web UI
+https://www.example.com/access/<deviceId>/  → 设备远程访问
+```
+
+只需配置 Nginx：使用 [`nginx-reverse-proxy-example.conf`](nginx-reverse-proxy-example.conf) 里按路径访问的 server 块。它把 `/access/<deviceId>` 转到设备访问端口，并给 Web UI 的请求加上 `X-KVM-Access-Style: path`。
+
+- 只有用接入码接入的设备按路径访问。旧固件设备仍然使用自己的子域名 `<deviceId>.<域名>`，需要泛域名配置：有旧固件设备时请保留 `*.example.com` 的 server 块
+- 同一个浏览器可以同时打开多台设备
+- 必须在前面配 Nginx，通过 IP 访问平台时不可用
+
 
 ⚠️ **注意：所有配置均需在 `.env` 中完成，不需要修改 `docker-compose.yml`、模板或脚本。**
 

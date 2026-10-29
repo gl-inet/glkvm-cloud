@@ -126,6 +126,20 @@ DEVICE_ENDPOINT_HOST=kvm.example.com
 ```
 
 
+##### Path-Based Device Access (Optional)
+
+Devices can be opened under the Web UI's own domain instead of a host of their own, so one certificate and one DNS record are enough, no wildcard:
+
+```text
+https://www.example.com                     → Web UI
+https://www.example.com/access/<deviceId>/  → Device remote access
+```
+
+It is set up in Nginx only: use the path-based server block of [`nginx-reverse-proxy-example.conf`](nginx-reverse-proxy-example.conf). It serves `/access/<deviceId>` from the device access port and marks Web UI requests with `X-KVM-Access-Style: path`.
+
+- Only devices that joined with an access code are opened by path. Devices on older firmware keep their own host `<deviceId>.<domain>`, which still needs the wildcard setup: keep the `*.example.com` server block while you have them
+- Several devices can be open in one browser at the same time
+- It needs Nginx in front, so it is not available when the platform is accessed by IP
 
 
 
