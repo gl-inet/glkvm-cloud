@@ -172,7 +172,7 @@
     "addDeviceSubtitle": "生成一次性接入码，在设备上粘贴，设备就会加入这个平台。",
     "addDeviceFirmwareTip": "设备固件需升级到 {version} 或更高版本，才能用接入码添加。在设备终端执行脚本的接入方式已不再支持，之前用这种方式接入的设备不受影响，可以继续使用。",
     "accessPortTip": "设备通过 {addr} 接入，服务器的云安全组和防火墙需放行 {port}/TCP。",
-    "outdatedBundleTip": "部署文件是旧版本，没有对外开放 {port} 端口，设备粘贴接入码后会连不上。请按 README 的升级步骤更新部署文件（docker-compose.yml、templates、scripts，保留 .env 和 database 目录），然后先 down 再 up -d。",
+    "outdatedBundleTip": "部署文件是旧版本，没有对外开放 {port} 端口，设备粘贴接入码后会连不上。用一键安装脚本装的，在原来的目录重新运行安装脚本即可；手动安装的，请按 README 的升级步骤更新部署文件（保留 .env 和 database 目录）。",
     "addDeviceDone": "完成",
     "stepGenerate": "生成接入码",
     "stepGenerateDesc": "每个接入码可用于一台设备，24 小时内有效，只能使用一次。",
