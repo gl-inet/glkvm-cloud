@@ -54,12 +54,14 @@ render() {
 # -------- Dispatch by first arg --------
 case "$1" in
   rttys)
-    : "${RTTYS_DEVICE_PORT:=5912}"
-    : "${RTTYS_DEVICE_MTLS_PORT:=5915}"
-    : "${RTTYS_LEGACY_TOKEN_ACCESS:=true}"
-    : "${RTTYS_WEBUI_PORT:=443}"
-    : "${RTTYS_HTTP_PROXY_PORT:=10443}"
-    : "${TURN_PORT:=3478}"
+    # Exported: render reads the environment, so plain shell variables would
+    # leave these empty when nothing else (such as compose) sets them.
+    export RTTYS_DEVICE_PORT="${RTTYS_DEVICE_PORT:-5912}"
+    export RTTYS_DEVICE_MTLS_PORT="${RTTYS_DEVICE_MTLS_PORT:-5915}"
+    export RTTYS_LEGACY_TOKEN_ACCESS="${RTTYS_LEGACY_TOKEN_ACCESS:-true}"
+    export RTTYS_WEBUI_PORT="${RTTYS_WEBUI_PORT:-443}"
+    export RTTYS_HTTP_PROXY_PORT="${RTTYS_HTTP_PROXY_PORT:-10443}"
+    export TURN_PORT="${TURN_PORT:-3478}"
 
     render /tpl/rttys.conf.tmpl /home/rttys.conf \
       RTTYS_TOKEN RTTYS_PASS RTTYS_ADMIN_NAME \
@@ -79,7 +81,7 @@ case "$1" in
     ;;
 
   coturn)
-    : "${TURN_PORT:=3478}"
+    export TURN_PORT="${TURN_PORT:-3478}"
 
     mkdir -p /tmp
     render /tpl/turnserver.conf.tmpl /tmp/turnserver.conf \
