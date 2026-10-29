@@ -105,6 +105,33 @@ At the end of the installation script, the console will display the Web UI admin
 
 ![](img/password.png)
 
+### Upgrade
+
+Upgrade the deployment files together with the image. Changing only the image tag is not enough: the `docker-compose.yml` of releases before v3.0 does not publish port 5915, so devices cannot join with access codes (the add device dialog warns about it).
+
+1. Back up `~/glkvm_cloud/database`. It holds the database and `pki`, the CA that devices joined with an access code trust.
+2. Get the new deployment files into `~/glkvm_cloud`. The package holds neither `.env` nor the database, so both are kept:
+
+   ```bash
+   cd ~/glkvm_cloud
+   curl -fsSLO https://kvm-cloud.gl-inet.com/selfhost/docker-compose.tar.gz
+   tar -xzf docker-compose.tar.gz
+   ```
+
+   Or copy `docker-compose.yml`, `templates` and `scripts` from the `docker-compose` directory of this repository.
+3. Check `.env`. Since v3.0 `RTTYS_PASS`, `RTTYS_TOKEN`, `TURN_USER` and `TURN_PASS` have no defaults, and the platform or coturn does not start while one is empty. Devices on old firmware keep the token and TURN account they were given: if these were empty before, they use `DeviceTokenYouCanChangeMe` and `glkvmcloudwebrtcuser` / `AnotherS3cret`, so set those values to keep them working until they move to access codes.
+4. Allow 5915/TCP in the cloud security group and firewall.
+5. Get the new image and restart:
+
+   ```bash
+   docker-compose pull    # or: curl -fsSLO https://kvm-cloud.gl-inet.com/selfhost/glkvmcloud.tar && docker load -i glkvmcloud.tar
+   docker-compose down && docker-compose up -d
+   ```
+
+   With the Docker CLI plugin, use `docker compose` instead of `docker-compose`.
+
+Do not re-run the one-line installer to upgrade: it generates a new token and new passwords, and devices on old firmware can no longer connect.
+
 ## Feature Demonstrations
 
 ###  Add KVM Devices to the Lightweight Cloud 

@@ -106,6 +106,33 @@ https://<你的服务器公网IP>
 
 ![](img/password.png)
 
+### 升级
+
+升级时部署文件和镜像要一起更新。只改镜像版本号不够：v3.0 之前的 `docker-compose.yml` 没有对外开放 5915 端口，设备无法用接入码接入（添加设备弹窗会给出提示）。
+
+1. 备份 `~/glkvm_cloud/database`。里面有数据库和 `pki`，用接入码接入的设备信任的 CA 就在 `pki` 里。
+2. 把新的部署文件放进 `~/glkvm_cloud`。部署包里没有 `.env` 和数据库，两者都会保留：
+
+   ```bash
+   cd ~/glkvm_cloud
+   curl -fsSLO https://kvm-cloud.gl-inet.com/selfhost/docker-compose.tar.gz
+   tar -xzf docker-compose.tar.gz
+   ```
+
+   也可以从本仓库的 `docker-compose` 目录复制 `docker-compose.yml`、`templates` 和 `scripts`。
+3. 检查 `.env`。从 v3.0 起 `RTTYS_PASS`、`RTTYS_TOKEN`、`TURN_USER`、`TURN_PASS` 没有默认值，任一项为空时平台或 coturn 不会启动。旧固件设备会继续用当初拿到的 token 和 TURN 账号：如果之前这几项留空，它们用的是 `DeviceTokenYouCanChangeMe` 和 `glkvmcloudwebrtcuser` / `AnotherS3cret`，要让这些设备在迁移到接入码之前继续可用，就填这几个值。
+4. 在云安全组和防火墙放行 5915/TCP。
+5. 获取新镜像并重启：
+
+   ```bash
+   docker-compose pull    # 或：curl -fsSLO https://kvm-cloud.gl-inet.com/selfhost/glkvmcloud.tar && docker load -i glkvmcloud.tar
+   docker-compose down && docker-compose up -d
+   ```
+
+   使用 Docker CLI 插件时，把 `docker-compose` 换成 `docker compose`。
+
+不要用一键安装脚本升级：重跑会生成新的 token 和密码，旧固件设备将无法再连接。
+
 ## 功能演示
 
 #### 添加 KVM 设备到轻量云
