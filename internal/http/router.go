@@ -59,6 +59,7 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
             LdapEnabled:     cfg.LdapEnabled,
             LegacyPassword:  cfg.Password != "",
             OidcEnabled:     cfg.OIDCEnabled,
+            OidcPrimary:     cfg.OIDCEnabled && cfg.OIDCPrimaryLogin,
             KVMCloudVersion: d.CloudVersion,
         }
 
@@ -145,5 +146,6 @@ type authConfigResp struct {
     LdapEnabled     bool   `json:"ldapEnabled"`
     LegacyPassword  bool   `json:"legacyPassword"`
     OidcEnabled     bool   `json:"oidcEnabled"`
+    OidcPrimary     bool   `json:"oidcPrimary"`
     KVMCloudVersion string `json:"kvmCloudVersion"`
 }

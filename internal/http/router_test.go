@@ -181,6 +181,32 @@ func TestRegistrationCodesAPI(t *testing.T) {
 	}
 }
 
+func TestAuthConfigOIDCPrimary(t *testing.T) {
+	cases := []struct {
+		name          string
+		enabled, prim bool
+		want          bool
+	}{
+		{"OIDC first", true, true, true},
+		{"OIDC as the second option", true, false, false},
+		{"primary set but OIDC off", false, true, false},
+	}
+	for _, tc := range cases {
+		f := newAPI(t, &xconfig.Config{OIDCEnabled: tc.enabled, OIDCPrimaryLogin: tc.prim})
+		env := f.call(t, http.MethodGet, "/auth-config", "", nil)
+		var got struct {
+			OidcEnabled bool `json:"oidcEnabled"`
+			OidcPrimary bool `json:"oidcPrimary"`
+		}
+		if err := json.Unmarshal(env.Data, &got); err != nil || env.Code != dto.CodeOK {
+			t.Fatalf("%s: code=%q err=%v", tc.name, env.Code, err)
+		}
+		if got.OidcPrimary != tc.want || got.OidcEnabled != tc.enabled {
+			t.Errorf("%s: %+v, want oidcPrimary=%v", tc.name, got, tc.want)
+		}
+	}
+}
+
 func TestDeviceAccessAPI(t *testing.T) {
 	f := newAPI(t, &xconfig.Config{WebrtcIP: "192.0.2.10", AddrDevMTLS: ":15915", OutdatedBundle: true})
 	if env := f.call(t, http.MethodGet, "/api/device-access", "sid-alice", nil); env.Code != dto.CodeForbidden {

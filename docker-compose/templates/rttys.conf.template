@@ -38,6 +38,8 @@ ldap-admin-users: {{LDAP_ADMIN_USERS}}
 
 # OIDC Authentication (generic OIDC provider)
 oidc-enabled: {{OIDC_ENABLED}}
+# Offer OIDC first on the login page
+oidc-primary-login: {{OIDC_PRIMARY_LOGIN}}
 
 oidc-generic-issuer: {{OIDC_ISSUER}}
 oidc-generic-client-id: {{OIDC_CLIENT_ID}}

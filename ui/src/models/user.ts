@@ -33,6 +33,8 @@ export interface AuthConfig {
     ldapEnabled: boolean;
     legacyPassword: boolean;
     oidcEnabled: boolean;
+    /** 登录页以 OIDC 为主，账号密码收进链接 */
+    oidcPrimary?: boolean;
     kvmCloudVersion: string;
 }
 

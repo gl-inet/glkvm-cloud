@@ -40,3 +40,24 @@ func TestOutdatedBundle(t *testing.T) {
 		}
 	}
 }
+
+func TestOIDCPrimaryLogin(t *testing.T) {
+	dir := t.TempDir()
+	for body, want := range map[string]bool{
+		"oidc-enabled: true\noidc-primary-login: true\n": true,
+		"oidc-enabled: true\noidc-primary-login: \n":     false, // rendered from an unset variable
+		"oidc-enabled: true\n":                           false, // a template from before the setting
+	} {
+		p := filepath.Join(dir, "rttys.conf")
+		if err := os.WriteFile(p, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		var cfg Config
+		if err := cfg.Load(p); err != nil {
+			t.Fatal(err)
+		}
+		if cfg.OIDCPrimaryLogin != want {
+			t.Errorf("%q: OIDCPrimaryLogin = %v, want %v", body, cfg.OIDCPrimaryLogin, want)
+		}
+	}
+}

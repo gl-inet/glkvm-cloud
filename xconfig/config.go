@@ -76,6 +76,9 @@ type Config struct {
 
     // Generic OIDC Provider (supports any standard OIDC provider)
     OIDCEnabled                 bool
+    // The login page offers OIDC first and folds the username and password
+    // form behind a link. Only with OIDCEnabled; local sign-in keeps working.
+    OIDCPrimaryLogin            bool
     OIDCGenericIssuer           string
     OIDCGenericClientID         string
     OIDCGenericClientSecret     string
@@ -268,6 +271,7 @@ func parseYamlCfg(cfg *Config, conf string) error {
     // ===== OIDC configuration (generic OIDC provider) =====
     // Switch and basic endpoints
     getConfigOpt(yamlCfg, "oidc-enabled", &cfg.OIDCEnabled)
+    getConfigOpt(yamlCfg, "oidc-primary-login", &cfg.OIDCPrimaryLogin)
     getConfigOpt(yamlCfg, "oidc-generic-issuer", &cfg.OIDCGenericIssuer)
     getConfigOpt(yamlCfg, "oidc-generic-client-id", &cfg.OIDCGenericClientID)
 

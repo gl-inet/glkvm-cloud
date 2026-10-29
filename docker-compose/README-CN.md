@@ -52,6 +52,7 @@ cd glkvm-cloud/docker-compose/
 #### **OIDC 认证（可选）**
 
 - `OIDC_ENABLED`：设为 `true` 启用 OIDC（默认 `false`）
+- `OIDC_PRIMARY_LOGIN`：设为 `true` 时登录页以 OIDC 为主，账号密码登录收进一个链接（默认 `false`）
 - `OIDC_ISSUER`：OIDC Issuer 地址
    示例：`https://accounts.google.com`、`https://your-tenant.auth0.com/`
 - `OIDC_CLIENT_ID`：OIDC 客户端 ID

@@ -17,48 +17,69 @@
 
             <!-- 第一步：账号密码 -->
             <template v-if="state.step === 'credentials'">
-                <!-- 切换登录方式 -->
-                <BaseRadioButtonsCompact
-                    v-if="isLdapEnabled"
-                    v-model:value="state.formModel.authMethod"
-                    :options="LoginTypeOptionsTranslated.value"
-                    style="width: 100%; margin-bottom: 16px;"
-                />
+                <!-- OIDC 为主：先给 OIDC，账号密码收进链接 -->
+                <template v-if="isOidcPrimary">
+                    <BaseButton medium type="primary" style="width: 100%;" :loading="state.oidcLoading" @click="handleLoginWithOidc">
+                        {{ $t('login.loginWithOidc') }}
+                    </BaseButton>
+                    <a v-if="!state.showLocalLogin" class="local-login-link" @click="state.showLocalLogin = true">
+                        {{ $t('login.useLocalAccount') }}
+                    </a>
+                    <a-divider v-else style="border-color: var(--gl-color-line-divider1);color: var(--gl-color-text-level3);font-weight: normal;">
+                        {{ $t('login.or') }}
+                    </a-divider>
+                </template>
 
-                <AForm
-                    class="dense-form"
-                    ref="formRef"
-                    :model="state.formModel"
-                    :rules="formRules"
-                    :validateTrigger="['blur', 'change']"
-                    style="width: 100%;"
-                    @validate="handleValidate"
-                >
-                    <!-- 用户名字段 -->
-                    <AFormItem name="username">
-                        <GlInput
-                            name="username"
-                            v-model:value="state.formModel.username"
-                            :placeholder="$t('login.username')"
-                            @pressEnter="handleLogin"
-                        />
-                    </AFormItem>
+                <template v-if="!isOidcPrimary || state.showLocalLogin">
+                    <!-- 切换登录方式 -->
+                    <BaseRadioButtonsCompact
+                        v-if="isLdapEnabled"
+                        v-model:value="state.formModel.authMethod"
+                        :options="LoginTypeOptionsTranslated.value"
+                        style="width: 100%; margin-bottom: 16px;"
+                    />
 
-                    <AFormItem name="password">
-                        <GlPassword
-                            name="password"
-                            :useDefaultValidateRule="false"
-                            @pressEnter="handleLogin"
-                            v-model:value="state.formModel.password"
-                            :placeholder="$t('login.password')"
-                        />
-                    </AFormItem>
-                </AForm>
-                <BaseButton medium type="primary" style="width: 100%;margin-top: 16px;" :loading="state.loading" @click="handleLogin">
-                    {{ $t('login.signIn') }}
-                </BaseButton>
+                    <AForm
+                        class="dense-form"
+                        ref="formRef"
+                        :model="state.formModel"
+                        :rules="formRules"
+                        :validateTrigger="['blur', 'change']"
+                        style="width: 100%;"
+                        @validate="handleValidate"
+                    >
+                        <!-- 用户名字段 -->
+                        <AFormItem name="username">
+                            <GlInput
+                                name="username"
+                                v-model:value="state.formModel.username"
+                                :placeholder="$t('login.username')"
+                                @pressEnter="handleLogin"
+                            />
+                        </AFormItem>
 
-                <div v-if="isOidcEnabled" class="google-login-box">
+                        <AFormItem name="password">
+                            <GlPassword
+                                name="password"
+                                :useDefaultValidateRule="false"
+                                @pressEnter="handleLogin"
+                                v-model:value="state.formModel.password"
+                                :placeholder="$t('login.password')"
+                            />
+                        </AFormItem>
+                    </AForm>
+                    <BaseButton
+                        medium
+                        :type="isOidcPrimary ? undefined : 'primary'"
+                        style="width: 100%;margin-top: 16px;"
+                        :loading="state.loading"
+                        @click="handleLogin"
+                    >
+                        {{ $t('login.signIn') }}
+                    </BaseButton>
+                </template>
+
+                <div v-if="isOidcEnabled && !isOidcPrimary" class="google-login-box">
                     <a-divider style="border-color: var(--gl-color-line-divider1);color: var(--gl-color-text-level3);font-weight: normal;">
                         {{ $t('login.or') }}
                     </a-divider>
@@ -142,6 +163,9 @@ const isOidcEnabled = computed(() => {
     return authConfig.value?.oidcEnabled === true
 })
 
+// 登录页以 OIDC 为主
+const isOidcPrimary = computed(() => isOidcEnabled.value && authConfig.value?.oidcPrimary === true)
+
 interface TotpFormModel {
     code: string;
     rememberDevice?: boolean;
@@ -153,6 +177,8 @@ const state = reactive<{
     totpModel: TotpFormModel;
     loading: boolean;
     oidcLoading: boolean;
+    /** OIDC 为主时，账号密码表单是否已展开 */
+    showLocalLogin: boolean;
 }>({
     step: 'credentials',
     formModel: {
@@ -166,6 +192,7 @@ const state = reactive<{
     },
     loading: false,
     oidcLoading: false,
+    showLocalLogin: false,
 })
 
 const LoginTypeOptionsTranslated = computed(() => {
@@ -295,6 +322,16 @@ const handleLoginWithOidc = () => {
     width: 100%;
     margin-top: 4px;
     color: var(--gl-color-text-level2);
+}
+
+.local-login-link {
+    display: block;
+    width: 100%;
+    margin-top: 16px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--gl-color-text-level3);
+    cursor: pointer;
 }
 
 .google-login-box {

@@ -39,6 +39,7 @@
     "webManagementAuth": "留空用户名并使用Web管理密码",
     "or": "或",
     "loginWithOidc": "使用OIDC登录",
+    "useLocalAccount": "使用账号密码登录",
     "confirmPasswordValidateError": "密码不一致。",
     "accountLogin": "账号登录",
     "ldap": "LDAP",

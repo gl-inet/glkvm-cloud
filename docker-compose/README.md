@@ -51,6 +51,7 @@
    **OIDC Authentication (Optional):**
 
    - `OIDC_ENABLED`: set to `true` to enable OIDC authentication (default: `false`)
+   - `OIDC_PRIMARY_LOGIN`: set to `true` to offer OIDC first on the login page; the username and password form moves behind a link (default: `false`)
    - `OIDC_ISSUER`: OIDC issuer URL provided by your identity provider
       (e.g. `https://accounts.google.com`, `https://your-tenant.auth0.com/`)
    - `OIDC_CLIENT_ID`: client ID issued by your OIDC provider

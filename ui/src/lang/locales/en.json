@@ -39,6 +39,7 @@
     "webManagementAuth": "Leave username empty and use web management password",
     "or": "OR",
     "loginWithOidc": "Log in with OIDC",
+    "useLocalAccount": "Sign in with a username and password instead",
     "confirmPasswordValidateError": "The passwords you typed do not match.",
     "accountLogin": "Account Login",
     "ldap": "LDAP",
