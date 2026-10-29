@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -44,5 +45,22 @@ func TestPublicSecrets(t *testing.T) {
 	}
 	if got := names(xconfig.Config{Password: "p", Token: "t", WebrtcPassword: "w", LegacyTokenAccess: true}); got != "" {
 		t.Errorf("own values: %q", got)
+	}
+}
+
+func TestLoggableConfig(t *testing.T) {
+	cfg := xconfig.Config{Token: "t", Password: "p", WebrtcPassword: "w", LdapBindPassword: "l", OIDCGenericClientSecret: "o", WebrtcUsername: "turn-user"}
+	b, _ := json.Marshal(loggableConfig(cfg))
+	for _, secret := range []string{`"t"`, `"p"`, `"w"`, `"l"`, `"o"`} {
+		if strings.Contains(string(b), secret) {
+			t.Errorf("secret %s in the log: %s", secret, b)
+		}
+	}
+	if !strings.Contains(string(b), "turn-user") || cfg.Password != "p" {
+		t.Errorf("masking changed other settings or the config itself: %s", b)
+	}
+	b, _ = json.Marshal(loggableConfig(xconfig.Config{}))
+	if strings.Contains(string(b), "******") {
+		t.Errorf("an unset secret should stay empty: %s", b)
 	}
 }

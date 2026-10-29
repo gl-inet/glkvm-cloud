@@ -94,7 +94,7 @@ func RunFromEnv() error {
     }
 
     {
-        importJSON, _ := json.MarshalIndent(cfg, "", "  ")
+        importJSON, _ := json.MarshalIndent(loggableConfig(cfg), "", "  ")
         log.Info().Msg("==== Loaded Configuration ====")
         log.Info().Msg(string(importJSON))
         log.Info().Msg("==============================")
@@ -138,4 +138,15 @@ func publicSecrets(cfg *xconfig.Config) []publicSecret {
         found = append(found, publicSecret{"TURN_PASS", "change it for both services; devices added with the old script keep the old one until they join with an access code"})
     }
     return found
+}
+
+// loggableConfig is cfg with its secrets masked for the startup log. An unset
+// secret stays empty, so the log still shows it is missing.
+func loggableConfig(cfg xconfig.Config) xconfig.Config {
+    for _, s := range []*string{&cfg.Token, &cfg.Password, &cfg.WebrtcPassword, &cfg.LdapBindPassword, &cfg.OIDCGenericClientSecret} {
+        if *s != "" {
+            *s = "******"
+        }
+    }
+    return cfg
 }
