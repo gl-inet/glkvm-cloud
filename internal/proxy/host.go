@@ -132,6 +132,27 @@ func JoinHostPortIfNeeded(host, scheme, port string) string {
     return net.JoinHostPort(host, port)
 }
 
+// BuildAccessPathLocation builds a path-based device access URL on the
+// platform's own host:
+//
+//	<scheme>://<hostPort>/access/<devid><reqPath>?rttysid=<sid>
+//
+// It is the counterpart of the per-device host redirect (BuildRedirectHost +
+// BuildRedirectLocation). reqPath is the path on the device, "" or "/" for
+// its root.
+func BuildAccessPathLocation(scheme, hostPort, devid, reqPath, sid string) string {
+    p := "/access/" + devid
+    if reqPath != "" && reqPath != "/" {
+        if !strings.HasPrefix(reqPath, "/") {
+            p += "/"
+        }
+        p += reqPath
+    } else {
+        p += "/"
+    }
+    return BuildRedirectLocation(scheme, hostPort, p, sid)
+}
+
 func BuildRedirectLocation(scheme, hostPort, path, sid string) string {
     if path == "" {
         path = "/"

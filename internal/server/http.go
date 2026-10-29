@@ -74,15 +74,25 @@ const (
 	cloudSessionValue  = "selfhost"
 )
 
-// cloudSessionSetCookie is the Set-Cookie value marking a remote session. The
-// page must read it, so no HttpOnly; SameSite=None needs Secure, which only
-// holds over HTTPS.
-func cloudSessionSetCookie(secure bool) string {
+// cloudSessionSetCookie is the Set-Cookie value marking a remote session,
+// for the pages under path. The page must read it, so no HttpOnly;
+// SameSite=None needs Secure, which only holds over HTTPS.
+func cloudSessionSetCookie(secure bool, path string) string {
 	if secure {
-		return cloudSessionCookie + "=" + cloudSessionValue + "; Path=/; Secure; SameSite=None"
+		return cloudSessionCookie + "=" + cloudSessionValue + "; Path=" + path + "; Secure; SameSite=None"
 	}
-	return cloudSessionCookie + "=" + cloudSessionValue + "; Path=/; SameSite=Lax"
+	return cloudSessionCookie + "=" + cloudSessionValue + "; Path=" + path + "; SameSite=Lax"
 }
+
+// Path-based device access: an entry nginx serves each device under
+// /access/<devid> on the platform's own host. It strips the prefix, names the
+// device in accessIDHeader (set over whatever the browser sent) and marks
+// every platform request with accessStyleHeader: path, so the platform hands
+// out /access/<devid> addresses instead of per-device hosts.
+const (
+	accessIDHeader    = "X-KVM-Access-ID"
+	accessStyleHeader = "X-KVM-Access-Style"
+)
 
 func (ses *HttpProxySession) Expire() {
 	ses.expire.Store(time.Now().Add(httpProxySessionsExpire).Unix())
@@ -185,8 +195,19 @@ func doHttpProxy(srv *RttyServer, c net.Conn) {
 	domain, port, proto := proxy.GetRequestHostInfo(req)
 	log.Debug().Msgf("http proxy incoming host=%s port=%s proto=%s uri=%s",
 		domain, port, proto, req.URL.String())
-	devID, ok := proxy.ExtractDeviceIDFromHost(domain)
-	if ok {
+	// The device is named by the path (through nginx), by the first label of
+	// a per-device host, or not at all (access by IP).
+	devID := strings.TrimSpace(req.Header.Get(accessIDHeader))
+	pathAccess := devID != ""
+	if pathAccess {
+		// It ends up in a cookie path: the same shape as a session ID only.
+		if !validProxySessionID(devID) {
+			sendHTTPErrorResponse(c, "invalid")
+			return
+		}
+		log.Debug().Msgf("deviceId from path: %s", devID)
+	} else if id, ok := proxy.ExtractDeviceIDFromHost(domain); ok {
+		devID = id
 		log.Debug().Msgf("parsed deviceId from host: %s", devID)
 	} else {
 		log.Debug().Msgf("host is IP or invalid, skip deviceId parsing")
@@ -201,10 +222,16 @@ func doHttpProxy(srv *RttyServer, c net.Conn) {
 			sendHTTPErrorResponse(c, "invalid")
 			return
 		}
+		// Under /access/<devid> the cookies stay on that device's path, so
+		// devices open side by side in one browser keep their own sessions.
+		location, cookiePath := "/", "/"
+		if pathAccess {
+			location, cookiePath = "/access/"+devID+"/", "/access/"+devID
+		}
 		_, overTLS := c.(*tls.Conn)
-		Write302WithCookies(c, "/",
-			fmt.Sprintf("rtty-http-sid=%s; Path=/; HttpOnly", name),
-			cloudSessionSetCookie(overTLS || proto == "https"))
+		Write302WithCookies(c, location,
+			fmt.Sprintf("rtty-http-sid=%s; Path=%s; HttpOnly", name, cookiePath),
+			cloudSessionSetCookie(overTLS || proto == "https", cookiePath))
 		return
 	}
 
@@ -276,9 +303,9 @@ func doHttpProxy(srv *RttyServer, c net.Conn) {
 
 	dev.https.Store(string(srcAddr), c)
 
-	// No device ID in the host: the page is on the platform's own host
-	// (accessed by IP), so the browser sends it the platform's cookies too.
-	hpw := &HttpProxyWriter{destAddr, srcAddr, hostHeaderRewrite, dev, ses.https, devID == ""}
+	// Accessed by IP or by path, the page is on the platform's own host, so
+	// the browser sends it the platform's cookies too.
+	hpw := &HttpProxyWriter{destAddr, srcAddr, hostHeaderRewrite, dev, ses.https, devID == "" || pathAccess}
 
 	req.Host = hostHeaderRewrite
 	hpw.WriteRequest(req)
@@ -426,6 +453,16 @@ func httpProxyRedirect(srv *RttyServer, c *gin.Context, group string) {
 		log.Debug().Msgf("set cookie domain from HTTP header: %s, devid: %s", domain, devid)
 	}
 
+	// Path-based access, when the entry nginx says so. Only devices that
+	// joined with an access code run firmware whose web works under the
+	// /access/<devid> prefix; the others keep their per-device host.
+	if strings.EqualFold(strings.TrimSpace(c.GetHeader(accessStyleHeader)), "path") && dev.certMAC != "" {
+		location = pathAccessLocation(c.Request, devid, path.Path, sid)
+		log.Info().Msgf("Using path redirect: %s", location)
+		c.Redirect(http.StatusFound, location)
+		return
+	}
+
 	// Get domain info
 	host := c.Request.Host
 	hostname, _, err := net.SplitHostPort(host)
@@ -534,6 +571,31 @@ func httpProxyRedirect(srv *RttyServer, c *gin.Context, group string) {
 	c.Redirect(http.StatusFound, location)
 }
 
+// pathAccessLocation is where the browser opens devid by path: on the host it
+// is already on, as the entry nginx forwarded it.
+func pathAccessLocation(req *http.Request, devid, reqPath, sid string) string {
+	first := func(v string) string { return strings.TrimSpace(strings.Split(v, ",")[0]) }
+
+	scheme := strings.ToLower(first(req.Header.Get("X-Forwarded-Proto")))
+	if scheme == "" {
+		scheme = "https"
+		if req.TLS == nil {
+			scheme = "http"
+		}
+	}
+	host := first(req.Header.Get("X-Forwarded-Host"))
+	if host == "" {
+		host = req.Host
+	}
+	port := ""
+	if h, p, err := net.SplitHostPort(host); err == nil {
+		host, port = h, p
+	} else {
+		port = first(req.Header.Get("X-Forwarded-Port"))
+	}
+	return proxy.BuildAccessPathLocation(scheme, proxy.JoinHostPortIfNeeded(host, scheme, port), devid, reqPath, sid)
+}
+
 func sendHttpReq(dev *Device, https bool, srcAddr []byte, destAddr []byte, data []byte) {
 	bb := bytebufferpool.Get()
 	defer bytebufferpool.Put(bb)
@@ -630,6 +692,8 @@ var platformLoginCookies = []string{"sid", "td"}
 func markProxyRequest(req *http.Request, host string, sharedHost bool) {
 	req.Host = host
 	req.Header.Set(cloudSessionHeader, cloudSessionValue)
+	req.Header.Del(accessIDHeader)
+	req.Header.Del(accessStyleHeader)
 	dropCookies(req.Header, func(name string) bool {
 		return name == "rtty-http-sid" || sharedHost && slices.Contains(platformLoginCookies, name)
 	})
