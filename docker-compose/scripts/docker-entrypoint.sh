@@ -82,6 +82,11 @@ case "$1" in
 
   coturn)
     export TURN_PORT="${TURN_PORT:-3478}"
+    # No built-in account: a known one would let anyone relay through it.
+    if [ -z "${TURN_USER:-}" ] || [ -z "${TURN_PASS:-}" ]; then
+      echo "TURN_USER and TURN_PASS are not set: set them in .env (the same values for rttys and coturn)" >&2
+      exit 1
+    fi
 
     mkdir -p /tmp
     render /tpl/turnserver.conf.tmpl /tmp/turnserver.conf \

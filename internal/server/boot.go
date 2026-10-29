@@ -86,6 +86,13 @@ func RunFromEnv() error {
         return err
     }
 
+    for _, s := range publicSecrets(&cfg) {
+        log.Warn().Msgf("%s is the example value published in .env.example: %s", s.setting, s.advice)
+    }
+    if cfg.WebrtcUsername == "" || cfg.WebrtcPassword == "" {
+        log.Warn().Msg("TURN_USER or TURN_PASS is not set: devices get no TURN server, so remote control needs a direct connection")
+    }
+
     {
         importJSON, _ := json.MarshalIndent(cfg, "", "  ")
         log.Info().Msg("==== Loaded Configuration ====")
@@ -110,4 +117,25 @@ func validateConfig(cfg *xconfig.Config) error {
         return fmt.Errorf("token is not set: set 'token' (RTTYS_TOKEN), or turn off legacy token access with 'legacy-token-access: false' (RTTYS_LEGACY_TOKEN_ACCESS)")
     }
     return nil
+}
+
+// publicSecret is a setting that still holds a value anyone can look up.
+type publicSecret struct{ setting, advice string }
+
+// publicSecrets lists the settings left at the example values the .env
+// examples used to ship with. They are only warned about: devices on old
+// firmware were given the token and TURN account, and changing those cuts
+// them off.
+func publicSecrets(cfg *xconfig.Config) []publicSecret {
+    var found []publicSecret
+    if cfg.Password == "StrongP@ssw0rd" {
+        found = append(found, publicSecret{"RTTYS_PASS", "change it"})
+    }
+    if cfg.LegacyTokenAccess && cfg.Token == "DeviceTokenYouCanChangeMe" {
+        found = append(found, publicSecret{"RTTYS_TOKEN", "devices on old firmware use it, so turn off legacy token access once they all join with access codes"})
+    }
+    if cfg.WebrtcPassword == "AnotherS3cret" {
+        found = append(found, publicSecret{"TURN_PASS", "change it for both services; devices added with the old script keep the old one until they join with an access code"})
+    }
+    return found
 }

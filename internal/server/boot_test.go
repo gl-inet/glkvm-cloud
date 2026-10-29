@@ -1,6 +1,7 @@
 package server
 
 import (
+	"strings"
 	"testing"
 
 	"rttys/xconfig"
@@ -21,5 +22,27 @@ func TestValidateConfig(t *testing.T) {
 		if err := validateConfig(&tc.cfg); (err == nil) != tc.ok {
 			t.Errorf("%s: err = %v, want ok=%v", tc.name, err, tc.ok)
 		}
+	}
+}
+
+func TestPublicSecrets(t *testing.T) {
+	examples := xconfig.Config{Password: "StrongP@ssw0rd", Token: "DeviceTokenYouCanChangeMe", WebrtcPassword: "AnotherS3cret", LegacyTokenAccess: true}
+	names := func(cfg xconfig.Config) string {
+		var out []string
+		for _, s := range publicSecrets(&cfg) {
+			out = append(out, s.setting)
+		}
+		return strings.Join(out, ",")
+	}
+	if got := names(examples); got != "RTTYS_PASS,RTTYS_TOKEN,TURN_PASS" {
+		t.Errorf("all example values: %q", got)
+	}
+	noLegacy := examples
+	noLegacy.LegacyTokenAccess = false
+	if got := names(noLegacy); got != "RTTYS_PASS,TURN_PASS" {
+		t.Errorf("legacy token access off, the token is unused: %q", got)
+	}
+	if got := names(xconfig.Config{Password: "p", Token: "t", WebrtcPassword: "w", LegacyTokenAccess: true}); got != "" {
+		t.Errorf("own values: %q", got)
 	}
 }

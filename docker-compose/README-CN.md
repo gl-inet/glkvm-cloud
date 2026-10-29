@@ -24,9 +24,11 @@ cd glkvm-cloud/docker-compose/
 
 编辑 `.env` 文件，并根据需求更新关键参数：
 
-- `RTTYS_TOKEN`：尚未升级固件的设备在 `RTTYS_DEVICE_PORT` 上使用的令牌（留空则使用默认值）
-- `RTTYS_PASS`：Web 管理密码（留空则使用默认值 **StrongP@ssw0rd**）
-- `TURN_USER` / `TURN_PASS`：coturn 鉴权凭据（留空则使用默认值）
+- `RTTYS_PASS`：Web 管理密码（必填，不填平台不启动）
+- `RTTYS_TOKEN`：尚未升级固件的设备在 `RTTYS_DEVICE_PORT` 上使用的令牌（`RTTYS_LEGACY_TOKEN_ACCESS` 为 `true` 时必填）
+- `TURN_USER` / `TURN_PASS`：coturn 鉴权凭据（必填，不填 coturn 不启动）
+
+以上都没有默认值，请自行生成，例如 `openssl rand -hex 16`。如果仍在使用旧版 `.env` 示例里的值，平台启动时会给出警告
 - `GLKVM_ACCESS_IP`：GLKVM Cloud 访问地址（留空则启动时自动检测）
 - `RTTYS_DEVICE_MTLS_PORT`：新固件设备的接入端口，设备凭接入码接入（默认 `5915`）
 - `DEVICE_ACCESS_HOST`：设备连接该端口使用的地址，会写入接入码（留空则使用 `GLKVM_ACCESS_IP`）。修改后（例如 IP 换成域名）已接入的设备无需改动，设备口证书会继续包含原来的地址
