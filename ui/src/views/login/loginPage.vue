@@ -17,6 +17,15 @@
 
             <!-- 第一步：账号密码 -->
             <template v-if="state.step === 'credentials'">
+                <!-- OIDC 登录失败：后端跳回登录页时带着原因 -->
+                <AAlert
+                    v-if="state.oidcError"
+                    class="oidc-error"
+                    type="error"
+                    showIcon
+                    :message="$t('login.oidcFailed', { reason: state.oidcError })"
+                />
+
                 <!-- OIDC 为主：先给 OIDC，账号密码收进链接 -->
                 <template v-if="isOidcPrimary">
                     <BaseButton medium type="primary" style="width: 100%;" :loading="state.oidcLoading" @click="handleLoginWithOidc">
@@ -179,6 +188,8 @@ const state = reactive<{
     oidcLoading: boolean;
     /** OIDC 为主时，账号密码表单是否已展开 */
     showLocalLogin: boolean;
+    /** OIDC 登录失败的原因代码 */
+    oidcError: string;
 }>({
     step: 'credentials',
     formModel: {
@@ -193,7 +204,20 @@ const state = reactive<{
     loading: false,
     oidcLoading: false,
     showLocalLogin: false,
+    oidcError: '',
 })
+
+// OIDC 登录失败时后端跳回 /?error=<原因代码>：记下来显示，并从地址里去掉，刷新后不再提示。
+// 只认代码格式，地址里的其他文字不会显示到页面上
+{
+    const url = new URL(window.location.href)
+    const reason = url.searchParams.get('error')
+    if (reason !== null) {
+        state.oidcError = /^[A-Za-z0-9_]{1,64}$/.test(reason) ? reason : 'unknown'
+        url.searchParams.delete('error')
+        window.history.replaceState(window.history.state, '', url.toString())
+    }
+}
 
 const LoginTypeOptionsTranslated = computed(() => {
     return useTranslatedOptions([
@@ -322,6 +346,11 @@ const handleLoginWithOidc = () => {
     width: 100%;
     margin-top: 4px;
     color: var(--gl-color-text-level2);
+}
+
+.oidc-error {
+    width: 100%;
+    margin-bottom: 16px;
 }
 
 .local-login-link {

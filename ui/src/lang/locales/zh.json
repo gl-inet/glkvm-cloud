@@ -40,6 +40,7 @@
     "or": "或",
     "loginWithOidc": "使用OIDC登录",
     "useLocalAccount": "使用账号密码登录",
+    "oidcFailed": "OIDC 登录失败（{reason}），请重试或联系管理员。",
     "confirmPasswordValidateError": "密码不一致。",
     "accountLogin": "账号登录",
     "ldap": "LDAP",
