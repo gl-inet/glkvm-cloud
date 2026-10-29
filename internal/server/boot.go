@@ -89,6 +89,9 @@ func RunFromEnv() error {
     for _, s := range publicSecrets(&cfg) {
         log.Warn().Msgf("%s is the example value published in .env.example: %s", s.setting, s.advice)
     }
+    if cfg.OutdatedBundle {
+        log.Warn().Msg("the deployment files predate v3.0: their docker-compose.yml does not publish the device port for access codes, so devices cannot join; update docker-compose.yml, templates and scripts, keeping .env and database")
+    }
     if cfg.WebrtcUsername == "" || cfg.WebrtcPassword == "" {
         log.Warn().Msg("TURN_USER or TURN_PASS is not set: devices get no TURN server, so remote control needs a direct connection")
     }

@@ -65,6 +65,15 @@ export interface CreatedRegistrationCode {
     expiresAt: number
 }
 
+/** 设备接入 mTLS 端口的地址 */
+export interface DeviceAccess {
+    /** 写进接入码的 host:port，空表示没配置接入地址 */
+    addr: string
+    port: string
+    /** 部署文件早于 3.0：compose 没有对外开放这个端口 */
+    outdatedBundle: boolean
+}
+
 /** 执行命令表单参数 */
 export interface ExecuteCommandFormData {
     username: string

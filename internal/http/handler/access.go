@@ -24,18 +24,24 @@ import (
 type AccessHandler struct {
 	repo *sqlite.AccessRepo
 	addr string // host:port devices dial for the mTLS port; "" = not configured
+	port string // the mTLS port
 	ca   []byte // DER of the deployment CA
+
+	outdatedBundle bool // the compose file does not publish the mTLS port
 }
 
 func NewAccessHandler(repo *sqlite.AccessRepo, cfg *xconfig.Config) *AccessHandler {
-	h := &AccessHandler{repo: repo}
+	h := &AccessHandler{repo: repo, outdatedBundle: cfg.OutdatedBundle}
 
 	host := cfg.DeviceAccessHost
 	if host == "" {
 		host = cfg.WebrtcIP
 	}
-	if _, port, err := net.SplitHostPort(cfg.AddrDevMTLS); err == nil && host != "" && port != "" {
-		h.addr = net.JoinHostPort(host, port)
+	if _, port, err := net.SplitHostPort(cfg.AddrDevMTLS); err == nil && port != "" {
+		h.port = port
+		if host != "" {
+			h.addr = net.JoinHostPort(host, port)
+		}
 	}
 	if b, err := os.ReadFile(cfg.DeviceCAFile); err == nil {
 		if blk, _ := pem.Decode(b); blk != nil {
@@ -98,6 +104,15 @@ func (h *AccessHandler) CreateCodes(c *gin.Context) {
 		}
 	}
 	dto.Write(c, dto.Ok(traceID, dto.CreateRegistrationCodesResp{Items: out}))
+}
+
+// GET /api/device-access: where devices reach the mTLS device port, so the add
+// device dialog can name the port the server must let through, and warn when
+// the deployment files do not publish it.
+func (h *AccessHandler) DeviceAccess(c *gin.Context) {
+	dto.Write(c, dto.Ok(middleware.GetTraceID(c), dto.DeviceAccessResp{
+		Addr: h.addr, Port: h.port, OutdatedBundle: h.outdatedBundle,
+	}))
 }
 
 // maxCodeIDs caps the codes one ?ids= query may name.

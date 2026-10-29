@@ -94,6 +94,7 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
     api.DELETE("/devices/:id", middleware.Require(permission.DeviceWrite), devH.DeleteDevice)
 
     // registration codes for devices joining over mTLS (admin)
+    api.GET("/device-access", middleware.Require(permission.DeviceWrite), accessH.DeviceAccess)
     api.GET("/registration-codes", middleware.Require(permission.DeviceWrite), accessH.ListCodes)
     api.POST("/registration-codes", middleware.Require(permission.DeviceWrite), accessH.CreateCodes)
     api.DELETE("/registration-codes/:id", middleware.Require(permission.DeviceWrite), accessH.RevokeCode)

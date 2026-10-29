@@ -12,6 +12,13 @@ type CreatedRegistrationCode struct {
 	ExpiresAt  int64  `json:"expiresAt"`
 }
 
+// DeviceAccessResp is where devices reach the mTLS device port.
+type DeviceAccessResp struct {
+	Addr           string `json:"addr"` // host:port put into access codes; "" = not configured
+	Port           string `json:"port"`
+	OutdatedBundle bool   `json:"outdatedBundle"` // the compose file does not publish the port
+}
+
 type CreateRegistrationCodesResp struct {
 	Items []CreatedRegistrationCode `json:"items"`
 }

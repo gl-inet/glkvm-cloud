@@ -6,7 +6,7 @@
  * @FilePath: \glkvm-cloud\ui\src\api\device.ts
  * @Description: 设备相关API
  */
-import { ExecuteCommandParams, type CreatedRegistrationCode, type DeviceInfo, type RegistrationCode } from '@/models/device'
+import { ExecuteCommandParams, type CreatedRegistrationCode, type DeviceAccess, type DeviceInfo, type RegistrationCode } from '@/models/device'
 import request from './request'
 import axios from 'axios'
 
@@ -25,6 +25,11 @@ export const getDeviceListApi = (params?: {
         url: '/api/devices',
         params,
     })
+}
+
+/** 设备接入地址和端口，以及部署文件是否过旧 */
+export const getDeviceAccessApi = () => {
+    return request<DeviceAccess>({ url: '/api/device-access' })
 }
 
 /** 生成接入码（每个 24 小时内有效、只能用一次） */

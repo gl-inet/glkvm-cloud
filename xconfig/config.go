@@ -131,6 +131,11 @@ type Config struct {
     // (GLKVM_ACCESS_IP).
     DeviceAccessHost string
 
+    // The platform runs from a compose bundle older than v3.0, whose compose
+    // file does not publish AddrDevMTLS, so devices cannot reach it. Detected,
+    // not configurable.
+    OutdatedBundle bool
+
     // Resolved at startup, not configurable: the device-port certificate and
     // the deployment CA devices verify it against.
     DeviceCertFile string
@@ -153,6 +158,10 @@ const (
     // database, which every compose version mounts persistently.
     PKIDir = "/home/database/pki"
 )
+
+// BundleTemplate is the config template every compose bundle mounts: the
+// platform runs from a bundle when it is there.
+var BundleTemplate = "/tpl/rttys.conf.tmpl"
 
 func (cfg *Config) Load(confPath string) error {
     cfg.SslCert = SslCert
@@ -206,6 +215,13 @@ func parseYamlCfg(cfg *Config, conf string) error {
 
     getConfigOpt(yamlCfg, "addr-dev", &cfg.AddrDev)
     getConfigOpt(yamlCfg, "addr-dev-mtls", &cfg.AddrDevMTLS)
+    // Bundles before v3.0 leave the mTLS port out of their template and out
+    // of the ports their compose file publishes.
+    if _, err := yamlCfg.Get("addr-dev-mtls"); err != nil {
+        if _, err := os.Stat(BundleTemplate); err == nil {
+            cfg.OutdatedBundle = true
+        }
+    }
     getConfigOpt(yamlCfg, "legacy-token-access", &cfg.LegacyTokenAccess)
     getConfigOpt(yamlCfg, "addr-user", &cfg.AddrUser)
     getConfigOpt(yamlCfg, "addr-http-proxy", &cfg.AddrHttpProxy)

@@ -18,9 +18,21 @@
         @close="close"
     >
         <BaseText el="div" type="body-r" class="subtitle">{{ $t('device.addDeviceSubtitle') }}</BaseText>
+        <AAlert
+            v-if="state.access?.outdatedBundle"
+            class="outdated-bundle"
+            type="warning"
+            showIcon
+            :message="$t('device.outdatedBundleTip', { port: state.access.port })"
+        />
         <div class="prereq">
             <BaseSvg name="gl-icon-info-circle" :size="16" class="prereq-icon"></BaseSvg>
-            <BaseText type="body-r">{{ $t('device.addDeviceFirmwareTip', { version: MIN_FIRMWARE }) }}</BaseText>
+            <div>
+                <BaseText el="div" type="body-r">{{ $t('device.addDeviceFirmwareTip', { version: MIN_FIRMWARE }) }}</BaseText>
+                <BaseText v-if="state.access?.addr" el="div" type="body-r">
+                    {{ $t('device.accessPortTip', { addr: state.access.addr, port: state.access.port }) }}
+                </BaseText>
+            </div>
         </div>
 
         <ol class="steps">
@@ -154,11 +166,11 @@ import { computed, onBeforeUnmount, reactive, watch } from 'vue'
 import BaseModal from '@/components/base/baseModalI18n.vue'
 import AddDeviceStep from './addDeviceStep.vue'
 import AccessCodeHistory from './accessCodeHistory.vue'
-import { createRegistrationCodesApi, listRegistrationCodesApi, revokeRegistrationCodeApi } from '@/api/device'
+import { createRegistrationCodesApi, getDeviceAccessApi, listRegistrationCodesApi, revokeRegistrationCodeApi } from '@/api/device'
 import { baseCustomModal, copyText } from 'gl-web-main'
 import { message } from 'ant-design-vue'
 import { t } from '@/hooks/useLanguage'
-import type { RegistrationCode, RegistrationCodeStatus } from '@/models/device'
+import type { DeviceAccess, RegistrationCode, RegistrationCodeStatus } from '@/models/device'
 import { useDeviceStore } from '@/stores/modules/device'
 
 /** 支持接入码接入的最低固件版本 */
@@ -196,6 +208,8 @@ const state = reactive({
     /** 刚复制的接入码 id，'all' 表示复制了全部 */
     copied: 0 as number | 'all',
     history: [] as RegistrationCode[],
+    /** 设备接入地址，拿不到时不显示端口提示 */
+    access: null as DeviceAccess | null,
 })
 
 /** 输入框清空时按最小值算 */
@@ -237,6 +251,15 @@ const sync = (items: RegistrationCode[]) => {
         joined = joined || rc.status === 'used'
     }
     return joined
+}
+
+const loadAccess = async () => {
+    try {
+        state.access = (await getDeviceAccessApi()).data
+    } catch (error) {
+        state.access = null
+        console.error('Failed to load device access:', error)
+    }
 }
 
 const loadHistory = async () => {
@@ -355,6 +378,7 @@ watch(() => props.open, (open) => {
     state.codes = []
     state.copied = 0
     copiedIds.clear()
+    loadAccess()
     loadHistory()
 })
 
@@ -368,6 +392,10 @@ onBeforeUnmount(() => {
 .subtitle,
 .step-desc {
   color: var(--gl-color-text-level2);
+}
+
+.outdated-bundle {
+  margin-top: 12px;
 }
 
 .prereq {

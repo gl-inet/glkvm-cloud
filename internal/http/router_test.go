@@ -181,6 +181,30 @@ func TestRegistrationCodesAPI(t *testing.T) {
 	}
 }
 
+func TestDeviceAccessAPI(t *testing.T) {
+	f := newAPI(t, &xconfig.Config{WebrtcIP: "192.0.2.10", AddrDevMTLS: ":15915", OutdatedBundle: true})
+	if env := f.call(t, http.MethodGet, "/api/device-access", "sid-alice", nil); env.Code != dto.CodeForbidden {
+		t.Errorf("regular user: code=%q, want %q", env.Code, dto.CodeForbidden)
+	}
+	env := f.call(t, http.MethodGet, "/api/device-access", "sid-admin", nil)
+	var got dto.DeviceAccessResp
+	if err := json.Unmarshal(env.Data, &got); err != nil || env.Code != dto.CodeOK {
+		t.Fatalf("admin: code=%q err=%v", env.Code, err)
+	}
+	if want := (dto.DeviceAccessResp{Addr: "192.0.2.10:15915", Port: "15915", OutdatedBundle: true}); got != want {
+		t.Errorf("device access = %+v, want %+v", got, want)
+	}
+
+	// No access address yet: the port is still known.
+	f = newAPI(t, &xconfig.Config{AddrDevMTLS: ":5915"})
+	env = f.call(t, http.MethodGet, "/api/device-access", "sid-admin", nil)
+	got = dto.DeviceAccessResp{}
+	_ = json.Unmarshal(env.Data, &got)
+	if want := (dto.DeviceAccessResp{Port: "5915"}); got != want {
+		t.Errorf("no address: device access = %+v, want %+v", got, want)
+	}
+}
+
 func TestRegistrationCodesNeedAccessAddress(t *testing.T) {
 	d, _ := pki.LoadOrCreate(t.TempDir())
 	f := newAPI(t, &xconfig.Config{AddrDevMTLS: ":5915", DeviceCAFile: d.CAFile()})
