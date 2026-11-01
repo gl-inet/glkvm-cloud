@@ -63,6 +63,12 @@ services:
       DEVICE_ENDPOINT_HOST: ${DEVICE_ENDPOINT_HOST:-}
       # ---- Web UI Host ----
       WEB_UI_HOST: ${WEB_UI_HOST:-}
+
+      # ---- KVM device auth pass-through (optional) ----
+      KVM_DEVICE_PASSWORD: ${KVM_DEVICE_PASSWORD:-}
+      KVM_DEVICE_USER: ${KVM_DEVICE_USER:-admin}
+      KVM_DEVICE_TOTP_SECRET: ${KVM_DEVICE_TOTP_SECRET:-}
+      KVM_DEVICE_AUTH_SCOPE: ${KVM_DEVICE_AUTH_SCOPE:-all}
     volumes:
       - ./templates/rttys.conf.template:/tpl/rttys.conf.tmpl:ro
       - ./scripts/docker-entrypoint.sh:/docker-entrypoint.sh:ro

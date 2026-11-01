@@ -25,6 +25,7 @@
 package xconfig
 
 import (
+    "encoding/base32"
     "fmt"
     "os"
     "regexp"
@@ -114,6 +115,31 @@ type Config struct {
     // so firmware can read it and create a link in the device's web page.
     // If empty, the URL is derived from the browser's current request.
     SelfhostWebUIURL string
+
+    // =====================================================
+    // KVM device auth pass-through
+    // =====================================================
+    // When KvmDevicePassword is set, Remote Control sessions to GL KVM
+    // devices carry the device's kvmd credentials as X-KVMD-User /
+    // X-KVMD-Passwd headers, so users who already passed the cloud login
+    // (local, LDAP or OIDC) are not prompted again by the device.
+    // All values are read from the environment only, never from YAML.
+    KvmDeviceUser       string // KVM_DEVICE_USER (default "admin")
+    KvmDevicePassword   string // KVM_DEVICE_PASSWORD (empty = feature off)
+    KvmDeviceTOTPSecret string // KVM_DEVICE_TOTP_SECRET (optional, base32)
+    KvmDeviceAuthScope  string // KVM_DEVICE_AUTH_SCOPE: "all" (default) or "admin"
+}
+
+// KVM device auth pass-through scopes.
+const (
+    KvmDeviceAuthScopeAll   = "all"
+    KvmDeviceAuthScopeAdmin = "admin"
+)
+
+// KvmDeviceAuthEnabled reports whether Remote Control sessions should carry
+// device credentials.
+func (cfg *Config) KvmDeviceAuthEnabled() bool {
+    return cfg != nil && cfg.KvmDevicePassword != ""
 }
 
 // docker mode fixed path for reading certificate
@@ -373,6 +399,50 @@ func applyEnvCfg(cfg *Config) error {
         // 3. Final trim
         cleaned = strings.TrimSpace(cleaned)
         cfg.WebUIHost = cleaned
+    }
+
+    if err := applyKvmDeviceAuthEnv(cfg); err != nil {
+        return err
+    }
+
+    return nil
+}
+
+// applyKvmDeviceAuthEnv reads the KVM device auth pass-through settings.
+// Like OIDC_CLIENT_SECRET and LDAP_BIND_PASSWORD, these are secrets and are
+// only ever taken from the environment. The password is not trimmed, since
+// leading/trailing spaces may be part of it.
+func applyKvmDeviceAuthEnv(cfg *Config) error {
+    cfg.KvmDevicePassword = os.Getenv("KVM_DEVICE_PASSWORD")
+
+    cfg.KvmDeviceUser = strings.TrimSpace(os.Getenv("KVM_DEVICE_USER"))
+    if cfg.KvmDeviceUser == "" {
+        // GL firmware only ever creates the "admin" kvmd user.
+        cfg.KvmDeviceUser = "admin"
+    }
+
+    cfg.KvmDeviceTOTPSecret = strings.ToUpper(strings.ReplaceAll(
+        strings.TrimSpace(os.Getenv("KVM_DEVICE_TOTP_SECRET")), " ", ""))
+
+    scope := strings.ToLower(strings.TrimSpace(os.Getenv("KVM_DEVICE_AUTH_SCOPE")))
+    switch scope {
+    case "":
+        scope = KvmDeviceAuthScopeAll
+    case KvmDeviceAuthScopeAll, KvmDeviceAuthScopeAdmin:
+    default:
+        return fmt.Errorf("invalid KVM_DEVICE_AUTH_SCOPE value %q, expected %q or %q",
+            scope, KvmDeviceAuthScopeAll, KvmDeviceAuthScopeAdmin)
+    }
+    cfg.KvmDeviceAuthScope = scope
+
+    if cfg.KvmDeviceTOTPSecret != "" {
+        if cfg.KvmDevicePassword == "" {
+            return fmt.Errorf("KVM_DEVICE_TOTP_SECRET is set but KVM_DEVICE_PASSWORD is empty")
+        }
+        b32 := base32.StdEncoding.WithPadding(base32.NoPadding)
+        if _, err := b32.DecodeString(strings.TrimRight(cfg.KvmDeviceTOTPSecret, "=")); err != nil {
+            return fmt.Errorf("invalid KVM_DEVICE_TOTP_SECRET: not base32: %w", err)
+        }
     }
 
     return nil

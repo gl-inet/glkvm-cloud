@@ -119,6 +119,53 @@ https://<deviceId>.kvm.example.com  → Device remote access
 DEVICE_ENDPOINT_HOST=kvm.example.com
 ```
 
+#### KVM Device Auth Pass-through (Optional)
+
+```env
+KVM_DEVICE_PASSWORD=
+KVM_DEVICE_USER=admin
+KVM_DEVICE_TOTP_SECRET=
+KVM_DEVICE_AUTH_SCOPE=all
+```
+
+Makes the GLKVM Cloud login the only login for Remote Control. When
+`KVM_DEVICE_PASSWORD` is set, the cloud adds the device's credentials
+(`X-KVMD-User` / `X-KVMD-Passwd` headers, which kvmd checks before any
+other auth method) to every request of a Remote Control session, so users
+are not prompted for the device admin password.
+
+- Applies only to sessions that target the KVM's own web UI
+  (`https://127.0.0.1:443` on a GL KVM). "Access Device Web" sessions to
+  other hosts or ports, and plain Linux (`rtty-go`) devices, never receive
+  credentials.
+- Credentials are added server-side; they are never sent to the browser.
+- All devices must share the same admin password. Local, Tailscale and
+  GoodCloud access to a device still require its own login.
+- `KVM_DEVICE_TOTP_SECRET`: set only if two-factor auth is enabled on the
+  devices (shared base32 secret); the current code is appended per request.
+- `KVM_DEVICE_AUTH_SCOPE=admin` limits pass-through to platform admins;
+  other users still see the device login.
+- Values are read from the environment only, like other secrets.
+
+**Security notes:**
+
+- On GL firmware the device admin password is also the device's root SSH
+  password, so this setting makes the cloud host hold root-equivalent access
+  to every device. Protect the `.env` file accordingly.
+- With pass-through on, the remote-control session cookie (`rtty-http-sid`,
+  15-minute idle expiry) grants full control of the device without a second
+  login. Keep the device remote access domain on HTTPS.
+- The device's own logs attribute actions to `admin (xhdr)`; per-person
+  attribution is in the GLKVM Cloud device event log.
+
+Quick check that a device accepts header auth (run on the device):
+
+```bash
+curl -sk -o /dev/null -w '%{http_code}\n' \
+  -H 'X-KVMD-User: admin' -H 'X-KVMD-Passwd: <device-password>' \
+  https://127.0.0.1/api/auth/check     # expect 200
+```
+
 
 
 

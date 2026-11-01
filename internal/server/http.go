@@ -40,9 +40,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"rttys/internal/domain/identity"
+	"rttys/internal/pkg/totp"
 	"rttys/internal/proxy"
 	"rttys/internal/store/sqlite"
 	"rttys/utils"
+	"rttys/xconfig"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -58,6 +61,10 @@ type HttpProxySession struct {
 	destaddr string
 	https    bool
 	logID    int64 // device-event-log row id (0 if not recorded)
+	// kvmAuth, when non-nil, injects the device's kvmd credentials into
+	// every request of this session (Remote Control only; see
+	// kvmAuthForSession).
+	kvmAuth *proxy.KVMAuth
 }
 
 var httpProxySessions = sync.Map{}
@@ -247,7 +254,7 @@ func doHttpProxy(srv *RttyServer, c net.Conn) {
 
 	dev.https.Store(string(srcAddr), c)
 
-	hpw := &HttpProxyWriter{destAddr, srcAddr, hostHeaderRewrite, dev, ses.https}
+	hpw := &HttpProxyWriter{destAddr, srcAddr, hostHeaderRewrite, dev, ses.https, ses.kvmAuth}
 
 	req.Host = hostHeaderRewrite
 	hpw.WriteRequest(req)
@@ -362,6 +369,10 @@ func httpProxyRedirect(srv *RttyServer, c *gin.Context, group string) {
 		group:    group,
 		destaddr: addr,
 		https:    proto == "https",
+		kvmAuth:  kvmAuthForSession(cfg, c, dev, proto, addr),
+	}
+	if ses.kvmAuth != nil {
+		log.Info().Msgf("kvm device auth: injecting device credentials for remote control of %s", devid)
 	}
 	if cont := sqlite.TryContainer(); cont != nil && cont.DeviceLogSvc != nil {
 		actorID, actorName := principalFromCtx(c)
@@ -574,6 +585,7 @@ type HttpProxyWriter struct {
 	hostHeaderRewrite string
 	dev               *Device
 	https             bool
+	kvmAuth           *proxy.KVMAuth
 }
 
 func (rw *HttpProxyWriter) Write(p []byte) (n int, err error) {
@@ -581,9 +593,58 @@ func (rw *HttpProxyWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
+// WriteRequest forwards one parsed request to the device. Every plain HTTP
+// request, and the handshake of a websocket upgrade, passes through here;
+// websocket frames after the handshake are relayed as raw bytes and need no
+// auth because kvmd authorizes the socket at the handshake.
 func (rw *HttpProxyWriter) WriteRequest(req *http.Request) {
 	req.Host = rw.hostHeaderRewrite
+	if rw.kvmAuth != nil {
+		if err := rw.kvmAuth.Apply(req.Header); err != nil {
+			log.Error().Msgf("kvm device auth: cannot build credentials for device %s: %v", rw.dev.id, err)
+		}
+	}
 	req.Write(rw)
+}
+
+// kvmAuthForSession decides whether a new /web proxy session gets the
+// device's kvmd credentials. It requires all of:
+//   - KVM_DEVICE_PASSWORD configured;
+//   - the session targets the KVM's own web UI (https://127.0.0.1:443 on a
+//     non rtty-go device), i.e. Remote Control;
+//   - when KVM_DEVICE_AUTH_SCOPE=admin, the caller is a platform admin.
+//
+// The caller has already passed httpAuth and canAccessDevice.
+func kvmAuthForSession(cfg *xconfig.Config, c *gin.Context, dev *Device, proto, addr string) *proxy.KVMAuth {
+	if !cfg.KvmDeviceAuthEnabled() {
+		return nil
+	}
+	if !proxy.IsKVMRemoteControlTarget(dev.ClientType(), proto, addr) {
+		return nil
+	}
+	if cfg.KvmDeviceAuthScope == xconfig.KvmDeviceAuthScopeAdmin && !isAdminCtx(c) {
+		return nil
+	}
+
+	var totpCode func() (string, error)
+	if secret := cfg.KvmDeviceTOTPSecret; secret != "" {
+		totpCode = func() (string, error) { return totp.Code(secret, time.Now()) }
+	}
+	return proxy.NewKVMAuth(cfg.KvmDeviceUser, cfg.KvmDevicePassword, totpCode)
+}
+
+// isAdminCtx reports whether the logged-in caller is an enabled platform admin.
+func isAdminCtx(c *gin.Context) bool {
+	uid := userIDFromCtx(c)
+	if uid == 0 {
+		return false
+	}
+	cont := sqlite.TryContainer()
+	if cont == nil || cont.UserSvc == nil {
+		return false
+	}
+	u, err := cont.UserSvc.GetByID(c.Request.Context(), uid)
+	return err == nil && u != nil && u.Role == identity.RoleAdmin
 }
 
 func generateErrorHTML(errorType string) string {

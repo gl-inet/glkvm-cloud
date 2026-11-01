@@ -28,6 +28,16 @@ func GenerateSecret(issuer, accountName string) (secret string, otpauthURL strin
 	return key.Secret(), key.URL(), nil
 }
 
+// Code returns the 6-digit code for secret at time t, using the same
+// parameters as GenerateSecret/Verify (and as pyotp's defaults on GL KVMs).
+func Code(secret string, t time.Time) (string, error) {
+	return totp.GenerateCodeCustom(secret, t, totp.ValidateOpts{
+		Period:    30,
+		Digits:    otp.DigitsSix,
+		Algorithm: otp.AlgorithmSHA1,
+	})
+}
+
 // Verify checks a 6-digit code against the secret with ±1 step skew.
 func Verify(secret, code string) bool {
 	if secret == "" || code == "" {
