@@ -141,6 +141,9 @@ Upgrade the deployment files together with the image. Changing only the image ta
 The device needs firmware v1.11.0 or later.
 
 - In the cloud, open **Add Device**, generate an access code and copy it. Each code works once, on any device, within 24 hours.
+
+  ![Add Device](img/adddevice.png)
+
 - On the device's local web UI, open the self-hosted cloud page and paste the access code. The device verifies the cloud with the CA in the code, and the cloud verifies the device with its factory certificate.
 - A device on another self-hosted platform has to disconnect from it on the same page first, then take the new code.
 - Devices connected to the cloud
