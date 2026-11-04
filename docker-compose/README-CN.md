@@ -2,6 +2,8 @@
 
 本指南介绍如何用本目录的 Docker Compose 模板手动部署 **glkvm-cloud**。一键安装脚本、需要开放的端口和升级方法，见[主 README](../README.zh-CN.md)。
 
+服务器上需要先装好 Docker 和 Docker Compose。Ubuntu 和 Debian 可以用 `apt install -y docker.io docker-compose` 安装，其他系统请参考 [Docker 官方安装文档](https://docs.docker.com/engine/install/)。
+
 ### 1. **克隆仓库并准备环境模板**
 
 ```bash
@@ -92,11 +94,11 @@ cd glkvm-cloud/docker-compose/
 - `OIDC_ALLOWED_GROUPS`：允许的用户组列表（可选）
 - `OIDC_ADMIN_GROUP` / `OIDC_ADMIN_USERS`：给予管理员角色的用户组，以及按 `preferred_username` 或邮箱匹配的用户，逗号分隔（可选）。其他 OIDC 用户为运维员角色
 
-⚠️ **注意：所有配置均在 `.env` 中完成，不需要修改 `docker-compose.yml`、模板或脚本。**
+所有配置均在 `.env` 中完成，不需要修改 `docker-compose.yml`、模板或脚本。
 
 ### 3. **放置自有证书（可选）**
 
-把证书（完整证书链）和私钥放到 `certificate/`，文件名为 `glkvm.cer` 和 `glkvm.key`。没有放证书时，首次启动会自动生成一张自签证书，见 [`certificate/README.md`](certificate/README.md)。域名和 DNS 的配置见[使用自有域名和 SSL 证书](../README.zh-CN.md#使用自有域名和-ssl-证书可选)。使用反向代理模式时，证书放在 Nginx 上。
+把证书（完整证书链）和私钥放到 `certificate/`，文件名为 `glkvm.cer` 和 `glkvm.key`。没有放证书时，首次启动会自动生成一张证书（浏览器会提示不受信任），见 [`certificate/README.md`](certificate/README.md)。域名和 DNS 的配置见[使用自有域名和 SSL 证书](../README.zh-CN.md#使用自有域名和-ssl-证书可选)。使用反向代理模式时，证书放在 Nginx 上。
 
 ### 4. **启动服务**
 
@@ -142,7 +144,9 @@ GLKVM Cloud 可以运行在 Nginx 等反向代理之后，由反向代理终止 
 
 2. **不要对外开放明文端口。** `RTTYS_WEBUI_PORT` 和 `RTTYS_HTTP_PROXY_PORT` 是明文 HTTP，Docker 会把它们映射到所有网卡上，并绕过 ufw 等主机防火墙。请不要在云安全组放行这两个端口，只让 Nginx 访问。
 
-3. **配置 Nginx**，参考 [`nginx-reverse-proxy-example.conf`](nginx-reverse-proxy-example.conf)。设备可以通过自己的子域名 `https://<deviceId>.example.com` 打开，需要泛域名解析和泛域名证书；也可以按路径在平台域名下打开，见[按路径访问设备](#按路径访问设备可选)。
+3. **配置 Nginx**，参考 [`nginx-reverse-proxy-example.conf`](nginx-reverse-proxy-example.conf)：把 `example.com` 换成你的域名，`/path/to/` 换成证书文件的路径。设备可以通过自己的子域名 `https://<deviceId>.example.com` 打开，需要泛域名解析和泛域名证书；也可以按路径在平台域名下打开，见[按路径访问设备](#按路径访问设备可选)。
+
+   示例里两种方式各有一个平台 Web 界面的 server 块，只能保留其中一个。两个都留着时，Nginx 只会提示 server_name 冲突，并忽略第二个块。
 
 ### 必需的反向代理请求头
 

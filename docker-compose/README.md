@@ -2,6 +2,8 @@
 
 This guide shows how to deploy **glkvm-cloud** by hand with the Docker Compose template in this directory. For the one-line installer, the ports to open and upgrades, see the [main README](../README.md).
 
+You need Docker and Docker Compose on the server. On Ubuntu and Debian you can install them with `apt install -y docker.io docker-compose`; on other systems, follow [Docker's installation guide](https://docs.docker.com/engine/install/).
+
 1. **Clone the repository and prepare the environment template**
 
    ```bash
@@ -92,11 +94,11 @@ This guide shows how to deploy **glkvm-cloud** by hand with the Docker Compose t
    - `OIDC_ALLOWED_GROUPS`: comma-separated list of allowed OIDC groups (optional)
    - `OIDC_ADMIN_GROUP` / `OIDC_ADMIN_USERS`: comma-separated groups, and users matched by `preferred_username` or email, that get the admin role (optional). Other OIDC users get the Operator role
 
-   ⚠️ **Note:** All configuration is done in `.env`. You don't need to modify `docker-compose.yml`, templates or scripts.
+   All configuration is done in `.env`: you don't need to modify `docker-compose.yml`, templates or scripts.
 
 3. **Add your own certificate (optional)**
 
-   Put the certificate (full chain) and its private key in `certificate/` as `glkvm.cer` and `glkvm.key`. Without them, a self-signed certificate is generated on first start, see [`certificate/README.md`](certificate/README.md). For the domain and DNS setup, see [Use Your Own Domain and SSL Certificate](../README.md#use-your-own-domain-and-ssl-certificate-optional). In reverse proxy mode, the certificate goes to Nginx instead.
+   Put the certificate (full chain) and its private key in `certificate/` as `glkvm.cer` and `glkvm.key`. Without them, a certificate is generated on first start, which browsers do not trust, see [`certificate/README.md`](certificate/README.md). For the domain and DNS setup, see [Use Your Own Domain and SSL Certificate](../README.md#use-your-own-domain-and-ssl-certificate-optional). In reverse proxy mode, the certificate goes to Nginx instead.
 
 4. **Start the services**
 
@@ -142,7 +144,9 @@ GLKVM Cloud can run behind a reverse proxy such as Nginx, which terminates TLS. 
 
 2. **Keep the plain HTTP ports closed.** `RTTYS_WEBUI_PORT` and `RTTYS_HTTP_PROXY_PORT` serve plain HTTP, and Docker publishes them on all interfaces, past host firewalls such as ufw. Don't allow them in the cloud security group, so they are only reached through Nginx.
 
-3. **Configure Nginx** from [`nginx-reverse-proxy-example.conf`](nginx-reverse-proxy-example.conf). Devices are opened either on a subdomain of their own, `https://<deviceId>.example.com`, which needs a wildcard DNS record and certificate, or by path under the web UI's domain, see [Path-Based Device Access](#path-based-device-access-optional).
+3. **Configure Nginx** from [`nginx-reverse-proxy-example.conf`](nginx-reverse-proxy-example.conf): replace `example.com` with your domain and `/path/to/` with your certificate files. Devices are opened either on a subdomain of their own, `https://<deviceId>.example.com`, which needs a wildcard DNS record and certificate, or by path under the web UI's domain, see [Path-Based Device Access](#path-based-device-access-optional).
+
+   The example has a web UI server block for each way, so keep only one of them. With both, Nginx only warns about a conflicting server name and ignores the second block.
 
 ### Required Reverse Proxy Headers
 
