@@ -135,9 +135,7 @@ GLKVM Cloud 可以运行在 Nginx 等反向代理之后，由反向代理终止 
 
 2. **不要对外开放明文端口。** `RTTYS_WEBUI_PORT` 和 `RTTYS_HTTP_PROXY_PORT` 是明文 HTTP，Docker 会把它们映射到所有网卡上，并绕过 ufw 等主机防火墙。请不要在云安全组放行这两个端口，只让 Nginx 访问。
 
-3. **配置 Nginx**，参考 [`nginx-reverse-proxy-example.conf`](nginx-reverse-proxy-example.conf)：把 `example.com` 换成你的域名，`/path/to/` 换成证书文件的路径。设备可以通过自己的子域名 `https://<deviceId>.example.com` 打开，需要泛域名解析和泛域名证书；也可以按路径在平台域名下打开，见[按路径访问设备](#按路径访问设备可选)。
-
-   示例里两种方式各有一个平台 Web 界面的 server 块，只能保留其中一个。两个都留着时，Nginx 不会报错，只告警并忽略第二个块，按路径访问就不会生效。
+3. **配置 Nginx**，参考 [`nginx-reverse-proxy-example.conf`](nginx-reverse-proxy-example.conf)：把 `example.com` 换成你的域名，`/path/to/` 换成证书文件的路径。示例默认让设备通过自己的子域名 `https://<deviceId>.example.com` 打开，需要泛域名解析和泛域名证书。如果要改为按路径在平台域名下打开，见[按路径访问设备](#按路径访问设备可选)。
 
 ### 必需的反向代理请求头
 
@@ -191,7 +189,7 @@ https://www.example.com                     → Web UI
 https://www.example.com/access/<deviceId>/  → 设备远程访问
 ```
 
-除了上面的反向代理模式设置，只需要配置 Nginx：使用 [`nginx-reverse-proxy-example.conf`](nginx-reverse-proxy-example.conf) 里按路径访问的 server 块。它把 `/access/<deviceId>` 转到设备访问端口，并给 Web UI 的请求加上 `X-KVM-Access-Style: path`。
+除了上面的反向代理模式设置，只需要在 Nginx 里改一行：把 [`nginx-reverse-proxy-example.conf`](nginx-reverse-proxy-example.conf) 平台 Web 界面块里 `X-KVM-Access-Style` 的值从 `""` 改成 `path`，然后重新加载 Nginx。这个块已经把 `/access/<deviceId>` 转到设备访问端口，这个请求头是告诉平台按路径打开设备。
 
 - 只有用接入码接入的设备按路径访问。用旧脚本接入的设备仍然使用自己的子域名 `<deviceId>.<域名>`，需要泛域名配置：有这类设备时请保留 `*.example.com` 的 server 块
 - 同一个浏览器可以同时打开多台设备

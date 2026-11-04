@@ -146,9 +146,7 @@ GLKVM Cloud can run behind a reverse proxy such as Nginx, which terminates TLS. 
 
 2. **Keep the plain HTTP ports closed.** `RTTYS_WEBUI_PORT` and `RTTYS_HTTP_PROXY_PORT` serve plain HTTP, and Docker publishes them on all interfaces, past host firewalls such as ufw. Don't allow them in the cloud security group, so they are only reached through Nginx.
 
-3. **Configure Nginx** from [`nginx-reverse-proxy-example.conf`](nginx-reverse-proxy-example.conf): replace `example.com` with your domain and `/path/to/` with your certificate files. Devices are opened either on a subdomain of their own, `https://<deviceId>.example.com`, which needs a wildcard DNS record and certificate, or by path under the web UI's domain, see [Path-Based Device Access](#path-based-device-access-optional).
-
-   The example has a web UI server block for each way, so keep only one of them. With both, Nginx only warns about a conflicting server name and ignores the second block.
+3. **Configure Nginx** from [`nginx-reverse-proxy-example.conf`](nginx-reverse-proxy-example.conf): replace `example.com` with your domain and `/path/to/` with your certificate files. As it is, the example opens devices on a subdomain of their own, `https://<deviceId>.example.com`, which needs a wildcard DNS record and certificate. To open them by path under the web UI's domain instead, see [Path-Based Device Access](#path-based-device-access-optional).
 
 ### Required Reverse Proxy Headers
 
@@ -203,7 +201,7 @@ https://www.example.com                     → Web UI
 https://www.example.com/access/<deviceId>/  → Device remote access
 ```
 
-Besides reverse proxy mode above, it needs only Nginx: use the path-based server block of [`nginx-reverse-proxy-example.conf`](nginx-reverse-proxy-example.conf). It serves `/access/<deviceId>` from the device access port and marks Web UI requests with `X-KVM-Access-Style: path`.
+Besides reverse proxy mode above, it takes one line in Nginx: in the web UI block of [`nginx-reverse-proxy-example.conf`](nginx-reverse-proxy-example.conf), change the value of `X-KVM-Access-Style` from `""` to `path` and reload Nginx. The block already serves `/access/<deviceId>` from the device access port; the header tells the platform to open devices there.
 
 - Only devices added with an access code are opened by path. Devices added with the old script keep their own host `<deviceId>.<domain>`, which still needs the wildcard setup: keep the `*.example.com` server block while you have them
 - Several devices can be open in one browser at the same time
