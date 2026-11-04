@@ -1,8 +1,8 @@
-# Quick Start
+# Deploy with Docker Compose
 
-This guide shows how to deploy **glkvm-cloud** by hand with the Docker Compose template in this directory. For the one-line installer, the ports to open and upgrades, see the [main README](../README.md).
+This guide deploys GLKVM Cloud by hand with the Docker Compose files in this directory. For the one-line installer, the ports to open and upgrades, see the [main README](../README.md).
 
-You need Docker and Docker Compose on the server. On Ubuntu and Debian you can install them with `apt install -y docker.io docker-compose`; on other systems, follow [Docker's installation guide](https://docs.docker.com/engine/install/).
+You need Docker and Docker Compose 1.27 or later, or the `docker compose` plugin, on the server. On Ubuntu 22.04 or later and Debian 12, `apt install -y docker.io docker-compose` installs both; on other systems, follow [Docker's installation guide](https://docs.docker.com/engine/install/).
 
 1. **Clone the repository and prepare the environment template**
 
@@ -11,12 +11,12 @@ You need Docker and Docker Compose on the server. On Ubuntu and Debian you can i
    cd glkvm-cloud/docker-compose/
    ```
 
-   - For **x86_64 (amd64)**:
+   - For x86_64 (amd64):
 
      ```bash
      cp .env.example .env
      ```
-   - For **arm64 (AArch64)**:
+   - For arm64 (AArch64):
 
      ```bash
      cp .env.arm64.example .env
@@ -29,7 +29,7 @@ You need Docker and Docker Compose on the server. On Ubuntu and Debian you can i
    Edit `.env` and set the required parameters:
 
    - `RTTYS_PASS`: admin password (required: the platform does not start without it)
-   - `RTTYS_TOKEN`: token of devices added with the old script, on `RTTYS_DEVICE_PORT` (required while `RTTYS_LEGACY_TOKEN_ACCESS` is `true`)
+   - `RTTYS_TOKEN`: token of devices added with the old script, on `RTTYS_DEVICE_PORT` (required while `RTTYS_LEGACY_TOKEN_ACCESS` is `true`; a new installation without such devices can turn that off instead)
    - `TURN_USER` / `TURN_PASS`: coturn authentication credentials (required: coturn does not start without them)
 
    None of them has a default. Generate your own, e.g. with `openssl rand -hex 16`. The platform warns at startup while one of them is still an example value from older `.env` examples.
@@ -40,11 +40,11 @@ You need Docker and Docker Compose on the server. On Ubuntu and Debian you can i
 
    **Device Access:**
 
-   - `GLKVM_ACCESS_IP`: the server's public address, used for TURN and, unless `DEVICE_ACCESS_HOST` is set, in access codes (leave empty to detect it at startup)
+   - `GLKVM_ACCESS_IP`: the server's public address, used for TURN and, unless `DEVICE_ACCESS_HOST` is set, in access codes (leave empty to detect the public IP at startup; on an internal network, set the server's internal IP)
    - `RTTYS_DEVICE_MTLS_PORT`: port for devices added with an access code (default `5915`)
    - `DEVICE_ACCESS_HOST`: address in access codes that devices connect to on that port, an IP address or a domain name (leave empty to use `GLKVM_ACCESS_IP`). Devices that already joined keep working after it changes
-   - `RTTYS_LEGACY_TOKEN_ACCESS`: keep accepting devices added with the old script, which use `RTTYS_TOKEN` on `RTTYS_DEVICE_PORT` (default `true`). Deprecated: set it to `false` once all devices use access codes
-   - `SELFHOST_WEBUI_URL`: web UI address sent to devices that joined with an access code, for their local web page to link to, e.g. `https://www.example.com` (leave empty to build it from the host above and `RTTYS_WEBUI_PORT`; set it behind a reverse proxy)
+   - `RTTYS_LEGACY_TOKEN_ACCESS`: keep accepting devices added with the old script, which use `RTTYS_TOKEN` on `RTTYS_DEVICE_PORT` (default `true`). Deprecated: set it to `false` once all devices use access codes, or from the start on a new installation; then `RTTYS_TOKEN` and `RTTYS_DEVICE_PORT` are not needed
+   - `SELFHOST_WEBUI_URL`: web UI address sent to devices that joined with an access code, for their local web page to link to, e.g. `https://www.example.com` (leave empty to build it from `WEB_UI_HOST`, `DEVICE_ACCESS_HOST` or `GLKVM_ACCESS_IP`, in that order, with `RTTYS_WEBUI_PORT`; set it behind a reverse proxy)
 
    **Ports:**
 
@@ -98,7 +98,7 @@ You need Docker and Docker Compose on the server. On Ubuntu and Debian you can i
 
 3. **Add your own certificate (optional)**
 
-   Put the certificate (full chain) and its private key in `certificate/` as `glkvm.cer` and `glkvm.key`. Without them, a certificate is generated on first start, which browsers do not trust, see [`certificate/README.md`](certificate/README.md). For the domain and DNS setup, see [Use Your Own Domain and SSL Certificate](../README.md#use-your-own-domain-and-ssl-certificate-optional). In reverse proxy mode, the certificate goes to Nginx instead.
+   Put the certificate (full chain) and its private key in `certificate/` as `glkvm.cer` and `glkvm.key`, in PEM format (for Let's Encrypt, `fullchain.pem` and `privkey.pem`). Without them, the platform generates one on first start that browsers do not trust (see [`certificate/README.md`](certificate/README.md)). For the domain and DNS setup, see [Use Your Own Domain and SSL Certificate](../README.md#use-your-own-domain-and-ssl-certificate-optional). In reverse proxy mode, the certificate goes to Nginx instead.
 
 4. **Start the services**
 
@@ -114,6 +114,8 @@ You need Docker and Docker Compose on the server. On Ubuntu and Debian you can i
 
    With the Docker CLI plugin, use `docker compose` instead of `docker-compose`.
 
+   Check that both services are up with `docker-compose ps`. If one keeps restarting, `docker-compose logs rttys coturn` shows why, usually a required setting left empty.
+
 5. **Sign in**
 
    Open the platform and sign in as `admin` (or `RTTYS_ADMIN_NAME`) with `RTTYS_PASS`:
@@ -124,7 +126,7 @@ You need Docker and Docker Compose on the server. On Ubuntu and Debian you can i
 
    Opening it by IP address triggers a browser certificate warning.
 
-   Back up `database/`. It holds the database and `pki`, the CA trusted by devices that joined with an access code. To upgrade, see [Upgrade](../README.md#upgrade).
+   Back up `database/`, for example with `cp -a database ../database-backup`. It holds the database and `pki`, the CA trusted by devices that joined with an access code. To upgrade, see [Upgrade](../README.md#upgrade).
 
 ## Reverse Proxy Mode (Optional)
 
@@ -150,7 +152,7 @@ GLKVM Cloud can run behind a reverse proxy such as Nginx, which terminates TLS. 
 
 ### Required Reverse Proxy Headers
 
-The reverse proxy **must** forward the following headers; otherwise, GLKVM Cloud may generate URLs containing internal ports (e.g. `:10443`):
+The reverse proxy must forward the following headers, or GLKVM Cloud may generate URLs with internal ports (e.g. `:10443`), and pass WebSocket upgrades on (`$connection_upgrade` comes from the `map` at the top of the Nginx example):
 
 ```nginx
 proxy_set_header Host                $host;
@@ -159,6 +161,8 @@ proxy_set_header X-Forwarded-Proto   $scheme;
 proxy_set_header X-Forwarded-Port    $server_port;
 proxy_set_header X-Real-IP           $remote_addr;
 proxy_set_header X-Forwarded-For     $proxy_add_x_forwarded_for;
+proxy_set_header Upgrade             $http_upgrade;
+proxy_set_header Connection          $connection_upgrade;
 ```
 
 ### Device Remote Access Domain (Optional)
@@ -179,7 +183,7 @@ https://<deviceId>.<DEVICE_ENDPOINT_HOST>/
 
 - Do not include the scheme (`http://` or `https://`)
 - Do not include any path
-- The domain may differ from the Web UI domain
+- The domain may differ from the Web UI domain. Devices are opened on its subdomains, so it needs its own wildcard DNS record and certificate, e.g. `*.kvm.example.com`
 - If left empty, the host/port will be derived from `X-Forwarded-*` headers
 
 **Example:**
@@ -199,7 +203,7 @@ https://www.example.com                     → Web UI
 https://www.example.com/access/<deviceId>/  → Device remote access
 ```
 
-It is set up in Nginx only: use the path-based server block of [`nginx-reverse-proxy-example.conf`](nginx-reverse-proxy-example.conf). It serves `/access/<deviceId>` from the device access port and marks Web UI requests with `X-KVM-Access-Style: path`.
+Besides reverse proxy mode above, it needs only Nginx: use the path-based server block of [`nginx-reverse-proxy-example.conf`](nginx-reverse-proxy-example.conf). It serves `/access/<deviceId>` from the device access port and marks Web UI requests with `X-KVM-Access-Style: path`.
 
 - Only devices added with an access code are opened by path. Devices added with the old script keep their own host `<deviceId>.<domain>`, which still needs the wildcard setup: keep the `*.example.com` server block while you have them
 - Several devices can be open in one browser at the same time
