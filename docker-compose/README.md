@@ -26,11 +26,15 @@
    - `RTTYS_TOKEN`: token of devices still on old firmware, on `RTTYS_DEVICE_PORT` (required while `RTTYS_LEGACY_TOKEN_ACCESS` is `true`)
    - `TURN_USER` / `TURN_PASS`: coturn authentication credentials (required: coturn does not start without them)
 
-   None of them has a default. Generate your own, e.g. with `openssl rand -hex 16`. The platform warns at startup while one of them is still an example value from older `.env` examples
+   None of them has a default. Generate your own, e.g. with `openssl rand -hex 16`. The platform warns at startup while one of them is still an example value from older `.env` examples.
+
+   **Device Access:**
+
    - `GLKVM_ACCESS_IP`: glkvm cloud access address (leave empty to auto-detect at startup)
    - `RTTYS_DEVICE_MTLS_PORT`: device port for new firmware, which joins with an access code (default `5915`)
    - `DEVICE_ACCESS_HOST`: address devices dial for that port, put into access codes (leave empty to use `GLKVM_ACCESS_IP`). Devices that already joined keep working after it changes, e.g. from an IP address to a domain name: the device-port certificate keeps covering the old address
    - `RTTYS_LEGACY_TOKEN_ACCESS`: keep accepting old-firmware devices with `RTTYS_TOKEN` on `RTTYS_DEVICE_PORT` (default `true`). Deprecated: set it to `false` once all devices use access codes
+   - `SELFHOST_WEBUI_URL`: web UI address sent to devices that joined with an access code, for their local web page to link to, e.g. `https://www.example.com` (leave empty to build it from the host above and `RTTYS_WEBUI_PORT`; set it behind a reverse proxy)
 
    **LDAP Authentication (Optional):**
 
