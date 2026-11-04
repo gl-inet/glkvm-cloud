@@ -142,6 +142,7 @@ The device needs firmware v1.11.0 or later.
 
 - In the cloud, open **Add Device**, generate an access code and copy it. Each code works once, on any device, within 24 hours.
 - On the device's local web UI, open the self-hosted cloud page and paste the access code. The device verifies the cloud with the CA in the code, and the cloud verifies the device with its factory certificate.
+- A device on another self-hosted platform has to disconnect from it on the same page first, then take the new code.
 - Devices connected to the cloud
 
 ![Add KVM Devices to the Lightweight Cloud](img/devicelist.png)
@@ -178,6 +179,7 @@ If you just want to **quickly try out GLKVM Cloud** and don’t mind the browser
 you can **skip** configuring a custom domain and SSL certificate, and still access the platform via the server’s **public IP** with HTTPS.
 
 For production use, or if you need to **access multiple KVM devices via subdomains**, it is **strongly recommended** to configure your own **wildcard SSL certificate** (see below).
+Behind Nginx, devices that joined with an access code can also be opened by path under the platform's own domain, which needs a single-domain certificate only: see [Path-Based Device Access](docker-compose/README.md#path-based-device-access-optional).
 
 #### Add DNS Records
 
