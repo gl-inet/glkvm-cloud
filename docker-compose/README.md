@@ -1,6 +1,6 @@
 # Quick Start
 
-This guide shows how to deploy **glkvm-cloud** with the Docker Compose template in this directory.
+This guide shows how to deploy **glkvm-cloud** by hand with the Docker Compose template in this directory. For the one-line installer, the ports to open and upgrades, see the [main README](../README.md).
 
 1. **Clone the repository and prepare the environment template**
 
@@ -20,15 +20,21 @@ This guide shows how to deploy **glkvm-cloud** with the Docker Compose template 
      cp .env.arm64.example .env
      ```
 
+   The two templates differ only in the images (`GLKVM_IMAGE`, `COTURN_IMAGE`).
+
 2. **Configure environment variables**
 
    Edit `.env` and set the required parameters:
 
-   - `RTTYS_PASS`: web management password (required: the platform does not start without it)
+   - `RTTYS_PASS`: admin password (required: the platform does not start without it)
    - `RTTYS_TOKEN`: token of devices added with the old script, on `RTTYS_DEVICE_PORT` (required while `RTTYS_LEGACY_TOKEN_ACCESS` is `true`)
    - `TURN_USER` / `TURN_PASS`: coturn authentication credentials (required: coturn does not start without them)
 
    None of them has a default. Generate your own, e.g. with `openssl rand -hex 16`. The platform warns at startup while one of them is still an example value from older `.env` examples.
+
+   **Admin Account:**
+
+   - `RTTYS_ADMIN_NAME`: admin username, letters and digits only (default `admin`). Its password is `RTTYS_PASS`
 
    **Device Access:**
 
@@ -37,6 +43,19 @@ This guide shows how to deploy **glkvm-cloud** with the Docker Compose template 
    - `DEVICE_ACCESS_HOST`: address in access codes that devices connect to on that port, an IP address or a domain name (leave empty to use `GLKVM_ACCESS_IP`). Devices that already joined keep working after it changes
    - `RTTYS_LEGACY_TOKEN_ACCESS`: keep accepting devices added with the old script, which use `RTTYS_TOKEN` on `RTTYS_DEVICE_PORT` (default `true`). Deprecated: set it to `false` once all devices use access codes
    - `SELFHOST_WEBUI_URL`: web UI address sent to devices that joined with an access code, for their local web page to link to, e.g. `https://www.example.com` (leave empty to build it from the host above and `RTTYS_WEBUI_PORT`; set it behind a reverse proxy)
+
+   **Ports:**
+
+   - `RTTYS_WEBUI_PORT`: web UI (default `443`)
+   - `RTTYS_HTTP_PROXY_PORT`: remote access to devices (default `10443`)
+   - `RTTYS_DEVICE_PORT`: devices added with the old script (default `5912`)
+   - `TURN_PORT`: TURN server, TCP and UDP (default `3478`)
+
+   Allow these ports and `RTTYS_DEVICE_MTLS_PORT` in the cloud security group and firewall. In [reverse proxy mode](#reverse-proxy-mode-optional), keep `RTTYS_WEBUI_PORT` and `RTTYS_HTTP_PROXY_PORT` closed instead.
+
+   **Web UI Domain (Optional):**
+
+   - `WEB_UI_HOST`: only accept the web UI and API on this domain, e.g. `www.example.com` (leave empty to accept any)
 
    **LDAP Authentication (Optional):**
 
@@ -50,6 +69,7 @@ This guide shows how to deploy **glkvm-cloud** with the Docker Compose template 
    - `LDAP_USER_FILTER`: LDAP query filter (default: `(uid=%s)`)
    - `LDAP_ALLOWED_GROUPS`: comma-separated list of authorized groups (optional)
    - `LDAP_ALLOWED_USERS`: comma-separated list of authorized users (optional)
+   - `LDAP_ADMIN_GROUP` / `LDAP_ADMIN_USERS`: comma-separated groups and usernames that get the admin role (optional). Other LDAP users get the Operator role
 
    **OIDC Authentication (Optional):**
 
@@ -70,22 +90,61 @@ This guide shows how to deploy **glkvm-cloud** with the Docker Compose template 
    - `OIDC_ALLOWED_SUBS`: comma-separated list of allowed OIDC subject (`sub`) IDs (optional)
    - `OIDC_ALLOWED_USERNAMES`: comma-separated list of allowed usernames (`preferred_username` or `name`) (optional)
    - `OIDC_ALLOWED_GROUPS`: comma-separated list of allowed OIDC groups (optional)
-   
+   - `OIDC_ADMIN_GROUP` / `OIDC_ADMIN_USERS`: comma-separated groups, and users matched by `preferred_username` or email, that get the admin role (optional). Other OIDC users get the Operator role
 
-#### Reverse Proxy Mode (Optional)
+   ⚠️ **Note:** All configuration is done in `.env`. You don't need to modify `docker-compose.yml`, templates or scripts.
 
-```env
-REVERSE_PROXY_ENABLED=false
-```
+3. **Add your own certificate (optional)**
 
-When enabled (`REVERSE_PROXY_ENABLED=true`):
+   Put the certificate (full chain) and its private key in `certificate/` as `glkvm.cer` and `glkvm.key`. Without them, a self-signed certificate is generated on first start, see [`certificate/README.md`](certificate/README.md). For the domain and DNS setup, see [Use Your Own Domain and SSL Certificate](../README.md#use-your-own-domain-and-ssl-certificate-optional). In reverse proxy mode, the certificate goes to Nginx instead.
 
-- GLKVM Cloud runs behind a reverse proxy (e.g. Nginx)
-- TLS is terminated at the reverse proxy; GLKVM Cloud uses plain HTTP internally
-- The Web UI and remote device access can share the same HTTPS port (usually 443)
+4. **Start the services**
 
+   ```bash
+   docker-compose up -d
+   ```
 
-##### Required Reverse Proxy Headers
+   After changing `.env`, templates or the certificate, apply the changes:
+
+   ```bash
+   docker-compose down && docker-compose up -d
+   ```
+
+   With the Docker CLI plugin, use `docker compose` instead of `docker-compose`.
+
+5. **Sign in**
+
+   Open the platform and sign in as `admin` (or `RTTYS_ADMIN_NAME`) with `RTTYS_PASS`:
+
+   ```text
+   https://<your_server_public_ip>
+   ```
+
+   Opening it by IP address triggers a browser certificate warning.
+
+   Back up `database/`. It holds the database and `pki`, the CA trusted by devices that joined with an access code. To upgrade, see [Upgrade](../README.md#upgrade).
+
+## Reverse Proxy Mode (Optional)
+
+GLKVM Cloud can run behind a reverse proxy such as Nginx, which terminates TLS. The web UI and remote access to devices then share one HTTPS port (usually 443), and GLKVM Cloud serves plain HTTP behind it.
+
+1. **Set in `.env`:**
+
+   ```env
+   REVERSE_PROXY_ENABLED=true
+   RTTYS_WEBUI_PORT=1443
+   SELFHOST_WEBUI_URL=https://www.example.com
+   ```
+
+   - `RTTYS_WEBUI_PORT` moves the web UI off port 443, which Nginx takes. `1443` matches the Nginx example
+   - `SELFHOST_WEBUI_URL` is the public address of the web UI. Without it, devices are given the internal port
+   - Devices still connect to `RTTYS_DEVICE_MTLS_PORT` and `TURN_PORT` directly. Don't put them behind Nginx: the device port checks each device's factory certificate itself
+
+2. **Keep the plain HTTP ports closed.** `RTTYS_WEBUI_PORT` and `RTTYS_HTTP_PROXY_PORT` serve plain HTTP, and Docker publishes them on all interfaces, past host firewalls such as ufw. Don't allow them in the cloud security group, so they are only reached through Nginx.
+
+3. **Configure Nginx** from [`nginx-reverse-proxy-example.conf`](nginx-reverse-proxy-example.conf). Devices are opened either on a subdomain of their own, `https://<deviceId>.example.com`, which needs a wildcard DNS record and certificate, or by path under the web UI's domain, see [Path-Based Device Access](#path-based-device-access-optional).
+
+### Required Reverse Proxy Headers
 
 The reverse proxy **must** forward the following headers; otherwise, GLKVM Cloud may generate URLs containing internal ports (e.g. `:10443`):
 
@@ -98,8 +157,7 @@ proxy_set_header X-Real-IP           $remote_addr;
 proxy_set_header X-Forwarded-For     $proxy_add_x_forwarded_for;
 ```
 
-
-##### Device Remote Access Domain (Optional)
+### Device Remote Access Domain (Optional)
 
 ```env
 DEVICE_ENDPOINT_HOST=
@@ -128,8 +186,7 @@ https://<deviceId>.kvm.example.com  → Device remote access
 DEVICE_ENDPOINT_HOST=kvm.example.com
 ```
 
-
-##### Path-Based Device Access (Optional)
+### Path-Based Device Access (Optional)
 
 Devices can be opened under the Web UI's own domain instead of a host of their own, so one certificate and one DNS record are enough, no wildcard:
 
@@ -140,31 +197,6 @@ https://www.example.com/access/<deviceId>/  → Device remote access
 
 It is set up in Nginx only: use the path-based server block of [`nginx-reverse-proxy-example.conf`](nginx-reverse-proxy-example.conf). It serves `/access/<deviceId>` from the device access port and marks Web UI requests with `X-KVM-Access-Style: path`.
 
-- Only devices that joined with an access code are opened by path. Devices on older firmware keep their own host `<deviceId>.<domain>`, which still needs the wildcard setup: keep the `*.example.com` server block while you have them
+- Only devices added with an access code are opened by path. Devices added with the old script keep their own host `<deviceId>.<domain>`, which still needs the wildcard setup: keep the `*.example.com` server block while you have them
 - Several devices can be open in one browser at the same time
 - It needs Nginx in front, so it is not available when the platform is accessed by IP
-
-
-
-⚠️ **Note:** All configuration should be done in the `.env` file.
-    You don’t need to modify `docker-compose.yml`, templates, or scripts directly.
-
-3. **Start the services**
-
-   ```bash
-   docker-compose up -d
-   ```
-
-   If you modify `.env` or template files, make sure to apply the updates:
-
-   ```bash
-   docker-compose down && docker-compose up -d
-   ```
-
-4. **Platform Access**
-
-   Once the installation is complete, access the platform via: 
-
-    ```text
-    https://<your_server_public_ip>
-    ```
