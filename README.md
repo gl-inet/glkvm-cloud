@@ -2,27 +2,25 @@
 
 [中文文档](./README.zh-CN.md) | English
 
-Self-Deployed Lightweight Cloud is a lightweight KVM remote cloud platform tailored for individuals and small businesses. This project is developed based on [rttys](https://github.com/zhaojh329/rttys), designed for users who need to **quickly** build a remote access platform while prioritizing **data security**. 
+Self-Deployed Lightweight Cloud (GLKVM Cloud) is a lightweight cloud platform for managing KVMs remotely, tailored for individuals and small businesses. It is based on [rttys](https://github.com/zhaojh329/rttys) and designed for users who need to **quickly** build their own remote access platform while prioritizing **data security**.
 
-#### Main Functions and Features
+#### Main Features
 
--  **User Groups and Device Support** - Supports user groups managing specific device groups, enabling different users to manage different devices
+-  **User Groups and Device Groups** - Assign device groups to user groups, so that different users manage different devices
 -  **Access Code Onboarding** - Add a KVM by pasting an access code into its local web UI; the device proves itself with its factory certificate
 -  **KVM Terminal** - A web terminal on the KVM's own system
--  **Remote Control** - Web remote desktop control
--  **Batch Operations** - Batch command execution capabilities
--  **Rapid Deployment** - Quick self-deployment with simple operations
--  **Data Security** - Private deployment with full data control
--  **Dedicated Bandwidth** - Exclusive bandwidth for self-hosted deployments 
+-  **Remote Control** - Control the KVM's remote desktop in the browser
+-  **Batch Operations** - Run a command on several devices at once
+-  **Rapid Deployment** - Deploy with a single command
+-  **Data Security** - Private deployment with full control of your data
+-  **Dedicated Bandwidth** - Your own server's bandwidth, shared with no one
 -  **Lightweight Design** - Optimized for small businesses and individual users
--  **Enterprise Authentication** -  Supports both **LDAP** and **OIDC** login methods for enterprise users. 
-
--  **Deployment & Platform Compatibility** - Supports both **internal network** and **public internet** deployments on **x86_64** and **arm64** platforms
--  **HTTP/HTTPS Web Proxy Support** - Reach web services on the KVM, or on hosts it can reach, through the cloud
+-  **Enterprise Authentication** - Sign in with **LDAP** or **OIDC**
+-  **Deployment & Platform Compatibility** - Deploy on an **internal network** or the **public internet**, on **x86_64** or **arm64**
 
 ## Self-Hosting Guide
 
-The following mainstream operating systems have been tested and verified
+The following operating systems have been tested:
 
 #### Debian Family
 
@@ -39,35 +37,35 @@ The following mainstream operating systems have been tested and verified
 
 |      Component      | Minimum Requirement |
 | :-----------------: | :-----------------: |
-|         CPU         |  1 core or above   |
+|         CPU         |   1 core or above   |
 |       Memory        |       ≥ 1 GB        |
 |       Storage       |       ≥ 40 GB       |
-| Network Bandwidth   | ≥ 3 Mbps      |
+|  Network Bandwidth  |      ≥ 3 Mbps       |
 | KVM Device Firmware |      ≥ v1.11.0      |
 
 #### Cloud Security Group Settings
 
-If your server provider uses a **cloud security group** (e.g., AWS, Aliyun, etc.), please make sure the following ports are **open**:
+If your server provider uses a **cloud security group** (e.g. AWS, Alibaba Cloud), make sure the following ports are **open**:
 
-| Port  | Protocol | Purpose                        |
-| ----- | -------- | ------------------------------ |
-| 443   | TCP      | Web UI access                  |
-| 10443 | TCP      | WebSocket proxy                |
-| 5912  | TCP      | Device connection for devices still on old firmware (deprecated, see below) |
-| 5915  | TCP      | Device connection (new firmware, access code) |
-| 3478  | TCP/UDP  | TURN server for WebRTC support |
+| Port  | Protocol | Purpose                                     |
+| ----- | -------- | ------------------------------------------- |
+| 443   | TCP      | Web UI                                      |
+| 10443 | TCP      | Remote access to devices (Remote Control)   |
+| 5912  | TCP      | Devices added with the old script (deprecated, see [Devices on Old Firmware](#devices-on-old-firmware)) |
+| 5915  | TCP      | Devices added with an access code           |
+| 3478  | TCP/UDP  | TURN server for WebRTC                      |
 
 ⚠️ **Important:**
- These ports will be **used by GLKVM Cloud**. Please ensure **no other applications or services** on your server are binding to these ports, otherwise the lightweight cloud platform may fail to start properly.
+GLKVM Cloud uses these ports. Make sure **no other application or service** on the server binds to them, or the platform may fail to start.
 
 ------
 ### Installation
 
-We provide **two** ways to install GLKVM Cloud: 
+We provide **two** ways to install GLKVM Cloud:
 
 #### A) One-line installer (recommended, x86_64/amd64)
 
-> **Note:** The one-line installer is **Docker-based**. It automates Docker/Compose setup, pulls images, renders configs from templates, and starts services for you.
+> **Note:** The one-line installer is **Docker-based**. It sets up Docker and Compose, pulls the images, renders the configuration from templates and starts the services for you.
 >
 > **Platform:** currently supports **x86_64 (amd64)** only.
 
@@ -81,22 +79,22 @@ Run **as root**:
 
 > Full reference: see [`docker-compose/README.md`](https://github.com/gl-inet/glkvm-cloud/blob/main/docker-compose/README.md)
 >
-> **Platform:** supports both **x86_64 (amd64)** and **arm64 (AArch64)**. 
+> **Platform:** supports both **x86_64 (amd64)** and **arm64 (AArch64)**.
 
 ### Platform Access
 
-Once the installation is complete, the installer will print the platform URL and admin login credentials in the console. You can access the platform via:
+When the installation completes, the installer prints the platform URL and the admin credentials. Open the platform at:
 
 ```
 https://<your_server_public_ip>
 ```
 
-⚠️ **Note**: Accessing via an IP address will trigger a **browser certificate warning**.
-To remove the warning, configure your own domain and a valid SSL certificate.
+⚠️ **Note**: Opening the platform by IP address triggers a **browser certificate warning**.
+To remove it, use your own domain and certificate, see [Use Your Own Domain and SSL Certificate](#use-your-own-domain-and-ssl-certificate-optional).
 
 ### Web UI Login Credentials
 
-At the end of the installation script, the console will display the Web UI administrator username and password (for example):
+At the end of the installation, the console shows the web UI admin username and password, for example:
 
 ```text
 👤 Admin username: admin
@@ -107,13 +105,13 @@ At the end of the installation script, the console will display the Web UI admin
 
 ### Upgrade
 
-Upgrade the deployment files together with the image. Changing only the image tag is not enough: the `docker-compose.yml` of releases before v3.0 does not publish port 5915, so devices cannot join with access codes (the add device dialog warns about it).
+Upgrade the deployment files together with the image. Changing only the image tag is not enough: the `docker-compose.yml` of releases before v3.0 does not publish port 5915, so devices cannot join with access codes (the Add Device dialog warns about it).
 
 **Installed with the one-line installer:** back up `~/glkvm_cloud/database`, then run the installer again as root from the same directory, the one that holds `glkvm_cloud`. It downloads the new image and deployment files, keeps `.env` and the database, and restarts the services. Then allow 5915/TCP in the cloud security group.
 
 **Installed by hand:**
 
-1. Back up `~/glkvm_cloud/database`. It holds the database and `pki`, the CA that devices joined with an access code trust.
+1. Back up `~/glkvm_cloud/database`. It holds the database and `pki`, the CA trusted by devices that joined with an access code.
 2. Get the new deployment files into `~/glkvm_cloud`. The package holds neither `.env` nor the database, so both are kept:
 
    ```bash
@@ -123,7 +121,7 @@ Upgrade the deployment files together with the image. Changing only the image ta
    ```
 
    Or copy `docker-compose.yml`, `templates` and `scripts` from the `docker-compose` directory of this repository.
-3. Check `.env`. Since v3.0 `RTTYS_PASS`, `RTTYS_TOKEN`, `TURN_USER` and `TURN_PASS` have no defaults, and the platform or coturn does not start while one is empty. Devices on old firmware keep the token and TURN account they were given: if these were empty before, they use `DeviceTokenYouCanChangeMe` and `glkvmcloudwebrtcuser` / `AnotherS3cret`, so set those values to keep them working until they move to access codes.
+3. Check `.env`. Since v3.0, `RTTYS_PASS`, `RTTYS_TOKEN`, `TURN_USER` and `TURN_PASS` have no defaults, and the platform or coturn does not start while one of them is empty. Devices on old firmware keep using the token and TURN account they were given: if these settings were empty before, they use `DeviceTokenYouCanChangeMe` and `glkvmcloudwebrtcuser` / `AnotherS3cret`, so set those values to keep the devices working until they move to access codes.
 4. Allow 5915/TCP in the cloud security group and firewall.
 5. Get the new image and restart:
 
@@ -136,27 +134,25 @@ Upgrade the deployment files together with the image. Changing only the image ta
 
 ## Feature Demonstrations
 
-###  Add KVM Devices to the Lightweight Cloud 
+### Add KVM Devices
 
 The device needs firmware v1.11.0 or later.
 
-- In the cloud, open **Add Device**, generate an access code and copy it. Each code works once, on any device, within 24 hours.
+1. In the cloud, open **Add Device**, generate an access code and copy it. Each code works once, on any device, within 24 hours.
 
-  ![Add Device](img/adddevice.png)
+   ![Add Device](img/adddevice.png)
 
-- On the device's local web UI, open the self-hosted cloud page and paste the access code. The device verifies the cloud with the CA in the code, and the cloud verifies the device with its factory certificate.
-- A device on another self-hosted platform has to disconnect from it on the same page first, then take the new code.
-- Devices connected to the cloud
+2. On the device's local web UI, open the **Self-hosted Cloud** page, paste the access code and save. The device verifies the cloud with the CA in the code, and the cloud verifies the device by its factory certificate. A device already on another self-hosted platform has to disconnect from it on that page first.
+3. The device joins and shows up in the device list:
 
-![Add KVM Devices to the Lightweight Cloud](img/devicelist.png)
-
+   ![Device list](img/devicelist.png)
 
 ### Devices on Old Firmware
 
-Devices that were added with the old script keep connecting on port 5912 after the cloud is upgraded. Devices on firmware older than v1.11.0 cannot be added anymore, and adding a device by running a script in its terminal is no longer supported. To move a device to access codes:
+Devices added with the old script keep connecting on port 5912 after the cloud is upgraded. Devices on firmware older than v1.11.0 can no longer be added, and adding a device by running a script in its terminal is no longer supported. To move a device to access codes:
 
-1. Upgrade the cloud first, then the device firmware to v1.11.0 or later.
-2. Paste an access code into the device's self-hosted cloud page. The device keeps its record, ID and groups in the cloud; if it is still connected the old way, it switches over without going offline.
+1. Upgrade the cloud first, then upgrade the device firmware to v1.11.0 or later.
+2. Paste an access code on the device's **Self-hosted Cloud** page. The device keeps its record, ID and groups in the cloud; if it is still connected the old way, it switches over without going offline.
 
 Port 5912 is deprecated and will be removed in a later release. Once no device uses it, set `RTTYS_LEGACY_TOKEN_ACCESS=false` to close it.
 
@@ -164,66 +160,51 @@ Port 5912 is deprecated and will be removed in a later release. Once no device u
 
 ![KVM Terminal Screenshot](img/ssh.png)
 
-### Remote Desktop Control
+### Remote Control
 
 ![Remote Control Screenshot](img/web.png)
 
-### Web Proxy
+## Use Your Own Domain and SSL Certificate (Optional)
 
-![Web Proxy Screenshot](img/httpproxy.png)
+If you just want to try GLKVM Cloud and don't mind the browser's certificate warning, skip this section and keep opening the platform by the server's public IP.
 
-
-
-##  Use your own SSL Certificate (Optional) 
-
-⚠️ **Note**:
-
-If you just want to **quickly try out GLKVM Cloud** and don’t mind the browser’s certificate warning,
-you can **skip** configuring a custom domain and SSL certificate, and still access the platform via the server’s **public IP** with HTTPS.
-
-For production use, or if you need to **access multiple KVM devices via subdomains**, it is **strongly recommended** to configure your own **wildcard SSL certificate** (see below).
-Behind Nginx, devices that joined with an access code can also be opened by path under the platform's own domain, which needs a single-domain certificate only: see [Path-Based Device Access](docker-compose/README.md#path-based-device-access-optional).
+For production use, open the platform on your own domain with a valid certificate. Devices are then opened on subdomains such as `https://<deviceId>.your-domain.com:10443`, which needs a wildcard DNS record and a wildcard certificate, as described below. Behind Nginx you can open devices by path under the platform's domain instead, with a single-domain certificate: see [Path-Based Device Access](docker-compose/README.md#path-based-device-access-optional).
 
 #### Add DNS Records
 
-To enable full domain-based access, configure the following DNS records for your domain:
+| Hostname | Type | Value                   | Purpose                  |
+| -------- | ---- | ----------------------- | ------------------------ |
+| `www`    | A    | Your server's public IP | Platform web UI          |
+| `*`      | A    | Your server's public IP | Remote access to devices |
 
-```
-┌────────────┬──────┬────────────────────┬─────────────────────────────┐
-│ Hostname   │ Type │     Value           │         Purpose             │
-├────────────┼──────┼────────────────────┼─────────────────────────────┤
-│ www        │  A   │ Your public IP      │ Web access to the platform │
-│ *          │  A   │ Your public IP      │ Remote access to KVMs      │
-└────────────┴──────┴────────────────────┴─────────────────────────────┘
-```
+Open the platform on a subdomain such as `www`: a device's address is the platform's with the first label replaced by the device ID, so `www.your-domain.com` gives `<deviceId>.your-domain.com`.
 
-#### Using a Custom SSL Certificate
+#### Use a Custom SSL Certificate
 
-No certificate is shipped: if you provide none, GLKVM Cloud generates a self-signed one on first start.
-To avoid browser warnings, put your own **wildcard SSL certificate** in place
- that supports both:
-
-- `*.your-domain.com` (for device access)
-- `www.your-domain.com` (for platform access)
-
-Put them in:
-
-```
-~/glkvm_cloud/certificate
-```
+Get a wildcard certificate for `*.your-domain.com`, which covers both `www.your-domain.com` and the device subdomains. Put the certificate (full chain) and its private key in `~/glkvm_cloud/certificate`, named exactly:
 
 - `glkvm.cer`
 - `glkvm.key`
 
-⚠️ **Make sure the filenames remain unchanged.**
+Without them, GLKVM Cloud uses a self-signed certificate it generates on first start.
 
 The device ports don't use this certificate. They use one signed by the platform's own CA,
 generated in `~/glkvm_cloud/database/pki`. Keep that directory and include it in your backups:
 devices that joined with an access code trust that CA and lose access if it is replaced.
 
-#### Restart Services After Configuration Changes
+#### Put the Domain in Access Codes (Optional)
 
-After replacing certificates, restart the GLKVM Cloud services to apply the changes:
+Access codes point devices at `GLKVM_ACCESS_IP` by default. To have devices connect by the domain instead, so they keep working if the server's IP changes, set this in `~/glkvm_cloud/.env`:
+
+```env
+DEVICE_ACCESS_HOST=www.your-domain.com
+```
+
+It applies to codes generated after the restart. Devices that already joined keep working.
+
+#### Restart the Services
+
+After changing the certificate or `.env`, restart GLKVM Cloud to apply the changes:
 
 ```bash
 cd ~/glkvm_cloud
@@ -236,10 +217,4 @@ Or, on systems with the Docker CLI plugin:
 docker compose down && docker compose up -d
 ```
 
-### Domain-Based Access Example
-
-Once everything is configured, you can access the platform via your domain:
-
-```
-https://www.your-domain.com
-```
+Then open the platform at `https://www.your-domain.com`.

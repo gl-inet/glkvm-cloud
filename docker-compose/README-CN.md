@@ -1,6 +1,6 @@
 # 快速开始（Quick Start）
 
-本指南展示如何使用提供的 Docker Compose 环境模板部署 **glkvm-cloud**。
+本指南介绍如何用本目录的 Docker Compose 模板部署 **glkvm-cloud**。
 
 ### 1. **克隆仓库并准备环境模板**
 
@@ -10,11 +10,12 @@ cd glkvm-cloud/docker-compose/
 ```
 
 * **x86_64（amd64）平台**：
+
   ```bash
   cp .env.example .env
   ```
 * **arm64（AArch64）平台**：
-  
+
   ```bash
   cp .env.arm64.example .env
   ```
@@ -22,20 +23,20 @@ cd glkvm-cloud/docker-compose/
 
 ### 2. **配置环境变量**
 
-编辑 `.env` 文件，并根据需求更新关键参数：
+编辑 `.env` 文件，填写以下必填参数：
 
 - `RTTYS_PASS`：Web 管理密码（必填，不填平台不启动）
-- `RTTYS_TOKEN`：尚未升级固件的设备在 `RTTYS_DEVICE_PORT` 上使用的令牌（`RTTYS_LEGACY_TOKEN_ACCESS` 为 `true` 时必填）
+- `RTTYS_TOKEN`：用旧脚本接入的设备在 `RTTYS_DEVICE_PORT` 上使用的令牌（`RTTYS_LEGACY_TOKEN_ACCESS` 为 `true` 时必填）
 - `TURN_USER` / `TURN_PASS`：coturn 鉴权凭据（必填，不填 coturn 不启动）
 
 以上都没有默认值，请自行生成，例如 `openssl rand -hex 16`。如果仍在使用旧版 `.env` 示例里的值，平台启动时会给出警告。
 
 #### **设备接入**
 
-- `GLKVM_ACCESS_IP`：GLKVM Cloud 访问地址（留空则启动时自动检测）
-- `RTTYS_DEVICE_MTLS_PORT`：新固件设备的接入端口，设备凭接入码接入（默认 `5915`）
-- `DEVICE_ACCESS_HOST`：设备连接该端口使用的地址，会写入接入码（留空则使用 `GLKVM_ACCESS_IP`）。修改后（例如 IP 换成域名）已接入的设备无需改动，设备口证书会继续包含原来的地址
-- `RTTYS_LEGACY_TOKEN_ACCESS`：是否继续允许旧固件设备通过 `RTTYS_DEVICE_PORT` 用 `RTTYS_TOKEN` 接入（默认 `true`）。已弃用：所有设备都改用接入码后请设为 `false`
+- `GLKVM_ACCESS_IP`：服务器公网地址，用于 TURN；未设置 `DEVICE_ACCESS_HOST` 时也写入接入码（留空则启动时自动检测）
+- `RTTYS_DEVICE_MTLS_PORT`：用接入码接入的设备连接的端口（默认 `5915`）
+- `DEVICE_ACCESS_HOST`：写入接入码、设备连接该端口用的地址，可以是 IP 或域名（留空则使用 `GLKVM_ACCESS_IP`）。修改后已接入的设备不受影响
+- `RTTYS_LEGACY_TOKEN_ACCESS`：是否继续允许用旧脚本接入的设备通过 `RTTYS_DEVICE_PORT` 用 `RTTYS_TOKEN` 连接（默认 `true`）。已弃用：所有设备都改用接入码后请设为 `false`
 - `SELFHOST_WEBUI_URL`：下发给接入码设备的平台地址，设备本地页面用它显示平台链接，例如 `https://www.example.com`（留空则用上面的地址加 `RTTYS_WEBUI_PORT` 拼出；平台在反向代理后面时请填写）
 
 #### **LDAP 认证（可选）**
@@ -50,8 +51,6 @@ cd glkvm-cloud/docker-compose/
 - `LDAP_USER_FILTER`：用户查询过滤器（默认 `(uid=%s)`）
 - `LDAP_ALLOWED_GROUPS`：允许访问的群组列表（可选）
 - `LDAP_ALLOWED_USERS`：允许访问的用户列表（可选）
-
-⚠️ **注意：所有配置均需在 `.env` 中完成，不需要修改 `docker-compose.yml`、模板或脚本。**
 
 #### **OIDC 认证（可选）**
 
@@ -161,7 +160,7 @@ docker-compose down && docker-compose up -d
 
 安装完成后，通过以下地址访问平台：
 
-```bash
+```text
 https://<你的服务器公网 IP>
 ```
 

@@ -1,6 +1,6 @@
 # Quick Start
 
- This guide shows how to deploy **glkvm-cloud** using the provided Docker Compose environment template. 
+This guide shows how to deploy **glkvm-cloud** with the Docker Compose template in this directory.
 
 1. **Clone the repository and prepare the environment template**
 
@@ -8,32 +8,34 @@
    git clone https://github.com/gl-inet/glkvm-cloud.git
    cd glkvm-cloud/docker-compose/
    ```
-* For **x86_64 (amd64)**:
 
-  ```bash
-  cp .env.example .env
-  ```
-* For **arm64 (AArch64)**:
-  ```bash
-  cp .env.arm64.example .env
-  ```
+   - For **x86_64 (amd64)**:
+
+     ```bash
+     cp .env.example .env
+     ```
+   - For **arm64 (AArch64)**:
+
+     ```bash
+     cp .env.arm64.example .env
+     ```
 
 2. **Configure environment variables**
 
-   Edit `.env` and update the required parameters: 
+   Edit `.env` and set the required parameters:
 
    - `RTTYS_PASS`: web management password (required: the platform does not start without it)
-   - `RTTYS_TOKEN`: token of devices still on old firmware, on `RTTYS_DEVICE_PORT` (required while `RTTYS_LEGACY_TOKEN_ACCESS` is `true`)
+   - `RTTYS_TOKEN`: token of devices added with the old script, on `RTTYS_DEVICE_PORT` (required while `RTTYS_LEGACY_TOKEN_ACCESS` is `true`)
    - `TURN_USER` / `TURN_PASS`: coturn authentication credentials (required: coturn does not start without them)
 
    None of them has a default. Generate your own, e.g. with `openssl rand -hex 16`. The platform warns at startup while one of them is still an example value from older `.env` examples.
 
    **Device Access:**
 
-   - `GLKVM_ACCESS_IP`: glkvm cloud access address (leave empty to auto-detect at startup)
-   - `RTTYS_DEVICE_MTLS_PORT`: device port for new firmware, which joins with an access code (default `5915`)
-   - `DEVICE_ACCESS_HOST`: address devices dial for that port, put into access codes (leave empty to use `GLKVM_ACCESS_IP`). Devices that already joined keep working after it changes, e.g. from an IP address to a domain name: the device-port certificate keeps covering the old address
-   - `RTTYS_LEGACY_TOKEN_ACCESS`: keep accepting old-firmware devices with `RTTYS_TOKEN` on `RTTYS_DEVICE_PORT` (default `true`). Deprecated: set it to `false` once all devices use access codes
+   - `GLKVM_ACCESS_IP`: the server's public address, used for TURN and, unless `DEVICE_ACCESS_HOST` is set, in access codes (leave empty to detect it at startup)
+   - `RTTYS_DEVICE_MTLS_PORT`: port for devices added with an access code (default `5915`)
+   - `DEVICE_ACCESS_HOST`: address in access codes that devices connect to on that port, an IP address or a domain name (leave empty to use `GLKVM_ACCESS_IP`). Devices that already joined keep working after it changes
+   - `RTTYS_LEGACY_TOKEN_ACCESS`: keep accepting devices added with the old script, which use `RTTYS_TOKEN` on `RTTYS_DEVICE_PORT` (default `true`). Deprecated: set it to `false` once all devices use access codes
    - `SELFHOST_WEBUI_URL`: web UI address sent to devices that joined with an access code, for their local web page to link to, e.g. `https://www.example.com` (leave empty to build it from the host above and `RTTYS_WEBUI_PORT`; set it behind a reverse proxy)
 
    **LDAP Authentication (Optional):**
@@ -48,9 +50,6 @@
    - `LDAP_USER_FILTER`: LDAP query filter (default: `(uid=%s)`)
    - `LDAP_ALLOWED_GROUPS`: comma-separated list of authorized groups (optional)
    - `LDAP_ALLOWED_USERS`: comma-separated list of authorized users (optional)
-
-   ⚠️ **Note:** All configuration should be done in the `.env` file.
-    You don’t need to modify `docker-compose.yml`, templates, or scripts directly.
 
    **OIDC Authentication (Optional):**
 
@@ -166,6 +165,6 @@ It is set up in Nginx only: use the path-based server block of [`nginx-reverse-p
 
    Once the installation is complete, access the platform via: 
 
-    ```bash
+    ```text
     https://<your_server_public_ip>
     ```
