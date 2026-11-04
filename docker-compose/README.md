@@ -40,11 +40,11 @@ You need Docker and Docker Compose 1.27 or later, or the `docker compose` plugin
 
    **Device Access:**
 
-   - `GLKVM_ACCESS_IP`: the server's public address, used for TURN and, unless `DEVICE_ACCESS_HOST` is set, in access codes (leave empty to detect the public IP at startup; on an internal network, set the server's internal IP)
+   - `GLKVM_ACCESS_IP`: the server's public address. TURN uses it, and so do access codes unless `DEVICE_ACCESS_HOST` is set. Leave empty to detect the public IP at startup; on an internal network, set the server's internal IP
    - `RTTYS_DEVICE_MTLS_PORT`: port for devices added with an access code (default `5915`)
    - `DEVICE_ACCESS_HOST`: address in access codes that devices connect to on that port, an IP address or a domain name (leave empty to use `GLKVM_ACCESS_IP`). Devices that already joined keep working after it changes
    - `RTTYS_LEGACY_TOKEN_ACCESS`: keep accepting devices added with the old script, which use `RTTYS_TOKEN` on `RTTYS_DEVICE_PORT` (default `true`). Deprecated: set it to `false` once all devices use access codes, or from the start on a new installation; then `RTTYS_TOKEN` and `RTTYS_DEVICE_PORT` are not needed
-   - `SELFHOST_WEBUI_URL`: web UI address sent to devices that joined with an access code, for their local web page to link to, e.g. `https://www.example.com` (leave empty to build it from `WEB_UI_HOST`, `DEVICE_ACCESS_HOST` or `GLKVM_ACCESS_IP`, in that order, with `RTTYS_WEBUI_PORT`; set it behind a reverse proxy)
+   - `SELFHOST_WEBUI_URL`: web UI address sent to devices that joined with an access code, for their local web page to link to, e.g. `https://www.example.com`. Set it behind a reverse proxy. If empty, it is built from `WEB_UI_HOST`, `DEVICE_ACCESS_HOST` or `GLKVM_ACCESS_IP`, the first one set, with `RTTYS_WEBUI_PORT`
 
    **Ports:**
 
@@ -84,7 +84,7 @@ You need Docker and Docker Compose 1.27 or later, or the `docker compose` plugin
    - `OIDC_AUTH_URL`: authorization endpoint URL
    - `OIDC_TOKEN_URL`: token endpoint URL
    - `OIDC_REDIRECT_URL`: redirect (callback) URL registered in your OIDC provider
-      Domain is user-defined, but the path must be fixed: `/auth/oidc/callback`
+      Any domain, but the path must be `/auth/oidc/callback`
       Example: `https://your-domain.example.com/auth/oidc/callback`
    - `OIDC_SCOPES`: space-separated list of requested scopes (default: `"openid profile email"`)
    - `OIDC_ALLOWED_USERS`: comma-separated list of allowed emails or domains (optional)
@@ -169,9 +169,8 @@ proxy_set_header Connection          $connection_upgrade;
 DEVICE_ENDPOINT_HOST=
 ```
 
-- **Effective only when** `REVERSE_PROXY_ENABLED=true`
-- Used to specify the domain for device remote access
-- Device access URLs are generated as:
+- Only used when `REVERSE_PROXY_ENABLED=true`
+- The domain for remote access to devices, whose addresses then look like:
 
 ```text
 https://<deviceId>.<DEVICE_ENDPOINT_HOST>/
@@ -182,7 +181,7 @@ https://<deviceId>.<DEVICE_ENDPOINT_HOST>/
 - Do not include the scheme (`http://` or `https://`)
 - Do not include any path
 - The domain may differ from the Web UI domain. Devices are opened on its subdomains, so it needs its own wildcard DNS record and certificate, e.g. `*.kvm.example.com`
-- If left empty, the host/port will be derived from `X-Forwarded-*` headers
+- If empty, the host and port come from the `X-Forwarded-*` headers
 
 **Example:**
 

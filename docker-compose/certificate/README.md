@@ -8,7 +8,7 @@ Put your own certificate here to serve the web UI with it:
 If they are missing, GLKVM Cloud generates a certificate on first start, signed
 by its own CA, which browsers do not trust.
 
-Devices never use this certificate. The device ports use one signed by the
-platform's own CA, which is generated in `database/pki` — keep that directory
-and back it up: devices that joined trust that CA, and lose access if it is
+Devices never use this certificate. The ports they connect to use one signed
+by the platform's own CA, generated in `database/pki`. Keep that directory and
+back it up: devices that joined trust that CA and lose access if it is
 replaced.

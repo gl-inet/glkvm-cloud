@@ -2,7 +2,7 @@
 
 [中文文档](./README.zh-CN.md) | English
 
-Self-Deployed Lightweight Cloud (GLKVM Cloud) is a platform for managing GL.iNet KVMs remotely from your own server, built for individuals and small businesses. It is based on [rttys](https://github.com/zhaojh329/rttys). Your data and bandwidth stay on your server.
+Self-Deployed Lightweight Cloud (GLKVM Cloud) lets individuals and small businesses manage GL.iNet KVMs remotely from a server of their own, so their data and bandwidth stay with them. It is based on [rttys](https://github.com/zhaojh329/rttys).
 
 ## Main Features
 
@@ -12,7 +12,7 @@ Self-Deployed Lightweight Cloud (GLKVM Cloud) is a platform for managing GL.iNet
 - **Remote Control** - Control the KVM's remote desktop in the browser
 - **Batch Commands** - Run a command on several devices at once
 - **LDAP and OIDC Sign-in** - Sign in with your company directory or identity provider
-- **Flexible Deployment** - On an internal network or the internet, on x86_64 or arm64
+- **Deployment** - On an internal network or the internet, on x86_64 or arm64
 
 ## Self-Hosting Guide
 
@@ -29,7 +29,7 @@ The following operating systems have been tested:
 - Rocky Linux 8 / 9
 - CentOS Stream 9
 
-Older systems such as Ubuntu 20.04 and Debian 11 ship a Docker Compose that cannot read the deployment files. On them, install with Docker by hand and use Docker Compose 1.27 or later, or the `docker compose` plugin.
+Older systems such as Ubuntu 20.04 and Debian 11 ship a Docker Compose that cannot read the deployment files. On them, use the manual Docker install with Docker Compose 1.27 or later, or with the `docker compose` plugin.
 
 ### Requirements
 
@@ -121,7 +121,7 @@ Upgrade the deployment files together with the image. Changing only the image ta
    tar -xzf docker-compose.tar.gz
    ```
 
-3. Check `.env`. Since v3.0, `RTTYS_PASS`, `TURN_USER` and `TURN_PASS` have no defaults, nor has `RTTYS_TOKEN` while `RTTYS_LEGACY_TOKEN_ACCESS` is on. The platform or coturn does not start while one of them is empty. If they were empty before, devices on old firmware use the former defaults, so set these to keep them working until they move to access codes:
+3. Check `.env`. Since v3.0 these settings have no defaults, and the platform or coturn does not start while one of them is empty: `RTTYS_PASS`, `TURN_USER`, `TURN_PASS`, and `RTTYS_TOKEN` while `RTTYS_LEGACY_TOKEN_ACCESS` is on. If they were empty before, devices on old firmware use the former defaults, so set these to keep them working until they move to access codes:
 
    ```env
    RTTYS_TOKEN=DeviceTokenYouCanChangeMe
@@ -145,7 +145,7 @@ Upgrade the deployment files together with the image. Changing only the image ta
 
 The device needs firmware v1.11.0 or later. If you will use your own domain, set it up first (see [below](#use-your-own-domain-and-ssl-certificate-optional)), so that access codes point devices at the domain.
 
-1. In the cloud, open **Add Device** on the Devices page, generate an access code and copy it. Each code works once, on any device, within 24 hours.
+1. On the platform's Devices page, click **Add Device**, generate an access code and copy it. Each code works once, on any device, within 24 hours.
 
    ![Add Device](img/adddevice.png)
 
@@ -158,7 +158,7 @@ The device checks the cloud with the CA in the access code, and the cloud checks
 
 ### Devices on Old Firmware
 
-Devices added with the old script keep connecting on port 5912 after the cloud is upgraded. Devices on firmware older than v1.11.0 can no longer be added, and adding a device by running a script in its terminal is no longer supported. To move a device to access codes:
+Devices added with the old script keep connecting on port 5912 after the cloud is upgraded. New devices can only be added with access codes, which need firmware v1.11.0 or later; running the old script in a device's terminal is no longer supported. To move a device to access codes:
 
 1. Upgrade the cloud first, then upgrade the device firmware to v1.11.0 or later.
 2. Paste an access code on the device's **Self-hosted Cloud** page. The device keeps its record, ID and groups in the cloud; if it is still connected the old way, it switches over without going offline.
@@ -177,7 +177,7 @@ Port 5912 is deprecated and will be removed in a later release. Once no device u
 
 If you just want to try GLKVM Cloud and don't mind the browser's certificate warning, skip this section and keep opening the platform by the server's public IP.
 
-For production use, open the platform on your own domain with a valid certificate. Devices are then opened on subdomains such as `https://<deviceId>.your-domain.com:10443`, which needs a wildcard DNS record and a wildcard certificate, as described below. Behind Nginx you can open devices by path under the platform's domain instead, with a single-domain certificate: see [Path-Based Device Access](docker-compose/README.md#path-based-device-access-optional).
+For production use, open the platform on your own domain with a valid certificate. Devices are then opened on subdomains such as `https://<deviceId>.your-domain.com:10443`, which needs a wildcard DNS record and a wildcard certificate. Behind Nginx you can open devices by path under the platform's domain instead, with a single-domain certificate: see [Path-Based Device Access](docker-compose/README.md#path-based-device-access-optional).
 
 ### Add DNS Records
 
