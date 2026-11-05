@@ -139,6 +139,8 @@ Upgrade the deployment files together with the image. Changing only the image ta
 
    With the Docker CLI plugin, use `docker compose` instead of `docker-compose`.
 
+The `.env` kept from an older release doesn't get the settings added in v3.0: `DEVICE_ACCESS_HOST`, `RTTYS_DEVICE_MTLS_PORT`, `RTTYS_LEGACY_TOKEN_ACCESS` and `OIDC_PRIMARY_LOGIN`. They take their defaults. To change one, add its line to `.env`.
+
 ## Using GLKVM Cloud
 
 ### Add KVM Devices
@@ -163,7 +165,7 @@ Devices added with the old script keep connecting on port 5912 after the cloud i
 1. Upgrade the cloud first, then upgrade the device firmware to v1.11.0 or later.
 2. Paste an access code on the device's **Self-hosted Cloud** page. The device keeps its record, ID and groups in the cloud; if it is still connected the old way, it switches over without going offline.
 
-Port 5912 is deprecated and will be removed in a later release. Once no device uses it, set `RTTYS_LEGACY_TOKEN_ACCESS=false` to close it. A new installation with no such devices can set it from the start.
+Port 5912 is deprecated and will be removed in a later release. Once no device uses it, set `RTTYS_LEGACY_TOKEN_ACCESS=false` in `.env` to close it, adding the line if it isn't there. A new installation with no such devices can set it from the start.
 
 ### KVM Terminal
 
@@ -203,7 +205,7 @@ The ports devices connect to (5912 and 5915) don't use this certificate. They us
 
 ### Put the Domain in Access Codes (Optional)
 
-Access codes point devices at `GLKVM_ACCESS_IP` by default. To have devices connect by the domain instead, so they keep working if the server's IP changes, set this in `~/glkvm_cloud/.env`:
+Access codes point devices at `GLKVM_ACCESS_IP` by default. To have devices connect by the domain instead, so they keep working if the server's IP changes, set this in `~/glkvm_cloud/.env`, adding the line if it isn't there:
 
 ```env
 DEVICE_ACCESS_HOST=www.your-domain.com

@@ -139,6 +139,8 @@ Ubuntu 20.04、Debian 11 等较老的系统自带的 Docker Compose 读不了部
 
    使用 Docker CLI 插件时，把 `docker-compose` 换成 `docker compose`。
 
+从旧版本保留下来的 `.env` 不会自动加上 v3.0 新增的配置项：`DEVICE_ACCESS_HOST`、`RTTYS_DEVICE_MTLS_PORT`、`RTTYS_LEGACY_TOKEN_ACCESS`、`OIDC_PRIMARY_LOGIN`，它们按默认值生效。要修改其中某一项，在 `.env` 里加上这一行即可。
+
 ## 使用
 
 ### 添加 KVM 设备
@@ -163,7 +165,7 @@ Ubuntu 20.04、Debian 11 等较老的系统自带的 Docker Compose 读不了部
 1. 先升级平台，再把设备固件升级到 v1.11.0 或更高版本。
 2. 在设备的「自部署云」页面粘贴接入码。设备在平台上的记录、ID 和分组都会保留；如果设备仍以旧方式在线，切换过程中不会掉线。
 
-5912 端口已弃用，后续版本会移除。没有设备再使用后，可设置 `RTTYS_LEGACY_TOKEN_ACCESS=false` 关闭。没有这类设备的新安装，一开始就可以关闭。
+5912 端口已弃用，后续版本会移除。没有设备再使用后，在 `.env` 里设置 `RTTYS_LEGACY_TOKEN_ACCESS=false` 即可关闭，没有这一行就加上。没有这类设备的新安装，一开始就可以关闭。
 
 ### KVM 终端
 
@@ -203,7 +205,7 @@ Ubuntu 20.04、Debian 11 等较老的系统自带的 Docker Compose 读不了部
 
 ### 接入码使用域名（可选）
 
-接入码默认让设备连接 `GLKVM_ACCESS_IP`。如果希望设备通过域名连接，服务器 IP 变了也不受影响，在 `~/glkvm_cloud/.env` 中设置：
+接入码默认让设备连接 `GLKVM_ACCESS_IP`。如果希望设备通过域名连接，服务器 IP 变了也不受影响，在 `~/glkvm_cloud/.env` 中设置，没有这一行就加上：
 
 ```env
 DEVICE_ACCESS_HOST=www.your-domain.com
