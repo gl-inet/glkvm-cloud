@@ -8,7 +8,7 @@
 
 准备一台未安装 GLKVM Cloud 的 Debian / Ubuntu 或 Rocky Linux / AlmaLinux 服务器，支持 x86_64 和 aarch64
 
-在防火墙和云安全组放行 **443/TCP、10443/TCP、5912/TCP、3478/TCP 和 UDP**，服务器需能访问下载站和 Docker Hub
+在防火墙和云安全组放行 **443/TCP、10443/TCP、5912/TCP、3478/TCP 和 UDP**，服务器需能访问下载站和系统软件源
 
 通过 SSH 登录**服务器**，执行：
 
@@ -17,7 +17,7 @@ curl -fSL https://kvm-cloud.gl-inet.com/selfhost/v2.9.0/install.sh -o install-v2
 sudo bash install-v2.9.0.sh
 ```
 
-使用 root 登录时可省略 `sudo`。脚本会自动安装所需组件，固定部署 2.9.0
+使用 root 登录时可省略 `sudo`。脚本会自动安装所需组件，固定部署 2.9.0，镜像从下载站获取，无需访问 Docker Hub
 
 公网 IP 会自动检测。内网部署或需要指定地址时，将第二条命令替换为下面这条，把示例 IP 换成设备能访问的服务器地址：
 
