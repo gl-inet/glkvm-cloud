@@ -42,6 +42,7 @@ import (
 	"time"
 
 	"rttys/utils"
+	"rttys/xconfig"
 
 	"github.com/gorilla/websocket"
 	jsoniter "github.com/json-iterator/go"
@@ -197,8 +198,8 @@ func (srv *RttyServer) ListenDevices() {
 		log.Fatal().Msg(err.Error())
 	}
 	defer ln.Close()
-	if cfg.SslCert != "" && cfg.SslKey != "" {
-		crt, err := tls.LoadX509KeyPair(cfg.SslCert, cfg.SslKey)
+	if certFile, keyFile := tokenPortCert(cfg); certFile != "" && keyFile != "" {
+		crt, err := tls.LoadX509KeyPair(certFile, keyFile)
 		if err != nil {
 			log.Fatal().Msg(err.Error())
 		}
@@ -224,6 +225,18 @@ func (srv *RttyServer) ListenDevices() {
 
 		go handleDeviceConnection(srv, conn, "")
 	}
+}
+
+// tokenPortCert is the certificate the token port serves: the device-port one
+// the deployment CA signs, as on the mTLS port. The old-firmware script hands
+// devices that CA, and the C rtty of newer firmware checks the port against it,
+// so it must not change with the web certificate an operator mounts. Without
+// a deployment CA (tests) the web certificate stands in.
+func tokenPortCert(cfg *xconfig.Config) (certFile, keyFile string) {
+	if cfg.DeviceCertFile != "" && cfg.DeviceKeyFile != "" {
+		return cfg.DeviceCertFile, cfg.DeviceKeyFile
+	}
+	return cfg.SslCert, cfg.SslKey
 }
 
 // handleDeviceConnection serves one device connection. certMAC is the MAC from

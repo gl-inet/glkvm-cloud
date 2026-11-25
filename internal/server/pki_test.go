@@ -71,4 +71,41 @@ func TestSetupPKI(t *testing.T) {
 	if ca2, _ := os.ReadFile(cfg2.DeviceCAFile); string(ca1) != string(ca2) {
 		t.Error("changing the access host replaced the deployment CA")
 	}
+
+	// The token port serves the device-port certificate, which the deployment
+	// CA signs, not the web certificate an operator may replace.
+	if c, k := tokenPortCert(&cfg2); c != cfg2.DeviceCertFile || k != cfg2.DeviceKeyFile {
+		t.Errorf("token port cert = %s/%s, want the device-port one", c, k)
+	}
+	if !verifiesWith(t, cfg2.DeviceCertFile, cfg2.DeviceCAFile) {
+		t.Error("the token port certificate does not chain to the deployment CA")
+	}
+}
+
+func TestTokenPortCertWithoutDeploymentCA(t *testing.T) {
+	cfg := xconfig.Config{SslCert: "web.cer", SslKey: "web.key"}
+	if c, k := tokenPortCert(&cfg); c != "web.cer" || k != "web.key" {
+		t.Errorf("token port cert = %s/%s, want the web one when there is no device-port cert", c, k)
+	}
+}
+
+func verifiesWith(t *testing.T, leafFile, caFile string) bool {
+	t.Helper()
+	leafPEM, err := os.ReadFile(leafFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	caPEM, err := os.ReadFile(caFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pool := x509.NewCertPool()
+	pool.AppendCertsFromPEM(caPEM)
+	blk, _ := pem.Decode(leafPEM)
+	leaf, err := x509.ParseCertificate(blk.Bytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = leaf.Verify(x509.VerifyOptions{Roots: pool, KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}})
+	return err == nil
 }

@@ -21,6 +21,11 @@ func setupPKI(cfg *xconfig.Config, dir string) error {
 		return err
 	}
 	cfg.DeviceCAFile = d.CAFile()
+	// Printed so an admin can check the CA the add device dialog and the
+	// old-firmware script show against the one the server really uses.
+	if fp, err := pki.DisplayFingerprint(d.CAPEM()); err == nil {
+		log.Info().Str("sha256", fp).Msg("deployment CA")
+	}
 
 	host := cfg.DeviceAccessHost
 	if host == "" {

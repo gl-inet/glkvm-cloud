@@ -242,3 +242,18 @@ func TestIsBundledSample(t *testing.T) {
 		t.Error("garbage was flagged as the bundled sample")
 	}
 }
+
+func TestDisplayFingerprint(t *testing.T) {
+	fp, err := DisplayFingerprint(glRootPEM)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// As `openssl x509 -noout -fingerprint -sha256` prints the GL root.
+	const want = "83:DB:C6:F5:61:B7:A7:86:A2:30:31:6F:4F:E2:B2:58:B4:F7:1A:DB:3B:8D:78:CF:6B:0C:AB:BA:E1:67:D9:B2"
+	if fp != want {
+		t.Errorf("fingerprint = %s, want %s", fp, want)
+	}
+	if _, err := DisplayFingerprint([]byte("not a certificate")); err == nil {
+		t.Error("no error for data without a certificate")
+	}
+}
