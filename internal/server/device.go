@@ -227,6 +227,28 @@ func (srv *RttyServer) ListenDevices() {
 	}
 }
 
+// checkTokenID refuses a token connection the ID of a device that joined with
+// an access code. Such a device proves who it is with its factory certificate;
+// the shared token proves nothing, so whoever holds it must not stand in for
+// the device, whether or not it is online.
+func (dev *Device) checkTokenID() byte {
+	cont := sqlite.TryContainer()
+	if cont == nil || cont.Access == nil {
+		return 0
+	}
+	listed, err := cont.Access.DevidListed(context.Background(), dev.id)
+	if err != nil {
+		log.Error().Err(err).Str("devid", dev.id).Msg("token: whitelist lookup failed")
+		return devRegErrInternal
+	}
+	if listed {
+		log.Warn().Str("devid", dev.id).Str("ip", remoteIP(dev.conn)).
+			Msg("token: refused the ID of a device that joined with an access code")
+		return devRegErrDevidTaken
+	}
+	return 0
+}
+
 // tokenPortCert is the certificate the token port serves: the device-port one
 // the deployment CA signs, as on the mTLS port. The old-firmware script hands
 // devices that CA, and the C rtty of newer firmware checks the port against it,
@@ -540,6 +562,10 @@ func (dev *Device) Register(srv *RttyServer) byte {
 		if strings.TrimSpace(dev.desc) == "" {
 			log.Error().Msgf("empty MAC for device '%s'", dev.id)
 			return devRegErrEmptyMac
+		}
+
+		if code := dev.checkTokenID(); code != 0 {
+			return code
 		}
 	}
 

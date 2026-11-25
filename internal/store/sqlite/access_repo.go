@@ -44,6 +44,14 @@ func (r *AccessRepo) GetByMAC(ctx context.Context, mac string) (*access.Whitelis
 	return row.toDomain(), nil
 }
 
+// DevidListed reports whether devid belongs to a device on the whitelist,
+// that is one that joined with an access code.
+func (r *AccessRepo) DevidListed(ctx context.Context, devid string) (bool, error) {
+	var n int64
+	err := r.db.WithContext(ctx).Model(&whitelistRow{}).Where("devid = ?", devid).Count(&n).Error
+	return n > 0, err
+}
+
 // Claim redeems a registration code for the device with this MAC and adds it
 // to the whitelist, all in one transaction. It returns the device ID the
 // device is listed under:

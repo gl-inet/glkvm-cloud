@@ -275,3 +275,17 @@ func TestRemoveByMAC(t *testing.T) {
 		t.Errorf("second RemoveByMAC = (%q, %v)", devid, err)
 	}
 }
+
+func TestDevidListed(t *testing.T) {
+	repo, db := newAccessFixture(t)
+	ctx := context.Background()
+	addCode(t, db, "code-a", now+3600, false)
+	if _, err := repo.Claim(ctx, access.HashCode("code-a"), "9483c4b71fb1", "zh71fb1", now); err != nil {
+		t.Fatal(err)
+	}
+	for devid, want := range map[string]bool{"zh71fb1": true, "dl1ddff": false, "": false} {
+		if got, err := repo.DevidListed(ctx, devid); err != nil || got != want {
+			t.Errorf("DevidListed(%q) = (%v, %v), want %v", devid, got, err, want)
+		}
+	}
+}

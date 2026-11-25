@@ -112,8 +112,8 @@ func TestMTLSTakesOverTokenConnection(t *testing.T) {
 	// The C rtty coming back does not get the ID back.
 	code, again := registerToken(t, tokenAddr, "zh71fb1", "94:83:c4:b7:1f:b1")
 	again.Close()
-	if code != devRegErrIdConflicting {
-		t.Errorf("token reconnect: %d, want %d", code, devRegErrIdConflicting)
+	if code != devRegErrDevidTaken {
+		t.Errorf("token reconnect: %d, want %d", code, devRegErrDevidTaken)
 	}
 	f.closeAndWait(t, conn, "zh71fb1")
 }
@@ -162,11 +162,26 @@ func TestTokenConnectionCannotTakeOver(t *testing.T) {
 
 	code, other := registerToken(t, tokenAddr, "zh71fb1", "9483c4b71fb1")
 	other.Close()
-	if code != devRegErrIdConflicting {
-		t.Errorf("token register over an mTLS device: %d, want %d", code, devRegErrIdConflicting)
+	if code != devRegErrDevidTaken {
+		t.Errorf("token register over an mTLS device: %d, want %d", code, devRegErrDevidTaken)
 	}
 	if d := f.srv.GetDevice("", "zh71fb1"); d == nil || d.certMAC == "" {
 		t.Error("the mTLS device lost its ID")
 	}
 	f.closeAndWait(t, conn, "zh71fb1")
+
+	// Offline, the ID is still the device's: the token cannot stand in for it.
+	f.waitStatus(t, "zh71fb1", "offline")
+	code, other = registerToken(t, tokenAddr, "zh71fb1", "9483c4b71fb1")
+	other.Close()
+	if code != devRegErrDevidTaken {
+		t.Errorf("token register while the mTLS device is offline: %d, want %d", code, devRegErrDevidTaken)
+	}
+
+	// IDs of devices that never joined with a code stay open to the token.
+	code, plain := registerToken(t, tokenAddr, "dl1ddff", "94:83:c4:e1:dd:ff")
+	if code != 0 {
+		t.Errorf("token register of an unlisted ID: %d, want 0", code)
+	}
+	f.closeAndWait(t, plain, "dl1ddff")
 }
