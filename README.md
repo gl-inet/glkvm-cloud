@@ -10,7 +10,6 @@ Self-Deployed Lightweight Cloud (GLKVM Cloud) lets individuals and small busines
 - **Access Code Onboarding** - Add a KVM by pasting an access code into its local web UI; the device proves itself with its factory certificate
 - **KVM Terminal** - A web terminal on the KVM's own system
 - **Remote Control** - Control the KVM's remote desktop in the browser
-- **Batch Commands** - Run a command on several devices at once
 - **LDAP and OIDC Sign-in** - Sign in with your company directory or identity provider
 - **Deployment** - On an internal network or the internet, on x86_64 or arm64
 
