@@ -39,7 +39,7 @@ Older systems such as Ubuntu 20.04 and Debian 11 ship a Docker Compose that cann
 |       Memory        |       ≥ 1 GB        |
 |       Storage       |       ≥ 40 GB       |
 |  Network Bandwidth  |      ≥ 3 Mbps       |
-| KVM Device Firmware |      ≥ v1.11.0      |
+| KVM Device Firmware | ≥ v1.11.0 (older: see [Devices on Old Firmware](#devices-on-old-firmware)) |
 
 ### Cloud Security Group Settings
 
@@ -49,7 +49,7 @@ If your server provider uses a cloud security group (e.g. AWS, Alibaba Cloud), m
 | ----- | -------- | ------------------------------------------- |
 | 443   | TCP      | Web UI                                      |
 | 10443 | TCP      | Remote access to devices (Remote Control)   |
-| 5912  | TCP      | Devices added with the old script (deprecated, see [Devices on Old Firmware](#devices-on-old-firmware)); not needed on a new installation |
+| 5912  | TCP      | Devices on firmware below v1.11.0, added with the script (see [Devices on Old Firmware](#devices-on-old-firmware)); not needed if all devices use access codes |
 | 5915  | TCP      | Devices added with an access code           |
 | 3478  | TCP/UDP  | TURN server for WebRTC                      |
 
@@ -145,7 +145,7 @@ The `.env` kept from an older release doesn't get the settings added in v3.0: `D
 
 ### Add KVM Devices
 
-The device needs firmware v1.11.0 or later. If you will use your own domain, set it up first (see [below](#use-your-own-domain-and-ssl-certificate-optional)), so that access codes point devices at the domain.
+The device needs firmware v1.11.0 or later; for older firmware see [Devices on Old Firmware](#devices-on-old-firmware). If you will use your own domain, set it up first (see [below](#use-your-own-domain-and-ssl-certificate-optional)), so that access codes point devices at the domain.
 
 1. On the platform's Devices page, click **Add Device**, generate an access code and copy it. Each code works once, on any device, within 24 hours.
 
@@ -160,12 +160,19 @@ The device checks the cloud with the CA in the access code, and the cloud checks
 
 ### Devices on Old Firmware
 
-Devices added with the old script keep connecting on port 5912 after the cloud is upgraded. New devices can only be added with access codes, which need firmware v1.11.0 or later; running the old script in a device's terminal is no longer supported. To move a device to access codes:
+Firmware below v1.11.0 cannot use access codes. Such GL KVM devices are added with a script instead, on port 5912, while `RTTYS_LEGACY_TOKEN_ACCESS` is `true` (the default):
 
-1. Upgrade the cloud first, then upgrade the device firmware to v1.11.0 or later.
-2. Paste an access code on the device's **Self-hosted Cloud** page. The device keeps its record, ID and groups in the cloud; if it is still connected the old way, it switches over without going offline.
+1. Turn GL.iNet Cloud off on the device. GL.iNet Cloud and the self-hosted cloud cannot be used together on a device added this way: on recent firmware both check their server against the same CA file.
+2. On the platform's Devices page, click **Add Device**, switch to the **Script** tab and copy the script.
+3. Open the device's terminal (SSH, or the terminal in its local web UI), paste the script and run it. The device shows up in the device list within a few seconds.
 
-Port 5912 is deprecated and will be removed in a later release. Once no device uses it, set `RTTYS_LEGACY_TOKEN_ACCESS=false` in `.env` to close it, adding the line if it isn't there. A new installation with no such devices can set it from the start.
+The device checks the cloud against the platform's CA, which the script carries. The dialog shows the CA's fingerprint, and the script and the server log print it, so you can compare them. The script holds the platform's device token: keep it private. The token does not prove which device connects, but a token connection cannot take the ID of a device that joined with an access code.
+
+Devices added with an older script keep connecting, without checking the cloud's certificate; run the new script on them once. Firmware security updates from November 2026 on (such as 1.10.3) remove the `rtty` options the older script uses, so devices still on it go offline after such an update until the new script is run in their terminal. Devices patched by hand to trust `certificate/glkvm.cer` of a 2.x cloud also need the new script once the cloud runs 3.x.
+
+To move a device to access codes, upgrade its firmware to v1.11.0 or later and paste an access code on its **Self-hosted Cloud** page. The device keeps its record, ID and groups in the cloud, switches over without going offline, and removes the script.
+
+Only these devices use port 5912. Once none is left, set `RTTYS_LEGACY_TOKEN_ACCESS=false` in `.env` to close it, adding the line if it isn't there; the Script tab then goes away.
 
 ### KVM Terminal
 

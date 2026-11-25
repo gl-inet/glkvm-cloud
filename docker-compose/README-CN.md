@@ -29,7 +29,7 @@ cd glkvm-cloud/docker-compose/
 编辑 `.env` 文件，填写以下必填参数：
 
 - `RTTYS_PASS`：管理员密码（必填，不填平台不启动）
-- `RTTYS_TOKEN`：用旧脚本接入的设备连接 `RTTYS_DEVICE_PORT` 时用的令牌。`RTTYS_LEGACY_TOKEN_ACCESS` 为 `true` 时必填；没有这类设备的新安装可以把它设为 `false`，就不用填了
+- `RTTYS_TOKEN`：固件低于 v1.11.0、用脚本添加的设备连接 `RTTYS_DEVICE_PORT` 时用的令牌。`RTTYS_LEGACY_TOKEN_ACCESS` 为 `true` 时必填；没有这类设备时可以把它设为 `false`，就不用填了
 - `TURN_USER` / `TURN_PASS`：coturn 鉴权凭据（必填，不填 coturn 不启动）
 
 以上都没有默认值，请自行生成，例如 `openssl rand -hex 16`。如果仍在使用旧版 `.env` 示例里的值，平台启动时会给出警告。
@@ -43,14 +43,14 @@ cd glkvm-cloud/docker-compose/
 - `GLKVM_ACCESS_IP`：服务器的公网地址，TURN 会用它；没设 `DEVICE_ACCESS_HOST` 时，接入码里写的也是它。留空则启动时自动检测公网 IP，内网部署请填服务器的内网 IP
 - `RTTYS_DEVICE_MTLS_PORT`：用接入码接入的设备连接的端口（默认 `5915`）
 - `DEVICE_ACCESS_HOST`：写进接入码的地址，设备用它连接上面这个端口，可以是 IP 或域名（留空则用 `GLKVM_ACCESS_IP`）。改了之后，已接入的设备不受影响
-- `RTTYS_LEGACY_TOKEN_ACCESS`：是否继续允许用旧脚本接入的设备用 `RTTYS_TOKEN` 连接 `RTTYS_DEVICE_PORT`（默认 `true`）。已弃用：所有设备都改用接入码后设为 `false`；新安装可以一开始就设为 `false`，这样就不需要 `RTTYS_TOKEN` 和 `RTTYS_DEVICE_PORT`
+- `RTTYS_LEGACY_TOKEN_ACCESS`：是否接受固件低于 v1.11.0、用脚本添加的设备用 `RTTYS_TOKEN` 连接 `RTTYS_DEVICE_PORT`（默认 `true`）。所有设备都改用接入码后设为 `false`；没有旧固件设备时可以一开始就设为 `false`，这样就不需要 `RTTYS_TOKEN` 和 `RTTYS_DEVICE_PORT`
 - `SELFHOST_WEBUI_URL`：发给接入码设备的平台地址，设备本地页面用它显示平台链接，例如 `https://www.example.com`。平台在反向代理后面时要填。留空时依次取 `WEB_UI_HOST`、`DEVICE_ACCESS_HOST`、`GLKVM_ACCESS_IP` 中第一个有值的，再加上 `RTTYS_WEBUI_PORT`
 
 ### 端口
 
 - `RTTYS_WEBUI_PORT`：平台 Web 界面（默认 `443`）
 - `RTTYS_HTTP_PROXY_PORT`：设备远程访问（默认 `10443`）
-- `RTTYS_DEVICE_PORT`：用旧脚本接入的设备（默认 `5912`）
+- `RTTYS_DEVICE_PORT`：用脚本添加的设备（默认 `5912`）
 - `TURN_PORT`：TURN 服务，TCP 和 UDP（默认 `3478`）
 
 请在云安全组和防火墙放行以上端口和 `RTTYS_DEVICE_MTLS_PORT`。使用[反向代理模式](#反向代理模式可选)时则相反，`RTTYS_WEBUI_PORT` 和 `RTTYS_HTTP_PROXY_PORT` 不要放行。
@@ -205,6 +205,6 @@ https://www.example.com/access/<deviceId>/  → 设备远程访问
 
 这个块本来就会把 `/access/<deviceId>` 转到设备访问端口，改这一行是让平台按路径打开设备。
 
-- 只有用接入码接入的设备按路径访问。用旧脚本接入的设备仍然使用自己的子域名 `<deviceId>.<域名>`，需要泛域名配置：有这类设备时请保留 `*.example.com` 的 server 块
+- 只有用接入码接入的设备按路径访问。用脚本添加的设备仍然使用自己的子域名 `<deviceId>.<域名>`，需要泛域名配置：有这类设备时请保留 `*.example.com` 的 server 块
 - 同一个浏览器可以同时打开多台设备
 - 必须在前面配 Nginx，通过 IP 访问平台时不可用

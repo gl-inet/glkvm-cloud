@@ -135,10 +135,10 @@ func publicSecrets(cfg *xconfig.Config) []publicSecret {
         found = append(found, publicSecret{"RTTYS_PASS", "change it"})
     }
     if cfg.LegacyTokenAccess && cfg.Token == "DeviceTokenYouCanChangeMe" {
-        found = append(found, publicSecret{"RTTYS_TOKEN", "devices on old firmware use it, so turn off legacy token access once they all join with access codes"})
+        found = append(found, publicSecret{"RTTYS_TOKEN", "change it and run the add device script again on devices on old firmware, or turn off legacy token access once they all join with access codes"})
     }
     if cfg.WebrtcPassword == "AnotherS3cret" {
-        found = append(found, publicSecret{"TURN_PASS", "change it for both services; devices added with the old script keep the old one until they join with an access code"})
+        found = append(found, publicSecret{"TURN_PASS", "change it for both services; devices added with the script keep the old one until the script is run on them again or they join with an access code"})
     }
     return found
 }

@@ -29,7 +29,7 @@ You need Docker and Docker Compose 1.27 or later, or the `docker compose` plugin
    Edit `.env` and set the required parameters:
 
    - `RTTYS_PASS`: admin password (required: the platform does not start without it)
-   - `RTTYS_TOKEN`: token of devices added with the old script, on `RTTYS_DEVICE_PORT` (required while `RTTYS_LEGACY_TOKEN_ACCESS` is `true`; a new installation without such devices can turn that off instead)
+   - `RTTYS_TOKEN`: token of devices on firmware below v1.11.0, added with the script, on `RTTYS_DEVICE_PORT` (required while `RTTYS_LEGACY_TOKEN_ACCESS` is `true`; without such devices you can turn that off instead)
    - `TURN_USER` / `TURN_PASS`: coturn authentication credentials (required: coturn does not start without them)
 
    None of them has a default. Generate your own, e.g. with `openssl rand -hex 16`. The platform warns at startup while one of them is still an example value from older `.env` examples.
@@ -43,14 +43,14 @@ You need Docker and Docker Compose 1.27 or later, or the `docker compose` plugin
    - `GLKVM_ACCESS_IP`: the server's public address. TURN uses it, and so do access codes unless `DEVICE_ACCESS_HOST` is set. Leave empty to detect the public IP at startup; on an internal network, set the server's internal IP
    - `RTTYS_DEVICE_MTLS_PORT`: port for devices added with an access code (default `5915`)
    - `DEVICE_ACCESS_HOST`: address in access codes that devices connect to on that port, an IP address or a domain name (leave empty to use `GLKVM_ACCESS_IP`). Devices that already joined keep working after it changes
-   - `RTTYS_LEGACY_TOKEN_ACCESS`: keep accepting devices added with the old script, which use `RTTYS_TOKEN` on `RTTYS_DEVICE_PORT` (default `true`). Deprecated: set it to `false` once all devices use access codes, or from the start on a new installation; then `RTTYS_TOKEN` and `RTTYS_DEVICE_PORT` are not needed
+   - `RTTYS_LEGACY_TOKEN_ACCESS`: accept devices on firmware below v1.11.0, added with the script, which use `RTTYS_TOKEN` on `RTTYS_DEVICE_PORT` (default `true`). Set it to `false` once all devices use access codes, or from the start if none is on older firmware; then `RTTYS_TOKEN` and `RTTYS_DEVICE_PORT` are not needed
    - `SELFHOST_WEBUI_URL`: web UI address sent to devices that joined with an access code, for their local web page to link to, e.g. `https://www.example.com`. Set it behind a reverse proxy. If empty, it is built from `WEB_UI_HOST`, `DEVICE_ACCESS_HOST` or `GLKVM_ACCESS_IP`, the first one set, with `RTTYS_WEBUI_PORT`
 
    **Ports:**
 
    - `RTTYS_WEBUI_PORT`: web UI (default `443`)
    - `RTTYS_HTTP_PROXY_PORT`: remote access to devices (default `10443`)
-   - `RTTYS_DEVICE_PORT`: devices added with the old script (default `5912`)
+   - `RTTYS_DEVICE_PORT`: devices added with the script (default `5912`)
    - `TURN_PORT`: TURN server, TCP and UDP (default `3478`)
 
    Allow these ports and `RTTYS_DEVICE_MTLS_PORT` in the cloud security group and firewall. In [reverse proxy mode](#reverse-proxy-mode-optional), keep `RTTYS_WEBUI_PORT` and `RTTYS_HTTP_PROXY_PORT` closed instead.
@@ -202,6 +202,6 @@ https://www.example.com/access/<deviceId>/  → Device remote access
 
 Besides reverse proxy mode above, it takes one line in Nginx: in the web UI block of [`nginx-reverse-proxy-example.conf`](nginx-reverse-proxy-example.conf), change the value of `X-KVM-Access-Style` from `""` to `path` and reload Nginx. The block already serves `/access/<deviceId>` from the device access port; the header tells the platform to open devices there.
 
-- Only devices added with an access code are opened by path. Devices added with the old script keep their own host `<deviceId>.<domain>`, which still needs the wildcard setup: keep the `*.example.com` server block while you have them
+- Only devices added with an access code are opened by path. Devices added with the script keep their own host `<deviceId>.<domain>`, which still needs the wildcard setup: keep the `*.example.com` server block while you have them
 - Several devices can be open in one browser at the same time
 - It needs Nginx in front, so it is not available when the platform is accessed by IP
