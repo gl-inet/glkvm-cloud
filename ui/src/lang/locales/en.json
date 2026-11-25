@@ -228,7 +228,7 @@
     "scriptCloudExclusive": "GL.iNet Cloud and this self-hosted cloud cannot be used together on a device. Turn GL.iNet Cloud off on the device before adding it: once added, GL.iNet Cloud stops working on it.",
     "scriptStepCloudOff": "Turn GL.iNet Cloud off in the device's local web UI.",
     "scriptStepRun": "Open the device's terminal (SSH, or the terminal in its local web UI), paste the script below and run it.",
-    "scriptStepOnline": "The device shows up in the device list within a few seconds. Devices added with an older version of the script should run this one too, so they check the platform's certificate.",
+    "scriptStepOnline": "The device shows up in the device list within a few seconds. Devices added with an older version of the script should run this one too, so they check the platform's certificate. A device that joined this cloud with an access code before has to be deleted from the device list first.",
     "scriptTitle": "Script",
     "scriptTokenWarning": "The script holds this platform's device token. Do not share it.",
     "scriptCAFingerprint": "Platform CA fingerprint (SHA-256), also in the server log and the script's output:",
