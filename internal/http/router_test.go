@@ -20,6 +20,7 @@ import (
 	"rttys/internal/domain/user"
 	"rttys/internal/http/dto"
 	"rttys/internal/http/middleware"
+	"rttys/internal/legacyscript"
 	"rttys/internal/pkg/pki"
 	"rttys/internal/store/memory"
 	"rttys/internal/store/sqlite"
@@ -37,7 +38,7 @@ type apiFixture struct {
 
 // newAPI serves the API routes over a temp database with one admin (session
 // "sid-admin") and one regular user ("sid-alice").
-func newAPI(t *testing.T, cfg *xconfig.Config) *apiFixture {
+func newAPI(t *testing.T, cfg *xconfig.Config, opts ...func(*Deps)) *apiFixture {
 	t.Helper()
 	ctx := context.Background()
 	db, err := sqlite.Open(ctx, sqlite.Options{DSN: filepath.Join(t.TempDir(), "api.db")})
@@ -63,7 +64,7 @@ func newAPI(t *testing.T, cfg *xconfig.Config) *apiFixture {
 	r.Use(middleware.Trace())
 	groupRepo := sqlite.NewGroupRepo(g)
 	f := &apiFixture{r: r, access: sqlite.NewAccessRepo(g), db: db}
-	RegisterAPIRoutes(r, Deps{
+	d := Deps{
 		UserSvc:           user.NewService(sqlite.NewUserRepo(g)),
 		PermSvc:           permission.NewService(memory.NewPermissionRepo()),
 		DevSvc:            device.NewService(sqlite.NewDeviceRepo(g), groupRepo),
@@ -76,7 +77,11 @@ func newAPI(t *testing.T, cfg *xconfig.Config) *apiFixture {
 		AccessRepo:        f.access,
 		DisconnectDevice:  func(devid string) { f.disconnected = append(f.disconnected, devid) },
 		Cfg:               cfg,
-	})
+	}
+	for _, o := range opts {
+		o(&d)
+	}
+	RegisterAPIRoutes(r, d)
 	return f
 }
 
@@ -282,3 +287,58 @@ func TestDeleteDeviceRevokesAccess(t *testing.T) {
 		t.Errorf("second delete: code=%q, want %q", env.Code, dto.CodeNotFound)
 	}
 }
+
+func withLegacyScript(d *Deps) {
+	d.LegacyScript = func(reqHost string) (legacyscript.Script, error) {
+		return legacyscript.Script{Text: "#!/bin/sh\nTOKEN='device-token'\n", CAFingerprint: "AA:BB"}, nil
+	}
+}
+
+// The script holds the device token, so only roles with device.write (admin)
+// may read it, and only while legacy token access is on.
+func TestScriptInfo(t *testing.T) {
+	f := newAPI(t, &xconfig.Config{Token: "device-token", LegacyTokenAccess: true}, withLegacyScript)
+
+	var data dto.LegacyScriptResp
+	env := f.call(t, http.MethodGet, "/api/script-info", "sid-alice", nil)
+	_ = json.Unmarshal(env.Data, &data)
+	if env.Code != dto.CodeForbidden || data.Script != "" {
+		t.Errorf("regular user: code=%q script=%q, want %q and no script", env.Code, data.Script, dto.CodeForbidden)
+	}
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/script-info", nil)
+	req.AddCookie(&http.Cookie{Name: "sid", Value: "sid-admin"})
+	f.r.ServeHTTP(w, req)
+	var got envelope
+	_ = json.Unmarshal(w.Body.Bytes(), &got)
+	data = dto.LegacyScriptResp{}
+	_ = json.Unmarshal(got.Data, &data)
+	if got.Code != dto.CodeOK || data.Script == "" || data.CAFingerprint != "AA:BB" {
+		t.Errorf("admin: code=%q resp=%+v, want the script and the CA fingerprint", got.Code, data)
+	}
+	if cc := w.Header().Get("Cache-Control"); cc != "no-store" {
+		t.Errorf("Cache-Control = %q, want no-store: the response holds the token", cc)
+	}
+
+	var acc dto.DeviceAccessResp
+	_ = json.Unmarshal(f.call(t, http.MethodGet, "/api/device-access", "sid-admin", nil).Data, &acc)
+	if !acc.LegacyScript {
+		t.Error("device-access does not offer the script while legacy token access is on")
+	}
+}
+
+func TestScriptInfoOffWithoutLegacyTokenAccess(t *testing.T) {
+	f := newAPI(t, &xconfig.Config{LegacyTokenAccess: false}, withLegacyScript)
+
+	env := f.call(t, http.MethodGet, "/api/script-info", "sid-admin", nil)
+	if env.Code != dto.CodeValidationFailed {
+		t.Errorf("script-info with legacy token access off: code=%q, want %q", env.Code, dto.CodeValidationFailed)
+	}
+	var acc dto.DeviceAccessResp
+	_ = json.Unmarshal(f.call(t, http.MethodGet, "/api/device-access", "sid-admin", nil).Data, &acc)
+	if acc.LegacyScript {
+		t.Error("device-access offers the script while legacy token access is off")
+	}
+}
+

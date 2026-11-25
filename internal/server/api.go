@@ -40,6 +40,7 @@ import (
 	"rttys/internal/domain/user"
 	httpx "rttys/internal/http"
 	"rttys/internal/http/middleware"
+	"rttys/internal/legacyscript"
 	"rttys/internal/pkg/password"
 	"rttys/internal/proxy"
 	"rttys/internal/store/memory"
@@ -123,6 +124,9 @@ func InitAppContainer(r *gin.Engine, disconnectDevice func(devid string)) (*AppC
 		NotificationSvc:   notificationSvc,
 		AccessRepo:        sqlite.NewAccessRepo(appDB.Gorm()),
 		DisconnectDevice:  disconnectDevice,
+		LegacyScript: func(reqHost string) (legacyscript.Script, error) {
+			return legacyScript(cfg, reqHost)
+		},
 		Cfg:               cfg,
 		CloudVersion:      KVMCloudVersion,
 	})

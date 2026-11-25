@@ -17,6 +17,16 @@ type DeviceAccessResp struct {
 	Addr           string `json:"addr"` // host:port put into access codes; "" = not configured
 	Port           string `json:"port"`
 	OutdatedBundle bool   `json:"outdatedBundle"` // the compose file does not publish the port
+	// The platform still takes KVMs on firmware below V1.11.0, added with a
+	// script (legacy token access is on).
+	LegacyScript bool `json:"legacyScript"`
+}
+
+// LegacyScriptResp is the script that adds a KVM on firmware below V1.11.0.
+// It holds the device token.
+type LegacyScriptResp struct {
+	Script        string `json:"script"`
+	CAFingerprint string `json:"caFingerprint"` // SHA-256 of the deployment CA in the script
 }
 
 type CreateRegistrationCodesResp struct {

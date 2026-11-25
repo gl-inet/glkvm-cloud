@@ -11,7 +11,8 @@ import (
 	"time"
 )
 
-// Device CONTROL plane authorization (/connect, /cmd, /web).
+// Device CONTROL plane authorization (/connect, /cmd, /web) and credential
+// exposure via /api/script-info.
 //
 // A logged-in session alone must NOT be enough to drive a device: the caller
 // also has to be allowed to see that specific device. The device LIST already
@@ -168,6 +169,28 @@ func TestE2E_DeviceControlAuthz(t *testing.T) {
 			if got := anon.ctrl(t, p.method, p.path, nil); got != http.StatusUnauthorized {
 				t.Errorf("%s: anonymous request returned http=%d, want 401", p.name, got)
 			}
+		}
+	})
+
+	// /api/script-info hands out the script for old-firmware KVMs, which holds
+	// the device token and the TURN credentials, so it must be restricted to
+	// roles that may add devices.
+	t.Run("script_info_admin_only", func(t *testing.T) {
+		_, env, err := user.do("GET", "/api/script-info", nil, true)
+		if err != nil {
+			t.Fatalf("script-info as user: %v", err)
+		}
+		if env.OK {
+			t.Errorf("script-info: regular user got code=%s, want a denial", env.Code)
+		}
+
+		_, env, err = admin.do("GET", "/api/script-info", nil, true)
+		if err != nil {
+			t.Fatalf("script-info as admin: %v", err)
+		}
+		// VALIDATION_FAILED: the target has legacy token access off.
+		if !env.OK && env.Code != "VALIDATION_FAILED" {
+			t.Errorf("script-info: admin got code=%s, want it to work", env.Code)
 		}
 	})
 }

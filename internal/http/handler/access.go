@@ -13,6 +13,7 @@ import (
 	"rttys/internal/domain/access"
 	"rttys/internal/http/dto"
 	"rttys/internal/http/middleware"
+	"rttys/internal/legacyscript"
 	"rttys/internal/store/sqlite"
 	"rttys/xconfig"
 
@@ -28,10 +29,17 @@ type AccessHandler struct {
 	ca   []byte // DER of the deployment CA
 
 	outdatedBundle bool // the compose file does not publish the mTLS port
+
+	// legacyScript renders the old-firmware add device script for the web
+	// host of the request; nil while legacy token access is off.
+	legacyScript func(reqHost string) (legacyscript.Script, error)
 }
 
-func NewAccessHandler(repo *sqlite.AccessRepo, cfg *xconfig.Config) *AccessHandler {
+func NewAccessHandler(repo *sqlite.AccessRepo, cfg *xconfig.Config, legacyScript func(string) (legacyscript.Script, error)) *AccessHandler {
 	h := &AccessHandler{repo: repo, outdatedBundle: cfg.OutdatedBundle}
+	if cfg.LegacyTokenAccess {
+		h.legacyScript = legacyScript
+	}
 
 	host := cfg.DeviceAccessHost
 	if host == "" {
@@ -112,7 +120,27 @@ func (h *AccessHandler) CreateCodes(c *gin.Context) {
 func (h *AccessHandler) DeviceAccess(c *gin.Context) {
 	dto.Write(c, dto.Ok(middleware.GetTraceID(c), dto.DeviceAccessResp{
 		Addr: h.addr, Port: h.port, OutdatedBundle: h.outdatedBundle,
+		LegacyScript: h.legacyScript != nil,
 	}))
+}
+
+// GET /api/script-info: the script that adds a KVM on firmware below V1.11.0,
+// for the add device dialog. It holds the device token, so admins only, and
+// only while legacy token access is on.
+func (h *AccessHandler) LegacyScript(c *gin.Context) {
+	traceID := middleware.GetTraceID(c)
+	if h.legacyScript == nil {
+		dto.Write(c, dto.Err(traceID, dto.CodeValidationFailed,
+			"Adding devices by script is off: set RTTYS_LEGACY_TOKEN_ACCESS=true", nil))
+		return
+	}
+	s, err := h.legacyScript(c.Request.Host)
+	if err != nil {
+		dto.Write(c, dto.Err(traceID, dto.CodeValidationFailed, err.Error(), nil))
+		return
+	}
+	c.Header("Cache-Control", "no-store")
+	dto.Write(c, dto.Ok(traceID, dto.LegacyScriptResp{Script: s.Text, CAFingerprint: s.CAFingerprint}))
 }
 
 // maxCodeIDs caps the codes one ?ids= query may name.

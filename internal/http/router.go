@@ -9,6 +9,7 @@ import (
     "rttys/internal/http/dto"
     "rttys/internal/http/handler"
     "rttys/internal/http/middleware"
+    "rttys/internal/legacyscript"
     "rttys/internal/store/memory"
     "rttys/internal/store/sqlite"
     "rttys/xconfig"
@@ -29,6 +30,9 @@ type Deps struct {
     AccessRepo        *sqlite.AccessRepo
     // DisconnectDevice drops a device's live connection and its sessions.
     DisconnectDevice func(devid string)
+    // LegacyScript renders the add device script for KVMs on firmware below
+    // V1.11.0; used while legacy token access is on.
+    LegacyScript func(reqHost string) (legacyscript.Script, error)
     Cfg               *xconfig.Config
     CloudVersion      string
 }
@@ -50,7 +54,7 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
     personalH := handler.NewPersonalHandler(d.UserSvc, d.TrustedDeviceRepo, "GLKVM Cloud")
     devLogH := handler.NewDeviceLogHandler(d.DeviceLogSvc)
     notifH := handler.NewNotificationHandler(d.NotificationSvc)
-    accessH := handler.NewAccessHandler(d.AccessRepo, cfg)
+    accessH := handler.NewAccessHandler(d.AccessRepo, cfg, d.LegacyScript)
 
     // public
     r.GET("/auth-config", func(c *gin.Context) {
@@ -99,6 +103,8 @@ func RegisterAPIRoutes(r *gin.Engine, d Deps) {
     api.GET("/registration-codes", middleware.Require(permission.DeviceWrite), accessH.ListCodes)
     api.POST("/registration-codes", middleware.Require(permission.DeviceWrite), accessH.CreateCodes)
     api.DELETE("/registration-codes/:id", middleware.Require(permission.DeviceWrite), accessH.RevokeCode)
+    // script adding KVMs on firmware below V1.11.0 (admin: it holds the device token)
+    api.GET("/script-info", middleware.Require(permission.DeviceWrite), accessH.LegacyScript)
 
     // --- users ---
     api.GET("/users", middleware.Require(permission.UserRead), userH.ListUsers)
