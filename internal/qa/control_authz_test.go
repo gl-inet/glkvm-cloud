@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 )
@@ -32,6 +33,13 @@ import (
 // (not the Bearer header), and they answer with redirects on success, so
 // redirects are left unfollowed and the status code is the assertion.
 func (c *client) ctrl(t *testing.T, method, path string, body any) int {
+	t.Helper()
+	status, _ := c.ctrlType(t, method, path, body)
+	return status
+}
+
+// ctrlType is ctrl, also returning the response's content type.
+func (c *client) ctrlType(t *testing.T, method, path string, body any) (int, string) {
 	t.Helper()
 	var rdr io.Reader
 	if body != nil {
@@ -59,7 +67,7 @@ func (c *client) ctrl(t *testing.T, method, path string, body any) int {
 	}
 	defer resp.Body.Close()
 	io.Copy(io.Discard, resp.Body)
-	return resp.StatusCode
+	return resp.StatusCode, resp.Header.Get("Content-Type")
 }
 
 // controlProbes returns the control endpoints for devid.
@@ -171,9 +179,12 @@ func TestE2E_DeviceControlAuthz(t *testing.T) {
 
 	// Commands ran on the device with no device password, as any user the
 	// caller named; the route is gone, even for admins.
+	// Unknown paths outside /api get the web UI's page, so "gone" means a 404
+	// or that page, never a JSON reply from a command handler.
 	t.Run("cmd_route_gone", func(t *testing.T) {
-		if got := admin.ctrl(t, http.MethodPost, "/cmd/qae2e_authz_in", nil); got != http.StatusNotFound {
-			t.Errorf("POST /cmd as admin returned http=%d, want 404", got)
+		status, ctype := admin.ctrlType(t, http.MethodPost, "/cmd/qae2e_authz_in", nil)
+		if status != http.StatusNotFound && !strings.HasPrefix(ctype, "text/html") {
+			t.Errorf("POST /cmd as admin returned http=%d %q, want 404 or the web UI page", status, ctype)
 		}
 	})
 
