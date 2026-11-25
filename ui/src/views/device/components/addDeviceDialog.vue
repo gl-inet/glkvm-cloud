@@ -27,15 +27,14 @@
                     showIcon
                     :message="$t('device.outdatedBundleTip', { port: state.access.port })"
                 />
-                <div class="prereq">
-                    <BaseSvg name="gl-icon-info-circle" :size="16" class="prereq-icon"></BaseSvg>
-                    <div>
-                        <BaseText el="div" type="body-r">{{ $t('device.addDeviceFirmwareTip', { version: MIN_FIRMWARE }) }}</BaseText>
-                        <BaseText v-if="state.access?.addr" el="div" type="body-r">
+                <AAlert class="prereq" type="warning" showIcon>
+                    <template #message>
+                        <div>{{ $t('device.addDeviceFirmwareTip', { version: MIN_FIRMWARE }) }}</div>
+                        <div v-if="state.access?.addr">
                             {{ $t('device.accessPortTip', { addr: state.access.addr, port: state.access.port }) }}
-                        </BaseText>
-                    </div>
-                </div>
+                        </div>
+                    </template>
+                </AAlert>
 
                 <ol class="steps">
                     <AddDeviceStep :index="1" :state="step1" :title="$t('device.stepGenerate')">
@@ -406,19 +405,7 @@ onBeforeUnmount(() => {
 }
 
 .prereq {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
   margin-top: 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: var(--gl-color-bg-container1);
-  color: var(--gl-color-text-level2);
-
-  .prereq-icon {
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
 }
 
 .steps {
