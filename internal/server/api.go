@@ -251,37 +251,6 @@ func (srv *RttyServer) ListenAPI() error {
 		}
 	})
 
-	authorized.POST("/cmd/:devid", func(c *gin.Context) {
-		if !canAccessDevice(c, c.Param("devid")) {
-			c.JSON(http.StatusForbidden, gin.H{
-				"err": rttyCmdErrForbidden,
-				"msg": cmdErrMsg[rttyCmdErrForbidden],
-			})
-			return
-		}
-
-		if !callUserHookUrl(cfg, c) {
-			c.Status(http.StatusForbidden)
-			return
-		}
-
-		cmdInfo := &CommandReqInfo{}
-
-		err := c.BindJSON(&cmdInfo)
-		if err != nil || cmdInfo.Cmd == "" || cmdInfo.Username == "" {
-			cmdErrResp(c, rttyCmdErrInvalid)
-			return
-		}
-
-		dev := srv.GetDevice(c.Query("group"), c.Param("devid"))
-		if dev == nil {
-			cmdErrResp(c, rttyCmdErrOffline)
-			return
-		}
-
-		dev.handleCmdReq(c, cmdInfo)
-	})
-
 	authorized.Any("/web/:devid/:proto/:addr/*path", func(c *gin.Context) {
 		if !canAccessDevice(c, c.Param("devid")) {
 			forbidDeviceAccess(c)

@@ -72,10 +72,9 @@ type Device struct {
 	clientInfoMu sync.RWMutex
 	clientInfo   []byte
 
-	users    sync.Map
-	pending  sync.Map
-	commands sync.Map
-	https    sync.Map
+	users   sync.Map
+	pending sync.Map
+	https   sync.Map
 
 	conn    net.Conn
 	br      *bufio.Reader
@@ -105,7 +104,7 @@ const (
 	msgTypeLogout
 	msgTypeTermData
 	msgTypeWinsize
-	msgTypeCmd
+	msgTypeCmd // no longer sent: the platform does not run commands on devices
 	msgTypeHeartbeat
 	msgTypeFile
 	msgTypeHttp
@@ -161,7 +160,6 @@ const (
 	WaitRegistTimeout       = 5 * time.Second
 	DefaultHeartbeat        = 5 * time.Second
 	TermLoginTimeout        = 5 * time.Second
-	CommandTimeout          = 30
 	MaxDeviceInfoSize       = 8 * 1024
 )
 
@@ -184,7 +182,6 @@ var DeviceMsgHandlers = map[byte]func(*Device, []byte) error{
 	msgTypeLogout:     handleLogoutMsg,
 	msgTypeTermData:   handleTermDataMsg,
 	msgTypeFile:       handleFileMsg,
-	msgTypeCmd:        handleCmdMsg,
 	msgTypeHttp:       handleHttpMsg,
 	msgTypeDeviceInfo: handleDeviceInfoMsg,
 	msgTypeCtrl:       handleCtrlMsg,
@@ -849,34 +846,6 @@ func handleHttpMsg(dev *Device, data []byte) error {
 		} else {
 			c.Write(data)
 		}
-	}
-
-	return nil
-}
-
-func handleCmdMsg(dev *Device, data []byte) error {
-	info := &CommandRespInfo{}
-
-	err := jsoniter.Unmarshal(data, info)
-	if err != nil {
-		return fmt.Errorf("parse command resp info error: %v", err)
-	}
-
-	var attrs map[string]any
-	err = jsoniter.Unmarshal(info.Attrs, &attrs)
-	if err != nil {
-		return fmt.Errorf("parse command resp attrs error: %v", err)
-	}
-
-	attrs["devid"] = dev.id
-
-	if val, ok := dev.commands.LoadAndDelete(info.Token); ok {
-		req := val.(*CommandReq)
-		req.respondOnce.Do(func() {
-			req.acked = true
-			req.c.JSON(http.StatusOK, attrs)
-		})
-		req.cancel()
 	}
 
 	return nil

@@ -11,8 +11,9 @@ import (
 	"time"
 )
 
-// Device CONTROL plane authorization (/connect, /cmd, /web) and credential
-// exposure via /api/script-info.
+// Device CONTROL plane authorization (/connect, /web) and credential exposure
+// via /api/script-info. The platform no longer runs commands on devices, so
+// /cmd must be gone for everyone.
 //
 // A logged-in session alone must NOT be enough to drive a device: the caller
 // also has to be allowed to see that specific device. The device LIST already
@@ -61,14 +62,10 @@ func (c *client) ctrl(t *testing.T, method, path string, body any) int {
 	return resp.StatusCode
 }
 
-// controlProbes returns the three control endpoints for devid. The /cmd probe
-// deliberately carries an empty body: authorization is checked before the body
-// is parsed, so an allowed caller gets "invalid format" back and no command is
-// ever dispatched to the device.
+// controlProbes returns the control endpoints for devid.
 func controlProbes(devid string) []struct{ name, method, path string } {
 	return []struct{ name, method, path string }{
 		{"connect", http.MethodGet, "/connect/" + devid},
-		{"cmd", http.MethodPost, "/cmd/" + devid},
 		{"web", http.MethodGet, "/web/" + devid + "/http/127.0.0.1:80/"},
 	}
 }
@@ -169,6 +166,14 @@ func TestE2E_DeviceControlAuthz(t *testing.T) {
 			if got := anon.ctrl(t, p.method, p.path, nil); got != http.StatusUnauthorized {
 				t.Errorf("%s: anonymous request returned http=%d, want 401", p.name, got)
 			}
+		}
+	})
+
+	// Commands ran on the device with no device password, as any user the
+	// caller named; the route is gone, even for admins.
+	t.Run("cmd_route_gone", func(t *testing.T) {
+		if got := admin.ctrl(t, http.MethodPost, "/cmd/qae2e_authz_in", nil); got != http.StatusNotFound {
+			t.Errorf("POST /cmd as admin returned http=%d, want 404", got)
 		}
 	})
 
