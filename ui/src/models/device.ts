@@ -72,6 +72,15 @@ export interface DeviceAccess {
     port: string
     /** 部署文件早于 3.0：compose 没有对外开放这个端口 */
     outdatedBundle: boolean
+    /** 平台仍接受旧 token 接入：固件低于 V1.11.0 的设备可以用脚本添加 */
+    legacyScript: boolean
+}
+
+/** 固件低于 V1.11.0 的设备用的添加脚本 */
+export interface LegacyScript {
+    script: string
+    /** 脚本里平台 CA 的 SHA-256 指纹 */
+    caFingerprint: string
 }
 
 /** 执行命令表单参数 */

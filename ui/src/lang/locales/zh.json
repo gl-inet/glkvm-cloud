@@ -170,7 +170,7 @@
     "dragColumnTips": "您可以自定义您的设备列表，拖动下列项右侧的按钮来调整显示顺序，也可以通过复选框来控制显示或隐藏某些列。",
     "accessCodeCount": "数量",
     "addDeviceSubtitle": "生成一次性接入码，在设备上粘贴，设备就会加入这个平台。",
-    "addDeviceFirmwareTip": "设备固件需升级到 {version} 或更高版本，才能用接入码添加。在设备终端执行脚本的接入方式已不再支持，之前用这种方式接入的设备不受影响，可以继续使用。",
+    "addDeviceFirmwareTip": "设备固件需为 {version} 或更高版本，才能用接入码添加。之前用脚本添加的设备不受影响，可以继续使用。",
     "accessPortTip": "设备通过 {addr} 接入，服务器的云安全组和防火墙需放行 {port}/TCP。",
     "outdatedBundleTip": "部署文件是旧版本，没有对外开放 {port} 端口，设备粘贴接入码后会连不上。用一键安装脚本装的，在原来的目录重新运行安装脚本即可；手动安装的，请按 README 的升级步骤更新部署文件（保留 .env 和 database 目录）。",
     "addDeviceDone": "完成",
@@ -222,7 +222,17 @@
     },
     "revokeAccessCode": "作废",
     "revokeAccessCodeConfirm": "确定作废这个接入码吗？作废后设备无法再用它接入。",
-    "revokeAccessCodeSuccess": "已作废"
+    "revokeAccessCodeSuccess": "已作废",
+    "addByAccessCode": "接入码",
+    "addByScript": "脚本（固件低于 {version}）",
+    "scriptCloudExclusive": "GL 官方云和自部署云只能二选一。添加前请先在设备上关闭 GL 官方云，添加后这台设备将无法使用官方云。",
+    "scriptStepCloudOff": "在设备本地网页上关闭 GL 官方云。",
+    "scriptStepRun": "打开设备终端（SSH，或设备本地网页里的终端），粘贴下面的脚本并执行。",
+    "scriptStepOnline": "几秒钟后设备会出现在设备列表里。之前用旧版脚本添加的设备，建议重新执行一次这份脚本，这样设备会校验平台证书。",
+    "scriptTitle": "脚本",
+    "scriptTokenWarning": "脚本里包含平台的设备令牌，请勿外传。",
+    "scriptCAFingerprint": "平台 CA 指纹（SHA-256），服务器日志和脚本输出里也有，可用来核对：",
+    "scriptLoadFailed": "脚本加载失败。"
   },
   "user": {
     "user": "用户",

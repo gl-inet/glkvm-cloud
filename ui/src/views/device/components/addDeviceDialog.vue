@@ -17,147 +17,153 @@
         @ok="close"
         @close="close"
     >
-        <BaseText el="div" type="body-r" class="subtitle">{{ $t('device.addDeviceSubtitle') }}</BaseText>
-        <AAlert
-            v-if="state.access?.outdatedBundle"
-            class="outdated-bundle"
-            type="warning"
-            showIcon
-            :message="$t('device.outdatedBundleTip', { port: state.access.port })"
-        />
-        <div class="prereq">
-            <BaseSvg name="gl-icon-info-circle" :size="16" class="prereq-icon"></BaseSvg>
-            <div>
-                <BaseText el="div" type="body-r">{{ $t('device.addDeviceFirmwareTip', { version: MIN_FIRMWARE }) }}</BaseText>
-                <BaseText v-if="state.access?.addr" el="div" type="body-r">
-                    {{ $t('device.accessPortTip', { addr: state.access.addr, port: state.access.port }) }}
-                </BaseText>
-            </div>
-        </div>
-
-        <ol class="steps">
-            <AddDeviceStep :index="1" :state="step1" :title="$t('device.stepGenerate')">
-                <template v-if="!state.codes.length">
-                    <BaseText el="div" type="body-r" class="step-desc">{{ $t('device.stepGenerateDesc') }}</BaseText>
-                    <div v-if="!state.batchOpen" class="actions">
-                        <BaseButton type="primary" :loading="state.generating" @click="generate(1)">
-                            {{ $t('device.generateAccessCode') }}
-                        </BaseButton>
-                        <button type="button" class="link" @click="state.batchOpen = true">{{ $t('device.batchGenerateLink') }}</button>
+        <AddDeviceModes :script="!!state.access?.legacyScript" :minFirmware="MIN_FIRMWARE">
+            <template #code>
+                <BaseText el="div" type="body-r" class="subtitle">{{ $t('device.addDeviceSubtitle') }}</BaseText>
+                <AAlert
+                    v-if="state.access?.outdatedBundle"
+                    class="outdated-bundle"
+                    type="warning"
+                    showIcon
+                    :message="$t('device.outdatedBundleTip', { port: state.access.port })"
+                />
+                <div class="prereq">
+                    <BaseSvg name="gl-icon-info-circle" :size="16" class="prereq-icon"></BaseSvg>
+                    <div>
+                        <BaseText el="div" type="body-r">{{ $t('device.addDeviceFirmwareTip', { version: MIN_FIRMWARE }) }}</BaseText>
+                        <BaseText v-if="state.access?.addr" el="div" type="body-r">
+                            {{ $t('device.accessPortTip', { addr: state.access.addr, port: state.access.port }) }}
+                        </BaseText>
                     </div>
-                </template>
+                </div>
 
-                <template v-else>
-                    <div v-if="isBatch" class="codes-head">
-                        <BaseText type="body-r">{{ $t('device.generatedCount', { n: state.codes.length }) }}</BaseText>
-                        <button type="button" class="link" @click="copyAll">
-                            {{ state.copied === 'all' ? $t('device.copiedAll') : $t('device.copyAll') }}
-                        </button>
-                    </div>
-                    <div class="code-list">
-                        <div
-                            v-for="(item, index) in state.codes"
-                            :key="item.id"
-                            class="code-card"
-                            :class="{ settled: item.status !== 'unused' }"
-                        >
-                            <span v-if="isBatch" class="code-no">#{{ index + 1 }}</span>
-                            <code class="code-text" :title="item.accessCode">{{ shorten(item.accessCode) }}</code>
-                            <span v-if="item.status === 'used'" class="code-chip joined">
-                                <BaseSvg name="gl-icon-check-regular" :size="12"></BaseSvg>{{ item.devid }}
-                            </span>
-                            <span v-else-if="item.status !== 'unused'" class="code-chip">
-                                {{ $t(`device.accessCodeStatus.${item.status}`) }}
-                            </span>
-                            <BaseButton v-else size="small" class="copy-btn" @click="copyOne(item)">
-                                <svg v-if="state.copied === item.id" class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M5 12.5l4.5 4.5L19 7.5"></path>
+                <ol class="steps">
+                    <AddDeviceStep :index="1" :state="step1" :title="$t('device.stepGenerate')">
+                        <template v-if="!state.codes.length">
+                            <BaseText el="div" type="body-r" class="step-desc">{{ $t('device.stepGenerateDesc') }}</BaseText>
+                            <div v-if="!state.batchOpen" class="actions">
+                                <BaseButton type="primary" :loading="state.generating" @click="generate(1)">
+                                    {{ $t('device.generateAccessCode') }}
+                                </BaseButton>
+                                <button type="button" class="link" @click="state.batchOpen = true">{{ $t('device.batchGenerateLink') }}</button>
+                            </div>
+                        </template>
+
+                        <template v-else>
+                            <div v-if="isBatch" class="codes-head">
+                                <BaseText type="body-r">{{ $t('device.generatedCount', { n: state.codes.length }) }}</BaseText>
+                                <button type="button" class="link" @click="copyAll">
+                                    {{ state.copied === 'all' ? $t('device.copiedAll') : $t('device.copyAll') }}
+                                </button>
+                            </div>
+                            <div class="code-list">
+                                <div
+                                    v-for="(item, index) in state.codes"
+                                    :key="item.id"
+                                    class="code-card"
+                                    :class="{ settled: item.status !== 'unused' }"
+                                >
+                                    <span v-if="isBatch" class="code-no">#{{ index + 1 }}</span>
+                                    <code class="code-text" :title="item.accessCode">{{ shorten(item.accessCode) }}</code>
+                                    <span v-if="item.status === 'used'" class="code-chip joined">
+                                        <BaseSvg name="gl-icon-check-regular" :size="12"></BaseSvg>{{ item.devid }}
+                                    </span>
+                                    <span v-else-if="item.status !== 'unused'" class="code-chip">
+                                        {{ $t(`device.accessCodeStatus.${item.status}`) }}
+                                    </span>
+                                    <BaseButton v-else size="small" class="copy-btn" @click="copyOne(item)">
+                                        <svg v-if="state.copied === item.id" class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M5 12.5l4.5 4.5L19 7.5"></path>
+                                        </svg>
+                                        <svg v-else class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                                            <rect x="9" y="9" width="11" height="11" rx="2"></rect>
+                                            <path d="M5 15V5a2 2 0 0 1 2-2h10"></path>
+                                        </svg>
+                                        {{ state.copied === item.id ? $t('device.copied') : $t('device.copy') }}
+                                    </BaseButton>
+                                </div>
+                            </div>
+                            <div class="code-warn">
+                                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="9"></circle>
+                                    <path d="M12 7v5l3 2"></path>
                                 </svg>
-                                <svg v-else class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                                    <rect x="9" y="9" width="11" height="11" rx="2"></rect>
-                                    <path d="M5 15V5a2 2 0 0 1 2-2h10"></path>
-                                </svg>
-                                {{ state.copied === item.id ? $t('device.copied') : $t('device.copy') }}
+                                <span>{{ $t('device.accessCodeShownOnce') }}</span>
+                            </div>
+                            <div v-if="!state.batchOpen" class="more">
+                                <span>{{ $t('device.addMoreDevices') }}</span>
+                                <button type="button" class="link" :disabled="state.generating" @click="generate(1)">{{ $t('device.generateOneMore') }}</button>
+                                <span aria-hidden="true">·</span>
+                                <button type="button" class="link" @click="state.batchOpen = true">{{ $t('device.batchGenerate') }}</button>
+                            </div>
+                        </template>
+
+                        <div v-if="state.batchOpen" class="batch-panel">
+                            <BaseText type="body-r">{{ $t('device.accessCodeCount') }}</BaseText>
+                            <AInputNumber v-model:value="state.count" :min="2" :max="MAX_CODES" :precision="0" class="count-input" />
+                            <BaseText type="caption-r" class="muted">{{ $t('device.maxCodesHint', { n: MAX_CODES }) }}</BaseText>
+                            <span class="spacer"></span>
+                            <button type="button" class="link" @click="state.batchOpen = false">{{ $t('common.cancel') }}</button>
+                            <BaseButton type="primary" :loading="state.generating" @click="generate(batchCount)">
+                                {{ $t('device.generateN', { n: batchCount }) }}
                             </BaseButton>
                         </div>
-                    </div>
-                    <div class="code-warn">
-                        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                            <circle cx="12" cy="12" r="9"></circle>
-                            <path d="M12 7v5l3 2"></path>
-                        </svg>
-                        <span>{{ $t('device.accessCodeShownOnce') }}</span>
-                    </div>
-                    <div v-if="!state.batchOpen" class="more">
-                        <span>{{ $t('device.addMoreDevices') }}</span>
-                        <button type="button" class="link" :disabled="state.generating" @click="generate(1)">{{ $t('device.generateOneMore') }}</button>
-                        <span aria-hidden="true">·</span>
-                        <button type="button" class="link" @click="state.batchOpen = true">{{ $t('device.batchGenerate') }}</button>
-                    </div>
-                </template>
+                    </AddDeviceStep>
 
-                <div v-if="state.batchOpen" class="batch-panel">
-                    <BaseText type="body-r">{{ $t('device.accessCodeCount') }}</BaseText>
-                    <AInputNumber v-model:value="state.count" :min="2" :max="MAX_CODES" :precision="0" class="count-input" />
-                    <BaseText type="caption-r" class="muted">{{ $t('device.maxCodesHint', { n: MAX_CODES }) }}</BaseText>
-                    <span class="spacer"></span>
-                    <button type="button" class="link" @click="state.batchOpen = false">{{ $t('common.cancel') }}</button>
-                    <BaseButton type="primary" :loading="state.generating" @click="generate(batchCount)">
-                        {{ $t('device.generateN', { n: batchCount }) }}
-                    </BaseButton>
-                </div>
-            </AddDeviceStep>
+                    <AddDeviceStep :index="2" :state="step2" :title="$t('device.stepPaste')">
+                        <BaseText el="div" type="body-r" class="step-desc">{{ $t('device.stepPasteDesc') }}</BaseText>
+                        <!-- 示意：设备本地网页上粘贴接入码的位置 -->
+                        <div class="sketch" aria-hidden="true">
+                            <div class="sketch-head">
+                                <span>{{ $t('device.pasteSketchPath') }}</span>
+                                <span>{{ $t('device.pasteSketchTag') }}</span>
+                            </div>
+                            <div class="sketch-row">
+                                <div class="sketch-input">{{ $t('device.pasteSketchPlaceholder') }}</div>
+                                <div class="sketch-btn">{{ $t('device.pasteSketchSave') }}</div>
+                            </div>
+                        </div>
+                    </AddDeviceStep>
 
-            <AddDeviceStep :index="2" :state="step2" :title="$t('device.stepPaste')">
-                <BaseText el="div" type="body-r" class="step-desc">{{ $t('device.stepPasteDesc') }}</BaseText>
-                <!-- 示意：设备本地网页上粘贴接入码的位置 -->
-                <div class="sketch" aria-hidden="true">
-                    <div class="sketch-head">
-                        <span>{{ $t('device.pasteSketchPath') }}</span>
-                        <span>{{ $t('device.pasteSketchTag') }}</span>
-                    </div>
-                    <div class="sketch-row">
-                        <div class="sketch-input">{{ $t('device.pasteSketchPlaceholder') }}</div>
-                        <div class="sketch-btn">{{ $t('device.pasteSketchSave') }}</div>
-                    </div>
-                </div>
-            </AddDeviceStep>
+                    <AddDeviceStep :index="3" :state="step2" :title="$t('device.stepOnline')" last>
+                        <BaseText v-if="!state.codes.length" el="div" type="body-r" class="step-desc muted">
+                            {{ $t('device.stepOnlineIdle') }}
+                        </BaseText>
 
-            <AddDeviceStep :index="3" :state="step2" :title="$t('device.stepOnline')" last>
-                <BaseText v-if="!state.codes.length" el="div" type="body-r" class="step-desc muted">
-                    {{ $t('device.stepOnlineIdle') }}
-                </BaseText>
+                        <template v-else-if="!isBatch">
+                            <div v-if="state.codes[0].status === 'unused'" class="banner banner-wait">
+                                <svg class="icon spin" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.56"></path></svg>
+                                <span>{{ $t('device.waitingDevice') }}</span>
+                            </div>
+                            <div v-else-if="state.codes[0].status === 'used'" class="banner banner-done">
+                                <BaseSvg name="gl-icon-circle-check-solid" :size="16"></BaseSvg>
+                                <span class="banner-text">{{ $t('device.deviceJoined', { devid: state.codes[0].devid }) }}</span>
+                                <button type="button" class="link" @click="viewDevices">{{ $t('device.viewDevices') }}</button>
+                            </div>
+                            <div v-else class="banner banner-neutral">
+                                <span>{{ state.codes[0].status === 'revoked' ? $t('device.codeRevokedNote') : $t('device.codeExpiredNote') }}</span>
+                            </div>
+                        </template>
 
-                <template v-else-if="!isBatch">
-                    <div v-if="state.codes[0].status === 'unused'" class="banner banner-wait">
-                        <svg class="icon spin" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.56"></path></svg>
-                        <span>{{ $t('device.waitingDevice') }}</span>
-                    </div>
-                    <div v-else-if="state.codes[0].status === 'used'" class="banner banner-done">
-                        <BaseSvg name="gl-icon-circle-check-solid" :size="16"></BaseSvg>
-                        <span class="banner-text">{{ $t('device.deviceJoined', { devid: state.codes[0].devid }) }}</span>
-                        <button type="button" class="link" @click="viewDevices">{{ $t('device.viewDevices') }}</button>
-                    </div>
-                    <div v-else class="banner banner-neutral">
-                        <span>{{ state.codes[0].status === 'revoked' ? $t('device.codeRevokedNote') : $t('device.codeExpiredNote') }}</span>
-                    </div>
-                </template>
+                        <div v-else class="progress-box">
+                            <div class="progress-head">
+                                <svg v-if="waiting" class="icon spin brand" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M21 12a9 9 0 1 1-6.2-8.56"></path>
+                                </svg>
+                                <BaseSvg v-else-if="allJoined" name="gl-icon-circle-check-solid" :size="16" class="success"></BaseSvg>
+                                <span class="banner-text">{{ $t('device.joinedProgress', { n: joinedCount, total: state.codes.length }) }}</span>
+                                <button v-if="joinedCount" type="button" class="link" @click="viewDevices">{{ $t('device.viewDevices') }}</button>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-bar" :style="{ width: `${progress}%` }"></div>
+                            </div>
+                        </div>
+                    </AddDeviceStep>
+                </ol>
 
-                <div v-else class="progress-box">
-                    <div class="progress-head">
-                        <svg v-if="waiting" class="icon spin brand" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.56"></path></svg>
-                        <BaseSvg v-else-if="allJoined" name="gl-icon-circle-check-solid" :size="16" class="success"></BaseSvg>
-                        <span class="banner-text">{{ $t('device.joinedProgress', { n: joinedCount, total: state.codes.length }) }}</span>
-                        <button v-if="joinedCount" type="button" class="link" @click="viewDevices">{{ $t('device.viewDevices') }}</button>
-                    </div>
-                    <div class="progress-track">
-                        <div class="progress-bar" :style="{ width: `${progress}%` }"></div>
-                    </div>
-                </div>
-            </AddDeviceStep>
-        </ol>
-
-        <AccessCodeHistory :items="state.history" @revoke="revoke" />
+                <AccessCodeHistory :items="state.history" @revoke="revoke" />
+            </template>
+        </AddDeviceModes>
     </BaseModal>
 </template>
 
@@ -166,6 +172,7 @@ import { computed, onBeforeUnmount, reactive, watch } from 'vue'
 import BaseModal from '@/components/base/baseModalI18n.vue'
 import AddDeviceStep from './addDeviceStep.vue'
 import AccessCodeHistory from './accessCodeHistory.vue'
+import AddDeviceModes from './addDeviceModes.vue'
 import { createRegistrationCodesApi, getDeviceAccessApi, listRegistrationCodesApi, revokeRegistrationCodeApi } from '@/api/device'
 import { baseCustomModal, copyText } from 'gl-web-main'
 import { message } from 'ant-design-vue'
