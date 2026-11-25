@@ -33,16 +33,6 @@ export interface DeviceQuery {
     order?: 'asc' | 'desc'
 }
 
-/** 执行命令参数 */
-export interface ExecuteCommandParams {
-    id: string
-    group: string
-    wait: number
-    cmd: string
-    params: string[]
-    username: string
-}
-
 /** 接入码状态 */
 export type RegistrationCodeStatus = 'unused' | 'used' | 'expired' | 'revoked'
 
@@ -81,12 +71,4 @@ export interface LegacyScript {
     script: string
     /** 脚本里平台 CA 的 SHA-256 指纹 */
     caFingerprint: string
-}
-
-/** 执行命令表单参数 */
-export interface ExecuteCommandFormData {
-    username: string
-    wait: number
-    cmd: string
-    params: string[]
 }

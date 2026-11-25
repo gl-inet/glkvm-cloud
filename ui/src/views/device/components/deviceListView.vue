@@ -43,7 +43,6 @@
                         @change="handleDeviceColumnsChange"
                     />
                     <BaseButton size="middle" style="margin-right: 12px;" @click="refresh">{{ $t('common.refresh') }}</BaseButton>
-                    <BaseButton size="middle" style="margin-right: 12px;" @click="executeCommand">{{ $t('device.executeCommand') }}</BaseButton>
                     <BaseButton 
                         v-if="hasPermission(PermissionEnum.DEVICE_GROUP_WRITE)"
                         size="middle"
@@ -132,21 +131,6 @@
             </div>
         </div>
 
-        <!-- 批量编辑弹窗 -->
-        <ExecuteCommandDialog 
-            v-model:open="executeCommandOpen"
-            :selection="state.selectedRows"
-            @handleApply="executeCommandApply"
-        />
-
-        <!-- 执行命令结果弹窗 -->
-        <CommandResponseDialog 
-            v-if="commandResponseOpen"
-            v-model:open="commandResponseOpen"
-            :selection="state.selectedRows"
-            :formData="executeCommandFormData"
-        />
-
         <!-- 修改描述弹窗 -->
         <EditDescriptionDialog 
             v-model:open="editDescriptionOpen"
@@ -178,9 +162,7 @@ import { t } from '@/hooks/useLanguage'
 import { useDeviceStore } from '@/stores/modules/device'
 import { message, TableProps, type TableColumnType } from 'ant-design-vue'
 import { computed, reactive, ref } from 'vue'
-import ExecuteCommandDialog from './executeCommandDialog.vue'
-import { DeviceInfo, DeviceStatusEnum, ExecuteCommandFormData } from '@/models/device'
-import CommandResponseDialog from './commandResponseDialog.vue'
+import { DeviceInfo, DeviceStatusEnum } from '@/models/device'
 import { BaseDropdownSelect, BaseTag, GlSvg } from 'gl-web-main/components'
 import EditDescriptionDialog from './editDescriptionDialog.vue'
 import { baseCustomModal, deepClone, macAddressFormatter, SelectOptions } from 'gl-web-main'
@@ -281,28 +263,6 @@ const tableChange: TableProps['onChange'] = (pagination, filters, sorter: any) =
 const refresh = () => {
     deviceStore.getDeviceList()
     message.success(t('device.refreshSuccess'))
-}
-
-/** 批量配置 */
-const executeCommandOpen = ref(false)
-const executeCommand = () => {
-    // 判断是否选择了设备
-    if (!state.selectedRowKeys.length) {
-        message.error(t('device.selectDeviceTips'))
-        return
-    }
-    executeCommandOpen.value = true
-}
-
-/** 批量配置结果弹窗 */
-const commandResponseOpen = ref(false)
-
-const executeCommandFormData = ref<ExecuteCommandFormData>()
-/** 执行命令弹窗提交 */
-const executeCommandApply = (formData: ExecuteCommandFormData) => {
-    executeCommandFormData.value = formData
-    executeCommandOpen.value = false
-    commandResponseOpen.value = true
 }
 
 /** 远程SSH */
