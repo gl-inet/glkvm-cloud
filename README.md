@@ -159,19 +159,19 @@ The device checks the cloud with the CA in the access code, and the cloud checks
 
 ### Devices on Old Firmware
 
-Firmware below v1.11.0 cannot use access codes. Such GL KVM devices are added with a script instead, on port 5912, while `RTTYS_LEGACY_TOKEN_ACCESS` is `true` (the default):
+Firmware below v1.11.0 cannot use access codes. Add such GL KVM devices with a script instead. They connect on port 5912, which is open while `RTTYS_LEGACY_TOKEN_ACCESS` is `true` (the default).
 
-1. Turn GL.iNet Cloud off on the device. GL.iNet Cloud and the self-hosted cloud cannot be used together on a device added this way: on recent firmware both check their server against the same CA file.
+1. Turn GL.iNet Cloud off on the device. A device added this way cannot use both.
 2. On the platform's Devices page, click **Add Device**, switch to the **Script** tab and copy the script.
-3. Open the device's terminal (SSH, or the terminal in its local web UI), paste the script and run it. The device shows up in the device list within a few seconds.
+3. Run the script in the device's terminal (SSH, or the terminal in its local web UI). The device shows up in the device list within a few seconds.
 
-The device checks the cloud against the platform's CA, which the script carries. The dialog shows the CA's fingerprint, and the script and the server log print it, so you can compare them. The script holds the platform's device token: keep it private. The token does not prove which device connects, but a token connection cannot take the ID of a device that joined with an access code: a device that joined this cloud with an access code before (for example, then reset to older firmware) is refused until you delete it on the Devices page; it then joins within seconds.
+The script contains the platform's device token, so keep it private. It also carries the platform's CA, which the device uses to check the cloud; the script prints the CA's fingerprint, so you can compare it with the one in the dialog. A device that joined this cloud with an access code before is refused until you delete it on the Devices page; it then joins on its own within seconds.
 
-Devices added with an older script keep connecting, without checking the cloud's certificate; run the new script on them once. Firmware security updates from November 2026 on (such as 1.10.3) remove the `rtty` options the older script uses, so devices still on it go offline after such an update until the new script is run in their terminal. Devices patched by hand to trust `certificate/glkvm.cer` of a 2.x cloud also need the new script once the cloud runs 3.x.
+Run the new script once on every device added with an older script, including ones patched by hand. Older scripts don't check the cloud's certificate and stop working after firmware security updates such as 1.10.3.
 
-To move a device to access codes, upgrade its firmware to v1.11.0 or later and paste an access code on its **Self-hosted Cloud** page. The device keeps its record, ID and groups in the cloud, switches over without going offline, and removes the script.
+To move a device to access codes, upgrade it to v1.11.0 or later and paste an access code on its **Self-hosted Cloud** page. It keeps its ID and groups, switches over without going offline, and the script is removed.
 
-Only these devices use port 5912. Once none is left, set `RTTYS_LEGACY_TOKEN_ACCESS=false` in `.env` to close it, adding the line if it isn't there; the Script tab then goes away.
+When no device uses a script any more, set `RTTYS_LEGACY_TOKEN_ACCESS=false` in `.env` (add the line if it isn't there) and [restart the services](#restart-the-services) to close port 5912. The Script tab then goes away.
 
 ### KVM Terminal
 
